@@ -1,5 +1,7 @@
 # Tierra Santa · Sistema de gestión
 
+> Para continuar el desarrollo en otra sesión, leer primero **[HANDOFF.md](HANDOFF.md)**.
+
 Aplicación web de **Procesadora de Alimentos Tierra Santa** que reemplaza ERP Clientes, ERP Proveedores (COP y USD), Nómina (Google Apps Script + Sheets) y el programa de facturación de Windows. Se usa en **PC y teléfono**.
 
 **Stack:** Next.js 16 (App Router) + TypeScript estricto · Tailwind CSS 4 + shadcn/ui (Base UI) · Supabase (Postgres, Auth, Storage, RLS) · Zod · react-hook-form · decimal.js · Vitest · Playwright.
