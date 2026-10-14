@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Productos" };
 export default async function PaginaProductos() {
   const supabase = await crearClienteServidor();
   const [{ data: productos }, { data: unidades }] = await Promise.all([
-    supabase.from("productos").select("id, codigo, nombre, emoji, unidad, tipo, modo_pesaje, kg_por_cesta, stock_minimo, activo, notas").order("codigo"),
+    supabase.from("productos").select("id, codigo, nombre, emoji, unidad, tipo, categoria, modo_pesaje, kg_por_cesta, stock_minimo, activo, notas").order("codigo"),
     supabase.from("unidades").select("codigo, nombre").eq("activa", true).order("nombre"),
   ]);
   return <PanelProductos productos={productos ?? []} unidades={unidades ?? []} />;

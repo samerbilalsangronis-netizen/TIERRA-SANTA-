@@ -572,7 +572,7 @@ export type Database = {
           kg_por_cesta: number | null;
           kg_total: number;
           merma: number;
-          modo_pesaje: Database["public"]["Enums"]["modo_pesaje"];
+          modo_pesaje: string;
           moneda: string;
           nota: string | null;
           peso_neto: number;
@@ -581,6 +581,7 @@ export type Database = {
           producto_id: number;
           proveedor_id: number;
           total: number;
+          unidades: number;
           updated_at: string;
         };
         ComputedFields: never;
@@ -596,7 +597,7 @@ export type Database = {
           kg_por_cesta?: number | null;
           kg_total?: number;
           merma?: number;
-          modo_pesaje: Database["public"]["Enums"]["modo_pesaje"];
+          modo_pesaje: string;
           moneda: string;
           nota?: string | null;
           peso_neto?: number;
@@ -605,6 +606,7 @@ export type Database = {
           producto_id: number;
           proveedor_id: number;
           total?: number;
+          unidades?: number;
           updated_at?: string;
         };
         Update: {
@@ -619,7 +621,7 @@ export type Database = {
           kg_por_cesta?: number | null;
           kg_total?: number;
           merma?: number;
-          modo_pesaje?: Database["public"]["Enums"]["modo_pesaje"];
+          modo_pesaje?: string;
           moneda?: string;
           nota?: string | null;
           peso_neto?: number;
@@ -628,6 +630,7 @@ export type Database = {
           producto_id?: number;
           proveedor_id?: number;
           total?: number;
+          unidades?: number;
           updated_at?: string;
         };
         Relationships: [
@@ -1702,12 +1705,13 @@ export type Database = {
       productos: {
         Row: {
           activo: boolean;
+          categoria: string;
           codigo: number;
           created_at: string;
           emoji: string | null;
           id: number;
           kg_por_cesta: number | null;
-          modo_pesaje: Database["public"]["Enums"]["modo_pesaje"];
+          modo_pesaje: string;
           nombre: string;
           notas: string | null;
           stock_minimo: number;
@@ -1718,12 +1722,13 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           activo?: boolean;
+          categoria?: string;
           codigo: number;
           created_at?: string;
           emoji?: string | null;
           id?: never;
           kg_por_cesta?: number | null;
-          modo_pesaje?: Database["public"]["Enums"]["modo_pesaje"];
+          modo_pesaje?: string;
           nombre: string;
           notas?: string | null;
           stock_minimo?: number;
@@ -1733,12 +1738,13 @@ export type Database = {
         };
         Update: {
           activo?: boolean;
+          categoria?: string;
           codigo?: number;
           created_at?: string;
           emoji?: string | null;
           id?: never;
           kg_por_cesta?: number | null;
-          modo_pesaje?: Database["public"]["Enums"]["modo_pesaje"];
+          modo_pesaje?: string;
           nombre?: string;
           notas?: string | null;
           stock_minimo?: number;
@@ -1805,6 +1811,7 @@ export type Database = {
           notas: string | null;
           search: string | null;
           telefono: string | null;
+          tipo: string;
           ubicacion: string | null;
           updated_at: string;
         };
@@ -1820,6 +1827,7 @@ export type Database = {
           notas?: string | null;
           search?: never;
           telefono?: string | null;
+          tipo?: string;
           ubicacion?: string | null;
           updated_at?: string;
         };
@@ -1834,6 +1842,7 @@ export type Database = {
           notas?: string | null;
           search?: never;
           telefono?: string | null;
+          tipo?: string;
           ubicacion?: string | null;
           updated_at?: string;
         };
@@ -2065,6 +2074,7 @@ export type Database = {
           saldo_ves: number | null;
           search: string | null;
           telefono: string | null;
+          tipo: string | null;
           ubicacion: string | null;
           ultima_entrega: string | null;
         };
@@ -2211,6 +2221,7 @@ export type Database = {
           p_moneda?: string;
           p_producto?: number;
           p_q?: string;
+          p_tipo?: string;
         };
         Returns: {
           activo: boolean | null;
@@ -2228,6 +2239,7 @@ export type Database = {
           saldo_ves: number | null;
           search: string | null;
           telefono: string | null;
+          tipo: string | null;
           ubicacion: string | null;
           ultima_entrega: string | null;
         }[];
@@ -2244,8 +2256,9 @@ export type Database = {
           p_kg_por_cesta: number;
           p_kg_total: number;
           p_merma: number;
-          p_modo: Database["public"]["Enums"]["modo_pesaje"];
+          p_modo: string;
           p_precio: number;
+          p_unidades: number;
         };
         Returns: Record<string, unknown>;
       };
@@ -2432,7 +2445,6 @@ export type Database = {
       estado_jornada: "asistio" | "media" | "produccion" | "no";
       estado_usuario: "ACTIVO" | "BLOQUEADO" | "INACTIVO";
       forma_inventario: "MP" | "PT";
-      modo_pesaje: "FIJO" | "VARIABLE";
       origen_factura: "sistema" | "externa";
       rol_usuario: "admin" | "facturacion" | "operador" | "solo_lectura";
       tipo_empleado: "fijo" | "destajo";
@@ -2569,7 +2581,6 @@ export const Constants = {
       estado_jornada: ["asistio", "media", "produccion", "no"],
       estado_usuario: ["ACTIVO", "BLOQUEADO", "INACTIVO"],
       forma_inventario: ["MP", "PT"],
-      modo_pesaje: ["FIJO", "VARIABLE"],
       origen_factura: ["sistema", "externa"],
       rol_usuario: ["admin", "facturacion", "operador", "solo_lectura"],
       tipo_empleado: ["fijo", "destajo"],

@@ -8,10 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { SelectNativo } from "@/components/comunes/campos";
 import { cn } from "@/lib/utils";
 
-type Filtros = { q: string; moneda: string; saldo: boolean; rubro: string; desde: string; hasta: string; inactivos: boolean };
+type Filtros = { q: string; moneda: string; saldo: boolean; rubro: string; desde: string; hasta: string; inactivos: boolean; tipo: string };
 
 export function FiltrosProveedores({ inicial, rubros, monedas }: {
-  inicial: Filtros; rubros: { id: number; codigo: number; nombre: string }[]; monedas: string[];
+  inicial: Filtros; rubros: { id: number; codigo: number; nombre: string; categoria: string }[]; monedas: string[];
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -29,6 +29,7 @@ export function FiltrosProveedores({ inicial, rubros, monedas }: {
     if (nuevo.desde) qs.set("desde", nuevo.desde);
     if (nuevo.hasta) qs.set("hasta", nuevo.hasta);
     if (nuevo.inactivos) qs.set("inactivos", "1");
+    if (nuevo.tipo) qs.set("tipo", nuevo.tipo);
     iniciar(() => router.replace(`${ruta}${qs.size ? `?${qs}` : ""}`, { scroll: false }));
   }
 
@@ -45,8 +46,8 @@ export function FiltrosProveedores({ inicial, rubros, monedas }: {
     setF(nuevo);
     if (!("q" in parcial)) aplicar(nuevo);
   };
-  const limpiar = () => cambiar({ q: "", moneda: "", saldo: false, rubro: "", desde: "", hasta: "", inactivos: false });
-  const activos = [f.moneda, f.saldo, f.rubro, f.desde, f.hasta, f.inactivos].filter(Boolean).length;
+  const limpiar = () => cambiar({ q: "", moneda: "", saldo: false, rubro: "", desde: "", hasta: "", inactivos: false, tipo: "" });
+  const activos = [f.moneda, f.saldo, f.rubro, f.desde, f.hasta, f.inactivos, f.tipo].filter(Boolean).length;
 
   return (
     <div className="no-print mb-4 space-y-2 rounded-2xl border bg-card p-3">
@@ -67,6 +68,12 @@ export function FiltrosProveedores({ inicial, rubros, monedas }: {
             {m ? `Deben ${m}` : "Todos"}
           </button>
         ))}
+        {([["fruta", "🍓 Fruta"], ["insumos", "🛍️ Insumos"]] as const).map(([v, t]) => (
+          <button key={v} type="button" onClick={() => cambiar({ tipo: f.tipo === v ? "" : v })}
+            className={cn("rounded-full border px-3 py-1 text-xs transition-colors", f.tipo === v ? "border-primary/50 bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground")}>
+            {t}
+          </button>
+        ))}
         <button type="button" onClick={() => cambiar({ saldo: !f.saldo })}
           className={cn("rounded-full border px-3 py-1 text-xs transition-colors", f.saldo ? "border-warning/50 bg-warning/15 text-warning" : "text-muted-foreground hover:text-foreground")}>
           Con saldo pendiente
@@ -80,7 +87,7 @@ export function FiltrosProveedores({ inicial, rubros, monedas }: {
       {abiertos && (
         <div className="grid gap-2 border-t pt-2 sm:grid-cols-4">
           <SelectNativo value={f.rubro} onChange={(e) => cambiar({ rubro: e.target.value })} aria-label="Rubro">
-            <option value="">Cualquier rubro</option>
+            <option value="">Cualquier producto</option>
             {rubros.map((r) => <option key={r.id} value={r.id}>{r.codigo} · {r.nombre}</option>)}
           </SelectNativo>
           <Input type="date" value={f.desde} onChange={(e) => cambiar({ desde: e.target.value })} aria-label="Entregas desde" />

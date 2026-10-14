@@ -19,7 +19,7 @@ export default async function PaginaProveedores({ searchParams }: PageProps<"/pr
   const sp = await searchParams;
   const filtros = {
     q: t(sp.q), moneda: t(sp.moneda), saldo: t(sp.saldo) === "1", rubro: t(sp.rubro),
-    desde: t(sp.desde), hasta: t(sp.hasta), inactivos: t(sp.inactivos) === "1",
+    desde: t(sp.desde), hasta: t(sp.hasta), inactivos: t(sp.inactivos) === "1", tipo: t(sp.tipo),
   };
   const supabase = await crearClienteServidor();
   const [{ data: proveedores, error }, { data: kpis }, { data: rubros }, { data: monedas }] = await Promise.all([
@@ -31,16 +31,17 @@ export default async function PaginaProveedores({ searchParams }: PageProps<"/pr
       p_desde: fecha(filtros.desde) ?? undefined,
       p_hasta: fecha(filtros.hasta) ?? undefined,
       p_incluir_inactivos: filtros.inactivos,
+      p_tipo: ["fruta", "insumos"].includes(filtros.tipo) ? filtros.tipo : undefined,
     }),
     supabase.rpc("kpis_proveedores"),
-    supabase.from("productos").select("id, codigo, nombre").neq("tipo", "terminado").order("codigo"),
+    supabase.from("productos").select("id, codigo, nombre, categoria").neq("tipo", "terminado").order("codigo"),
     supabase.from("monedas").select("codigo").eq("activa", true).order("orden"),
   ]);
   const puedeEditar = puede(perfil.rol, "gestionar_proveedores");
 
   return (
     <>
-      <EncabezadoPagina icono={Truck} titulo="Proveedores" descripcion="Entregas de fruta, abonos, cestas y saldos por moneda."
+      <EncabezadoPagina icono={Truck} titulo="Proveedores" descripcion="Fruta e insumos: entregas, abonos, cestas y saldos por moneda."
         acciones={puedeEditar && <BotonNuevoProveedor monedas={(monedas ?? []).map((m) => m.codigo)} />} />
       <KpisProveedores kpis={(kpis ?? {}) as Record<string, number>} />
       <FiltrosProveedores inicial={filtros} rubros={rubros ?? []} monedas={(monedas ?? []).map((m) => m.codigo)} />

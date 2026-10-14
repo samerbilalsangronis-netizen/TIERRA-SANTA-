@@ -11,12 +11,13 @@ test("productos: crear con código, validar FIJO, código duplicado, desactivar 
   await page.getByRole("button", { name: "Nuevo producto" }).click();
   await page.fill("input[name=codigo]", codigo);
   await page.fill("input[name=nombre]", nombre);
+  await page.selectOption("select[name=modo_pesaje]", "FIJO");
   await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Los rubros FIJO necesitan kg por cesta")).toBeVisible();
+  await expect(page.getByText("La compra por cesta necesita los kg por cesta")).toBeVisible();
   await page.fill("input[name=kg_por_cesta]", "12,5");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText(`Producto ${codigo} · ${nombre} creado.`)).toBeVisible();
-  await expect(page.getByRole("row", { name: new RegExp(nombre) })).toContainText("12,5 kg/cesta");
+  await expect(page.getByRole("row", { name: new RegExp(nombre) })).toContainText("Por cesta · 12,5 kg/cesta");
 
   // Código repetido
   await page.getByRole("button", { name: "Nuevo producto" }).click();

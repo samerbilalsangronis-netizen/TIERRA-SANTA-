@@ -14,7 +14,7 @@ import { esquemaProveedor } from "./esquemas";
 
 export type ProveedorEditable = {
   id: number; nombre: string; documento: string | null; telefono: string | null; ubicacion: string | null;
-  moneda_habitual: string; notas: string | null; activo: boolean;
+  moneda_habitual: string; tipo: string; notas: string | null; activo: boolean;
 };
 
 export function BotonNuevoProveedor({ monedas }: { monedas: string[] }) {
@@ -32,8 +32,8 @@ export function DialogoProveedor({ proveedor, monedas, onCerrar }: { proveedor?:
   const { form, enviar, pendiente, err } = useFormulario(
     esquemaProveedor,
     proveedor
-      ? { ...proveedor, documento: proveedor.documento ?? "", telefono: proveedor.telefono ?? "", ubicacion: proveedor.ubicacion ?? "", notas: proveedor.notas ?? "" }
-      : { nombre: "", documento: "", telefono: "", ubicacion: "", moneda_habitual: "COP", notas: "", activo: true },
+      ? { ...proveedor, tipo: proveedor.tipo as "fruta" | "insumos" | "ambos", documento: proveedor.documento ?? "", telefono: proveedor.telefono ?? "", ubicacion: proveedor.ubicacion ?? "", notas: proveedor.notas ?? "" }
+      : { nombre: "", documento: "", telefono: "", ubicacion: "", moneda_habitual: "COP", tipo: "fruta", notas: "", activo: true },
     async (d) => {
       const r = await guardarProveedor(d);
       if (r.ok && !proveedor) {
@@ -49,6 +49,11 @@ export function DialogoProveedor({ proveedor, monedas, onCerrar }: { proveedor?:
     <DialogoFormulario abierto onCerrar={onCerrar} pendiente={pendiente} onEnviar={enviar}
       titulo={proveedor ? `Editar ${proveedor.nombre}` : "Nuevo proveedor"}>
       <CampoTexto etiqueta="Nombre" requerido className="sm:col-span-2" error={err.nombre?.message} {...form.register("nombre")} />
+      <CampoSelect etiqueta="Qué le compramos" className="sm:col-span-2" {...form.register("tipo")}>
+        <option value="fruta">Fruta</option>
+        <option value="insumos">Insumos (bolsas, etiquetas, envases…)</option>
+        <option value="ambos">Fruta e insumos</option>
+      </CampoSelect>
       <CampoTexto etiqueta="Cédula / RIF / NIT" {...form.register("documento")} />
       <CampoTexto etiqueta="Teléfono" type="tel" inputMode="tel" {...form.register("telefono")} />
       <CampoTexto etiqueta="Ubicación / finca" {...form.register("ubicacion")} />

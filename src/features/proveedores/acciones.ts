@@ -62,17 +62,25 @@ export async function guardarEntrega(entrada: DatosEntrega): Promise<Resultado> 
   const { id, anotar_cestas, ...d } = v.data;
   const supabase = await crearClienteServidor();
 
-  // Rubro: copia de su configuración (la BD también la toma en el trigger)
-  const { data: prod } = await supabase.from("productos").select("modo_pesaje, kg_por_cesta").eq("id", d.producto_id).single();
-  if (!prod) return fallo("Rubro no encontrado.");
-  const fila = { ...d, precio: d.precio as number, modo_pesaje: prod.modo_pesaje, kg_por_cesta: prod.kg_por_cesta };
+  // Los kg por cesta se copian del producto (la entrega conserva su copia)
+  const { data: prod } = await supabase.from("productos").select("kg_por_cesta").eq("id", d.producto_id).single();
+  if (!prod) return fallo("Producto no encontrado.");
+  if (d.modo_pesaje === "FIJO" && !prod.kg_por_cesta) {
+    return fallo("Este producto no tiene kg por cesta configurados. Elige «Por kilo» o configúralo en Catálogos.");
+  }
+  // Solo se guarda la cantidad que corresponde al modo
+  const fila = {
+    ...d, precio: d.precio as number, kg_por_cesta: prod.kg_por_cesta,
+    kg_total: d.modo_pesaje === "KG" || d.modo_pesaje === "VARIABLE" ? d.kg_total : 0,
+    unidades: d.modo_pesaje === "UNIDAD" ? d.unidades : 0,
+  };
 
   let entregaId = id;
   if (id) {
-    const { data: anterior } = await supabase.from("entregas_proveedor").select("producto_id, modo_pesaje, kg_por_cesta").eq("id", id).single();
-    // Al editar sin cambiar el rubro se conserva la configuración original de la entrega
-    const conservar = anterior && anterior.producto_id === d.producto_id
-      ? { modo_pesaje: anterior.modo_pesaje, kg_por_cesta: anterior.kg_por_cesta } : {};
+    const { data: anterior } = await supabase.from("entregas_proveedor").select("producto_id, kg_por_cesta").eq("id", id).single();
+    // Al editar sin cambiar el producto se conservan sus kg por cesta originales
+    const conservar = anterior && anterior.producto_id === d.producto_id && anterior.kg_por_cesta
+      ? { kg_por_cesta: anterior.kg_por_cesta } : {};
     const { error } = await supabase.from("entregas_proveedor").update({ ...fila, ...conservar }).eq("id", id);
     if (error) return fallo(mensajeErrorBD(error));
   } else {

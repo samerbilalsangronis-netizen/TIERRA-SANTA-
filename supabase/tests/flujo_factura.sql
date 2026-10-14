@@ -101,13 +101,30 @@ select pg_temp.check((select max(numero) from public.facturas) = 4, 'sin huecos 
 
 -- Proveedores: FIJO y VARIABLE
 insert into public.proveedores (nombre) values ('Finca El Topo');
-insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, cestas, precio, merma)
-  values (1, 1, 'COP', 10, 60000, 5);   -- 20 kg/cesta → 200 kg, precio_kg 3000, desc 15000, total 585000
+insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, modo_pesaje, cestas, precio, merma)
+  values (1, 1, 'COP', 'FIJO', 10, 60000, 5);   -- 20 kg/cesta → 200 kg, precio_kg 3000, desc 15000, total 585000
 select pg_temp.check((select total from public.entregas_proveedor where id = 1) = 585000, 'entrega FIJO total');
 select pg_temp.check((select peso_neto from public.entregas_proveedor where id = 1) = 195, 'peso neto FIJO');
-insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, kg_total, precio, merma)
-  values (1, 6, 'USD', 80, 40, 4);      -- precio_kg 0.5, desc 2, total 38
+insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, modo_pesaje, kg_total, precio, merma)
+  values (1, 6, 'USD', 'VARIABLE', 80, 40, 4);      -- precio_kg 0.5, desc 2, total 38
 select pg_temp.check((select total from public.entregas_proveedor where id = 2) = 38, 'entrega VARIABLE total');
+-- Por kilo: 400 kg de guanábana a 3.000/kg con 10 kg de merma → (400 − 10) × 3.000 = 1.170.000
+insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, kg_total, precio, merma)
+  values (1, 1, 'COP', 400, 3000, 10);
+select pg_temp.check((select total from public.entregas_proveedor where id = 3) = 1170000, 'entrega POR KILO total');
+select pg_temp.check((select modo_pesaje from public.entregas_proveedor where id = 3) = 'KG', 'modo por defecto del producto (KG)');
+-- Por unidad: 80 piñas a 2.500 con 2 dañadas → 78 × 2.500 = 195.000
+insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, unidades, precio, merma)
+  values (1, 6, 'COP', 80, 2500, 2);
+select pg_temp.check((select total from public.entregas_proveedor where id = 4) = 195000, 'entrega POR UNIDAD total');
+-- Insumo: 1.000 bolsas a 150
+insert into public.productos (codigo, nombre, unidad, tipo, categoria, modo_pesaje) values (100, 'Bolsa 1 kg', 'und', 'materia_prima', 'insumo', 'UNIDAD');
+insert into public.proveedores (nombre, tipo) values ('Plásticos del Táchira', 'insumos');
+insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, unidades, precio)
+  values (2, (select id from public.productos where codigo = 100), 'COP', 1000, 150);
+select pg_temp.check((select saldo_cop from public.v_resumen_proveedores where id = 2) = 150000, 'compra de insumos');
+select pg_temp.check((select count(*) from public.buscar_proveedores(null, null, false, null, null, null, false, 'insumos')) = 1, 'filtro por tipo insumos');
+delete from public.entregas_proveedor where id in (3, 4);
 insert into public.abonos_proveedor (proveedor_id, moneda, monto) values (1, 'COP', 85000);
 select pg_temp.check((select saldo_cop from public.v_resumen_proveedores where id = 1) = 500000, 'saldo proveedor COP');
 

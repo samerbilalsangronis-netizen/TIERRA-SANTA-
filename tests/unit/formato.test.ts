@@ -48,10 +48,10 @@ describe("Esquemas de catálogos", () => {
     expect(t.tasa).toBe(4000);
     expect(esquemaTasa.parse({ fecha: "2026-10-14", moneda_origen: "COP", moneda_destino: "USD", tasa: "0,00025", nota: "" }).tasa).toBe(0.00025);
   });
-  it("un rubro FIJO exige kg por cesta", () => {
-    const base = { codigo: "10", nombre: "Lulo", emoji: "", unidad: "kg", tipo: "ambos", modo_pesaje: "FIJO", stock_minimo: "", activo: true, notas: "" } as const;
+  it("la compra por cesta exige kg por cesta", () => {
+    const base = { codigo: "10", nombre: "Lulo", emoji: "", unidad: "kg", tipo: "ambos", categoria: "fruta", modo_pesaje: "FIJO", stock_minimo: "", activo: true, notas: "" } as const;
     expect(esquemaProducto.safeParse({ ...base, kg_por_cesta: "" }).success).toBe(false);
     expect(esquemaProducto.parse({ ...base, kg_por_cesta: "12,5" }).kg_por_cesta).toBe(12.5);
-    expect(esquemaProducto.parse({ ...base, tipo: "terminado", kg_por_cesta: "" }).kg_por_cesta).toBeNull();
+    expect(esquemaProducto.parse({ ...base, modo_pesaje: "KG", kg_por_cesta: "" }).kg_por_cesta).toBeNull();
   });
 });

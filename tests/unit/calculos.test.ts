@@ -5,6 +5,21 @@ import { estadoCliente, etiquetaMoneda, pendientes, saldoProveedor } from "@/lib
 import { calcularJornada, saldoNeto } from "@/lib/calculos/nomina";
 
 describe("Entregas de proveedores", () => {
+  it("POR KILO: 400 kg de guanábana a 3.000/kg con 10 kg de merma", () => {
+    const r = calcularEntrega({ modo: "KG", kgTotal: 400, precio: 3000, merma: 10 });
+    expect(r.total.toNumber()).toBe(1170000);
+    expect(r.descMerma.toNumber()).toBe(30000);
+    expect(r.pesoNeto.toNumber()).toBe(390);
+  });
+  it("POR UNIDAD: 80 piñas a 2.500 con 2 dañadas", () => {
+    const r = calcularEntrega({ modo: "UNIDAD", unidades: 80, precio: 2500, merma: 2 });
+    expect(r.total.toNumber()).toBe(195000);
+    expect(r.kgTotal.toNumber()).toBe(0);
+    expect(() => calcularEntrega({ modo: "UNIDAD", unidades: 5, precio: 1, merma: 6 })).toThrow();
+  });
+  it("POR KILO con decimales: 12,5 kg a 1,35 USD", () => {
+    expect(calcularEntrega({ modo: "KG", kgTotal: 12.5, precio: 1.35 }).total.toNumber()).toBe(16.88);
+  });
   it("FIJO: 10 cestas × 20 kg a 60.000/cesta con 5 kg de merma", () => {
     const r = calcularEntrega({ modo: "FIJO", kgPorCesta: 20, cestas: 10, precio: 60000, merma: 5 });
     expect(r.kgTotal.toNumber()).toBe(200);

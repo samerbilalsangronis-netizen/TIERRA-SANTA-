@@ -12,49 +12,63 @@ async function crearProveedor(page: Page, nombre: string, moneda = "COP") {
   await expect(page.getByRole("heading", { name: nombre })).toBeVisible();
 }
 
-test("proveedor: entregas FIJO/VARIABLE con merma, abonos, cestas, saldos y estado de cuenta", async ({ page }) => {
+test("proveedor: compras por kilo, por unidad y por cesta, abonos, cestas, saldos y estado de cuenta", async ({ page }) => {
   await entrarComoAdmin(page);
   const nombre = `Finca Prueba ${sufijo()}`;
   await crearProveedor(page, nombre);
+  const resumen = page.getByRole("dialog").locator("[aria-live=polite]");
 
-  // Entrega FIJO: 10 cestas Guanábana (20 kg/c) a 60.000, merma 5 kg → 585.000
+  // Por kilo: 400 kg de guanábana a 3.000/kg con 10 kg de merma → 1.170.000
   await page.getByRole("button", { name: "Entrega", exact: true }).click();
   await elegirOpcion(page, "producto_id", "Guanábana");
-  await page.fill("input[name=cestas]", "10");
-  await page.fill("input[name=precio]", "60.000");
-  await page.fill("input[name=merma]", "5");
-  const resumen = page.getByRole("dialog").locator("[aria-live=polite]");
-  await expect(resumen).toContainText("200 kg");
-  await expect(resumen).toContainText("195 kg");
-  await expect(resumen).toContainText("COP $ 3.000");
-  await expect(resumen).toContainText("COP $ 15.000");
-  await expect(resumen).toContainText("COP $ 585.000");
+  await expect(page.getByRole("radio", { name: "Por kilo" })).toHaveAttribute("aria-checked", "true");
+  await page.fill("input[name=kg_total]", "400");
+  await page.fill("input[name=precio]", "3.000");
+  await page.fill("input[name=merma]", "10");
+  await expect(resumen).toContainText("390 kg");
+  await expect(resumen).toContainText("COP $ 30.000");
+  await expect(resumen).toContainText("COP $ 1.170.000");
   await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Entrega registrada.")).toBeVisible();
+  await expect(page.getByText("Entrega registrada.").first()).toBeVisible();
 
-  // Entrega VARIABLE en USD: Piña 80 kg por 40 USD, merma 4 → 38
+  // Por unidad: 80 piñas a 2.500 con 2 dañadas → 195.000
+  await page.getByRole("button", { name: "Entrega", exact: true }).click();
+  await elegirOpcion(page, "producto_id", "Piña");
+  await expect(page.getByRole("radio", { name: "Por unidad" })).toHaveAttribute("aria-checked", "true");
+  await page.fill("input[name=unidades]", "80");
+  await page.fill("input[name=precio]", "2.500");
+  await page.fill("input[name=merma]", "2");
+  await expect(resumen).toContainText("78 und");
+  await expect(resumen).toContainText("COP $ 195.000");
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Entrega registrada.").first()).toBeVisible();
+
+  // Por cesta, en USD: 10 cestas de fresa (10 kg/c) a 6 USD con 5 kg de merma → 57
   await page.getByRole("button", { name: "Entrega", exact: true }).click();
   await page.selectOption("select[name=moneda]", "USD");
-  await elegirOpcion(page, "producto_id", "Piña");
-  await page.fill("input[name=kg_total]", "80");
-  await page.fill("input[name=precio]", "40");
-  await page.fill("input[name=merma]", "4");
-  await expect(page.getByRole("dialog").locator("[aria-live=polite]")).toContainText("USD $ 38,00");
+  await elegirOpcion(page, "producto_id", "Fresa");
+  await page.getByRole("radio", { name: "Por cesta" }).click();
+  await page.fill("input[name=cestas]", "10");
+  await page.fill("input[name=precio]", "6");
+  await page.fill("input[name=merma]", "5");
+  await expect(resumen).toContainText("USD $ 57,00");
   await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Entrega registrada.")).toBeVisible();
+  await expect(page.getByText("Entrega registrada.").first()).toBeVisible();
 
   // Saldos por moneda y cestas anotadas
-  await expect(page.getByText("COP $ 585.000").first()).toBeVisible();
-  await expect(page.getByText("USD $ 38,00").first()).toBeVisible();
+  await expect(page.getByText("COP $ 1.365.000").first()).toBeVisible();
+  await expect(page.getByText("USD $ 57,00").first()).toBeVisible();
   await expect(page.getByText("10 entregadas")).toBeVisible();
+  await expect(page.getByRole("row", { name: /Guanábana/ })).toContainText("400 kg");
+  await expect(page.getByRole("row", { name: /Piña/ })).toContainText("80 und");
 
   // Abono COP
   await page.getByRole("button", { name: "Abonar", exact: true }).click();
-  await page.fill("input[name=monto]", "85.000");
+  await page.fill("input[name=monto]", "365.000");
   await page.fill("input[name=pagado_por]", "Samer");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Abono registrado.")).toBeVisible();
-  await expect(page.getByText("COP $ 500.000").first()).toBeVisible();
+  await expect(page.getByText("COP $ 1.000.000").first()).toBeVisible();
 
   // Devolución de cestas
   await page.getByRole("button", { name: "Cestas", exact: true }).click();
@@ -66,9 +80,9 @@ test("proveedor: entregas FIJO/VARIABLE con merma, abonos, cestas, saldos y esta
   // Estado de cuenta COP
   await page.getByRole("link", { name: /Estado de cuenta COP/ }).click();
   await expect(page.getByText("ESTADO DE CUENTA", { exact: true })).toBeVisible();
-  await expect(page.getByText("Guanábana · 10 cestas")).toBeVisible();
-  await expect(page.getByText("Saldo a favor del proveedor")).toBeVisible();
-  await expect(page.locator("article")).toContainText("COP $ 500.000");
+  await expect(page.getByText(/Guanábana · 400 kg × 3000 · merma 10 kg/)).toBeVisible();
+  await expect(page.getByText(/Piña · 80 und × 2500 · merma 2 und/)).toBeVisible();
+  await expect(page.locator("article")).toContainText("COP $ 1.000.000");
   const excel = await page.request.get(page.url().replace("/estado-cuenta?", "/estado-cuenta/excel?"));
   expect(excel.status()).toBe(200);
 
@@ -80,6 +94,43 @@ test("proveedor: entregas FIJO/VARIABLE con merma, abonos, cestas, saldos y esta
   await expect(page.getByText("Ningún proveedor coincide")).toBeVisible();
 });
 
+test("proveedor de insumos: bolsas por unidad", async ({ page }) => {
+  await entrarComoAdmin(page);
+  // Insumo en el catálogo
+  const insumo = `Bolsa 1kg ${sufijo()}`;
+  await page.goto("/configuracion/catalogos/productos");
+  await page.getByRole("button", { name: /Insumos/ }).click();
+  await page.getByRole("button", { name: "Nuevo producto" }).click();
+  await expect(page.getByRole("heading", { name: "Nuevo insumo" })).toBeVisible();
+  await page.fill("input[name=codigo]", String(500 + (Date.now() % 400)));
+  await page.fill("input[name=nombre]", insumo);
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText(/creado\./)).toBeVisible();
+
+  // Proveedor de insumos
+  const nombre = `Plásticos ${sufijo()}`;
+  await page.goto("/proveedores");
+  await page.getByRole("button", { name: "Nuevo proveedor" }).click();
+  await page.fill("input[name=nombre]", nombre);
+  await page.selectOption("select[name=tipo]", "insumos");
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page).toHaveURL(/\/proveedores\/\d+/);
+  await expect(page.getByRole("button", { name: "Cestas", exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Entrega", exact: true }).click();
+  await expect(page.locator("select[name=producto_id] option", { hasText: "Guanábana" })).toHaveCount(0);
+  await elegirOpcion(page, "producto_id", insumo);
+  await page.fill("input[name=unidades]", "1.000");
+  await page.fill("input[name=precio]", "150");
+  await expect(page.locator("input[name=merma]")).toHaveCount(0);
+  await expect(page.getByRole("dialog").locator("[aria-live=polite]")).toContainText("COP $ 150.000");
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Entrega registrada.").first()).toBeVisible();
+
+  await page.goto("/proveedores?tipo=insumos");
+  await expect(page.getByRole("link", { name: new RegExp(nombre) })).toContainText("Insumos");
+});
+
 test("proveedor en el teléfono: entrega con foto desde la cámara", async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
@@ -88,12 +139,12 @@ test("proveedor en el teléfono: entrega con foto desde la cámara", async ({ br
   await crearProveedor(page, nombre);
   await page.getByRole("button", { name: "Entrega", exact: true }).click();
   await elegirOpcion(page, "producto_id", "Fresa");
-  await page.fill("input[name=cestas]", "3");
-  await page.fill("input[name=precio]", "25.000");
+  await page.fill("input[name=kg_total]", "30");
+  await page.fill("input[name=precio]", "2.500");
   await page.setInputFiles("input[type=file][capture]", "public/logo-tierra-santa-negro.png");
   await expect(page.getByText("Foto subida.")).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Entrega registrada.")).toBeVisible();
+  await expect(page.getByText("Entrega registrada.").first()).toBeVisible();
   await page.getByRole("button", { name: "Ver foto" }).click();
   await expect(page.getByRole("img", { name: "Foto de la entrega" })).toBeVisible();
   const desborde = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

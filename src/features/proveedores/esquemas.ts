@@ -8,6 +8,7 @@ export const esquemaProveedor = z.object({
   telefono: textoOpcional(40),
   ubicacion: textoOpcional(120),
   moneda_habitual: z.string().length(3),
+  tipo: z.enum(["fruta", "insumos", "ambos"]),
   notas: textoOpcional(1000),
   activo: z.boolean(),
 });
@@ -20,7 +21,8 @@ export const esquemaEntrega = z
     fecha: fechaISO,
     producto_id: z.coerce.number<number | string>().int().positive("Elige el rubro"),
     moneda: z.string().length(3),
-    modo_pesaje: z.enum(["FIJO", "VARIABLE"]),
+    modo_pesaje: z.enum(["KG", "UNIDAD", "FIJO", "VARIABLE"]),
+    unidades: numeroLibre().transform((n) => n ?? 0).refine((n) => n >= 0, "No puede ser negativo"),
     cestas: numeroLibre().transform((n) => n ?? 0).refine((n) => n >= 0, "No puede ser negativo"),
     kg_total: numeroLibre().transform((n) => n ?? 0).refine((n) => n >= 0, "No puede ser negativo"),
     precio: numeroLibre().refine((n) => n !== null && n >= 0, "Escribe el precio"),
@@ -32,7 +34,10 @@ export const esquemaEntrega = z
   })
   .superRefine((d, ctx) => {
     if (d.modo_pesaje === "FIJO" && d.cestas <= 0) ctx.addIssue({ code: "custom", path: ["cestas"], message: "Indica las cestas" });
-    if (d.modo_pesaje === "VARIABLE" && d.kg_total <= 0) ctx.addIssue({ code: "custom", path: ["kg_total"], message: "Indica el total de kg" });
+    if ((d.modo_pesaje === "KG" || d.modo_pesaje === "VARIABLE") && d.kg_total <= 0) ctx.addIssue({ code: "custom", path: ["kg_total"], message: "Indica los kilos" });
+    if (d.modo_pesaje === "UNIDAD" && d.unidades <= 0) ctx.addIssue({ code: "custom", path: ["unidades"], message: "Indica las unidades" });
+    const bruto = d.modo_pesaje === "UNIDAD" ? d.unidades : d.modo_pesaje === "FIJO" ? Infinity : d.kg_total;
+    if (d.merma > bruto) ctx.addIssue({ code: "custom", path: ["merma"], message: d.modo_pesaje === "UNIDAD" ? "No puede superar las unidades" : "No puede superar los kilos" });
   });
 export type DatosEntrega = z.input<typeof esquemaEntrega>;
 

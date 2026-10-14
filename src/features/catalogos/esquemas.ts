@@ -27,15 +27,16 @@ export const esquemaProducto = z
     emoji: texto(8).transform((v) => (v === "" ? null : v)),
     unidad: z.string().min(1, "Elige la unidad"),
     tipo: z.enum(["materia_prima", "terminado", "ambos"]),
-    modo_pesaje: z.enum(["FIJO", "VARIABLE"]),
+    categoria: z.enum(["fruta", "insumo"]),
+    modo_pesaje: z.enum(["KG", "UNIDAD", "FIJO", "VARIABLE"]),
     kg_por_cesta: numero().refine((n) => n === null || n > 0, "Debe ser mayor a 0"),
     stock_minimo: numero().transform((n) => n ?? 0).refine((n) => n >= 0, "No puede ser negativo"),
     activo: z.boolean(),
     notas: textoOpc(500),
   })
   .superRefine((d, ctx) => {
-    if (d.tipo !== "terminado" && d.modo_pesaje === "FIJO" && !d.kg_por_cesta) {
-      ctx.addIssue({ code: "custom", path: ["kg_por_cesta"], message: "Los rubros FIJO necesitan kg por cesta" });
+    if (d.modo_pesaje === "FIJO" && !d.kg_por_cesta) {
+      ctx.addIssue({ code: "custom", path: ["kg_por_cesta"], message: "La compra por cesta necesita los kg por cesta" });
     }
   });
 export type DatosProducto = z.input<typeof esquemaProducto>;

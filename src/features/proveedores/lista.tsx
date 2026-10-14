@@ -54,7 +54,10 @@ export function ListaProveedores({ proveedores, hayFiltros }: { proveedores: Fil
                       {(p.nombre ?? "?").trim().charAt(0).toUpperCase()}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold group-hover:text-primary">{p.nombre}{!p.activo && " (inactivo)"}</p>
+                      <p className="truncate font-semibold group-hover:text-primary">
+                        {p.nombre}{!p.activo && " (inactivo)"}
+                        {p.tipo !== "fruta" && <span className="ml-1.5 rounded-full border px-1.5 py-0.5 align-middle text-[10px] font-normal text-muted-foreground">{p.tipo === "insumos" ? "Insumos" : "Fruta e insumos"}</span>}
+                      </p>
                       <p className="truncate text-xs text-muted-foreground">
                         {[p.documento, p.ubicacion].filter(Boolean).join(" · ") || "Sin datos de contacto"}
                       </p>
@@ -64,7 +67,7 @@ export function ListaProveedores({ proveedores, hayFiltros }: { proveedores: Fil
                         {Number(p.saldo_ves) !== 0 && <SaldoMoneda valor={Number(p.saldo_ves)} moneda="VES" compacto />}
                       </div>
                       <p className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
-                        <span className="inline-flex items-center gap-1"><Package className="size-3" /> {p.cestas_pendientes} cestas</span>
+                        {p.tipo !== "insumos" && <span className="inline-flex items-center gap-1"><Package className="size-3" /> {p.cestas_pendientes} cestas</span>}
                         {p.ultima_entrega && <span>Última entrega {formatearFecha(p.ultima_entrega)}</span>}
                       </p>
                     </div>

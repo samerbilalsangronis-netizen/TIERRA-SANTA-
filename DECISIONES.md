@@ -56,9 +56,16 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 
 ## Proveedores
 - Un solo módulo para COP y USD: cada entrega y cada abono lleva su moneda; los saldos se muestran por moneda, nunca mezclados.
-- Fórmulas idénticas al sistema anterior (FIJO por cesta / VARIABLE por kg total, merma descontada al precio por kg). La pantalla muestra el cálculo en vivo antes de guardar.
-- Al registrar una entrega se **copian** el pesaje y los kg por cesta del rubro: cambiar luego el rubro no altera entregas pasadas. Si al editar se cambia el rubro, se toma la configuración nueva.
-- La merma no puede superar el peso total.
+- **Modos de compra** (pedido de Samer): cada entrega se registra
+  - **Por kilo:** kilos × precio por kilo; total = (kg − merma) × precio.
+  - **Por unidad** (ej. piñas): unidades × precio por unidad; las "unidades dañadas" se descuentan.
+  - **Por cesta:** cestas × precio por cesta (kg = cestas × kg por cesta; merma descontada al precio por kg).
+  - "Precio total" (el VARIABLE del sistema anterior) solo se conserva para datos migrados.
+- Cada producto tiene su modo por defecto ("Se compra" en Catálogos): las frutas iniciales quedaron **por kilo** y la piña **por unidad**. En cada entrega se puede cambiar.
+- La pantalla muestra el cálculo en vivo y el **total siempre visible junto al botón Guardar**.
+- Los kg por cesta se copian en la entrega: cambiar luego el producto no altera entregas pasadas.
+- La merma (o las unidades dañadas) no puede superar lo recibido.
+- **Proveedores de insumos** (bolsas, etiquetas, envases): los insumos son productos de categoría "insumo" en el mismo catálogo (no se facturan) y el proveedor tiene tipo Fruta / Insumos / Ambos. Para un proveedor de insumos solo aparecen insumos, sin merma ni cestas. El panel filtra por tipo. Por ahora los insumos **no** llevan inventario.
 - **Cestas:** al registrar una entrega viene marcada la casilla "anotar estas cestas como entregadas"; ese movimiento queda enlazado a la entrega (se actualiza o borra con ella). Las devoluciones se registran aparte con el botón "Cestas".
 - Foto de la entrega: se toma con la cámara del teléfono, se reduce a máx. 1600 px (JPEG) y se sube al bucket privado `entregas`; se ve con enlaces temporales. También se acepta una URL.
 - Estado de cuenta: hoja imprimible (botón "Imprimir / PDF" → Guardar como PDF del navegador) y descarga en Excel. El cálculo lo hace Postgres (`estado_cuenta_proveedor`), con saldo anterior cuando se filtra por fecha.

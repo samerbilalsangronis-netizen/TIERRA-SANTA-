@@ -21,7 +21,7 @@ export default async function PaginaProveedor({ params, searchParams }: PageProp
 
   const supabase = await crearClienteServidor();
   let entregasQ = supabase.from("entregas_proveedor")
-    .select("id, fecha, producto_id, moneda, modo_pesaje, kg_por_cesta, cestas, kg_total, precio, merma, precio_kg, desc_merma, total, peso_neto, foto_url, foto_path, nota, productos(codigo, nombre, emoji)")
+    .select("id, fecha, producto_id, moneda, modo_pesaje, kg_por_cesta, cestas, kg_total, unidades, precio, merma, precio_kg, desc_merma, total, peso_neto, foto_url, foto_path, nota, productos(codigo, nombre, emoji, unidad, categoria)")
     .eq("proveedor_id", id).order("fecha", { ascending: false }).order("id", { ascending: false }).limit(1000);
   let abonosQ = supabase.from("abonos_proveedor")
     .select("id, numero, fecha, moneda, monto, metodo_id, referencia, pagado_por, nota, metodos_pago(nombre)")
@@ -34,11 +34,11 @@ export default async function PaginaProveedor({ params, searchParams }: PageProp
 
   const [{ data: proveedor }, { data: resumen }, { data: saldos }, { data: entregas }, { data: abonos }, { data: cestas }, { data: rubros }, { data: monedas }, { data: metodos }] =
     await Promise.all([
-      supabase.from("proveedores").select("id, nombre, documento, telefono, ubicacion, moneda_habitual, notas, activo").eq("id", id).maybeSingle(),
+      supabase.from("proveedores").select("id, nombre, documento, telefono, ubicacion, moneda_habitual, tipo, notas, activo").eq("id", id).maybeSingle(),
       supabase.from("v_resumen_proveedores").select("cestas_pendientes, cestas_entregadas, cestas_devueltas, ultima_entrega").eq("id", id).maybeSingle(),
       supabase.from("v_saldos_proveedores_moneda").select("*").eq("proveedor_id", id),
       entregasQ, abonosQ, cestasQ,
-      supabase.from("productos").select("id, codigo, nombre, emoji, modo_pesaje, kg_por_cesta").neq("tipo", "terminado").eq("activo", true).order("codigo"),
+      supabase.from("productos").select("id, codigo, nombre, emoji, categoria, modo_pesaje, kg_por_cesta, unidad").neq("tipo", "terminado").eq("activo", true).order("codigo"),
       supabase.from("monedas").select("codigo").eq("activa", true).order("orden"),
       supabase.from("metodos_pago").select("id, nombre").eq("activo", true).order("orden"),
     ]);
@@ -65,7 +65,8 @@ export default async function PaginaProveedor({ params, searchParams }: PageProp
       }))}
       abonos={abonos ?? []}
       cestas={cestas ?? []}
-      rubros={rubros ?? []}
+      rubros={(rubros ?? []).filter((r) =>
+        proveedor.tipo === "ambos" || (proveedor.tipo === "insumos" ? r.categoria === "insumo" : r.categoria === "fruta"))}
       monedas={(monedas ?? []).map((m) => m.codigo)}
       metodos={metodos ?? []}
       filtros={filtros}
