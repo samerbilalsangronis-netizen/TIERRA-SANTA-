@@ -34,7 +34,7 @@ export default async function PaginaProveedores({ searchParams }: PageProps<"/pr
       p_tipo: ["fruta", "insumos"].includes(filtros.tipo) ? filtros.tipo : undefined,
     }),
     supabase.rpc("kpis_proveedores"),
-    supabase.from("productos").select("id, codigo, nombre, categoria").neq("tipo", "terminado").order("codigo"),
+    supabase.from("productos").select("id, codigo, nombre, categoria").neq("tipo", "terminado").order("nombre"),
     supabase.from("monedas").select("codigo").eq("activa", true).order("orden"),
   ]);
   const puedeEditar = puede(perfil.rol, "gestionar_proveedores");

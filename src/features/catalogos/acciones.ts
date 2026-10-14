@@ -55,7 +55,7 @@ export async function guardarProducto(entrada: DatosProducto): Promise<Resultado
     return fallo(mensajeErrorBD(error));
   }
   refrescar();
-  return exito(undefined, id ? "Producto actualizado." : `Producto ${fila.codigo} · ${fila.nombre} creado.`);
+  return exito(undefined, id ? "Producto actualizado." : fila.tipo === "terminado" ? `Producto ${fila.codigo} · ${fila.nombre} creado.` : `${fila.nombre} creado.`);
 }
 
 export async function guardarUnidad(entrada: DatosUnidad): Promise<Resultado> {

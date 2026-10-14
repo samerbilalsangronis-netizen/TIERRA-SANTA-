@@ -99,10 +99,9 @@ test("proveedor de insumos: bolsas por unidad", async ({ page }) => {
   // Insumo en el catálogo
   const insumo = `Bolsa 1kg ${sufijo()}`;
   await page.goto("/configuracion/catalogos/productos");
-  await page.getByRole("button", { name: /Insumos/ }).click();
-  await page.getByRole("button", { name: "Nuevo producto" }).click();
+  await page.getByRole("tab", { name: /Insumos/ }).click();
+  await page.getByRole("button", { name: "Nuevo insumo" }).click();
   await expect(page.getByRole("heading", { name: "Nuevo insumo" })).toBeVisible();
-  await page.fill("input[name=codigo]", String(500 + (Date.now() % 400)));
   await page.fill("input[name=nombre]", insumo);
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText(/creado\./)).toBeVisible();

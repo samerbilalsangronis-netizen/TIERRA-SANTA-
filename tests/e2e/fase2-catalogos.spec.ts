@@ -1,45 +1,52 @@
 import { expect, test } from "@playwright/test";
-import { entrarComoAdmin, sufijo } from "./utilidades";
+import { elegirOpcion, entrarComoAdmin, sufijo } from "./utilidades";
 
-test("productos: crear con código, validar FIJO, código duplicado, desactivar y eliminar", async ({ page }) => {
+test("productos: pestañas Se vende / Fruta de proveedores, código solo en lo que se vende, validar cesta, desactivar y eliminar", async ({ page }) => {
   await entrarComoAdmin(page);
   await page.goto("/configuracion/catalogos/productos");
-  await expect(page.getByRole("cell", { name: "Guanábana" }).first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Guanábana 800 g" }).first()).toBeVisible();
 
-  const codigo = String(100 + (Date.now() % 800));
-  const nombre = `Lulo ${sufijo()}`;
-  await page.getByRole("button", { name: "Nuevo producto" }).click();
-  await page.fill("input[name=codigo]", codigo);
-  await page.fill("input[name=nombre]", nombre);
-  await page.selectOption("select[name=tipo]", "ambos");
+  // Fruta de proveedores: sin código, compra por cesta exige kg por cesta
+  const fruta = `Lulo ${sufijo()}`;
+  await page.getByRole("tab", { name: /Fruta de proveedores/ }).click();
+  await expect(page.getByRole("columnheader", { name: "Código" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Nueva fruta" }).click();
+  await expect(page.locator("input[name=codigo]")).toHaveCount(0);
+  await page.fill("input[name=nombre]", fruta);
   await page.selectOption("select[name=modo_pesaje]", "FIJO");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("La compra por cesta necesita los kg por cesta")).toBeVisible();
   await page.fill("input[name=kg_por_cesta]", "12,5");
   await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText(`Producto ${codigo} · ${nombre} creado.`)).toBeVisible();
-  await expect(page.getByRole("row", { name: new RegExp(nombre) })).toContainText("Por cesta · 12,5 kg/cesta");
+  await expect(page.getByText(`${fruta} creado.`)).toBeVisible();
+  await expect(page.getByRole("row", { name: new RegExp(fruta) })).toContainText("Por cesta · 12,5 kg/cesta");
 
-  // Código repetido
+  // Se vende: con código, sale de la fruta nueva, 0,8 kg por bolsa
+  const codigo = String(200 + (Date.now() % 600));
+  const bolsa = `${fruta} 800 g`;
+  await page.getByRole("tab", { name: /Se vende/ }).click();
   await page.getByRole("button", { name: "Nuevo producto" }).click();
   await page.fill("input[name=codigo]", "1");
-  await page.fill("input[name=nombre]", `Otro ${sufijo()}`);
-  await page.selectOption("select[name=tipo]", "terminado");
+  await page.fill("input[name=nombre]", bolsa);
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Ya existe un producto con el código 1.")).toBeVisible();
-  await page.getByRole("button", { name: "Cancelar" }).click();
+  await page.fill("input[name=codigo]", codigo);
+  await elegirOpcion(page, "fruta_id", fruta);
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText(`Producto ${codigo} · ${bolsa} creado.`)).toBeVisible();
+  await expect(page.getByRole("row", { name: new RegExp(bolsa) })).toContainText(fruta);
 
   // Búsqueda por código
   await page.getByLabel("Buscar").fill(codigo);
   await expect(page.getByRole("row")).toHaveCount(2);
 
   // Desactivar y eliminar (sin historial)
-  await page.getByRole("button", { name: `Acciones de ${nombre}` }).first().click();
+  await page.getByRole("button", { name: `Acciones de ${bolsa}` }).first().click();
   await page.getByRole("menuitem", { name: "Desactivar" }).click();
   await expect(page.getByText(/Desactivado/)).toBeVisible();
   await page.getByLabel("Buscar").fill("");
   await page.getByText(/Ver inactivos/).click();
-  await page.getByRole("button", { name: `Acciones de ${nombre}` }).first().click();
+  await page.getByRole("button", { name: `Acciones de ${bolsa}` }).first().click();
   await page.getByRole("menuitem", { name: "Eliminar" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Eliminar" }).click();
   await expect(page.getByText("Eliminado.")).toBeVisible();

@@ -30,6 +30,15 @@ test("inventario: producción diaria, merma, traslado, ajuste, kardex, Excel y e
   await expect(page.getByText(/Guanábana 800 g 50 bolsa/).first()).toBeVisible();
   expect(await totalKardex(page, productoId)).toBeCloseTo(inicial + 50, 3);
 
+  // Gráfico de pulpa por rubro: la guanábana aparece con su porcentaje (esta semana y en inventario)
+  await page.goto("/inventario?pulpa=semana");
+  const grafico = page.getByRole("region", { name: "Porcentaje de pulpa por rubro" });
+  await expect(grafico.getByRole("button", { name: /Guanábana .* %/ })).toBeVisible();
+  await grafico.getByRole("tab", { name: "En inventario" }).click();
+  await expect(page).toHaveURL(/\/inventario$/);
+  await expect(grafico.getByRole("img")).toBeVisible();
+  await page.goto(`/inventario/${productoId}`);
+
   // Merma desde el kardex (producto ya elegido)
   await page.getByRole("button", { name: "Merma" }).click();
   const dialogo = page.getByRole("dialog");

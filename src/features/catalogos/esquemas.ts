@@ -33,9 +33,11 @@ export const esquemaProducto = z
     stock_minimo: numero().transform((n) => n ?? 0).refine((n) => n >= 0, "No puede ser negativo"),
     activo: z.boolean(),
     notas: textoOpc(500),
+    fruta_id: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => (v === undefined || v === null || v === "" ? null : Number(v))),
+    peso_kg: numero().optional().transform((n) => n ?? null).refine((n) => n === null || n > 0, "Debe ser mayor a 0"),
   })
   .superRefine((d, ctx) => {
-    if (d.modo_pesaje === "FIJO" && !d.kg_por_cesta) {
+    if (d.modo_pesaje === "FIJO" && !d.kg_por_cesta && d.tipo !== "terminado") {
       ctx.addIssue({ code: "custom", path: ["kg_por_cesta"], message: "La compra por cesta necesita los kg por cesta" });
     }
   });

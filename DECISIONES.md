@@ -140,3 +140,9 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
   - **Guanábana 1 kg** (código 101…109): igual, en bolsas.
 - Las facturas, la producción y el inventario que ya existían con la fruta pasaron a la presentación de 800 g. Las entregas de proveedores siguen en la fruta.
 - En Catálogos, el campo **Uso** decide dónde aparece cada producto: "Se vende" (facturas, inventario, producción), "Se compra" (entregas de proveedores) o "Se compra y se vende igual". Un producto nuevo de fruta nace como "Se vende" en bolsas.
+- **Catálogo de productos en 3 pestañas:** "Se vende" (con código, fruta de origen y kg de pulpa por bolsa), "Fruta de proveedores" y "Insumos" (estas dos **sin código visible**: el sistema les asigna uno interno desde 901). En las entregas de proveedores la fruta se elige por nombre.
+
+## Gráfico de pulpa por rubro (Inventario)
+- Dona con el **porcentaje de pulpa de cada fruta**: las bolsas se pasan a kg (bolsas × kg de pulpa por bolsa: 0,8 / 1) y se suman por fruta de origen (la de 800 g y la de 1 kg juntas). Se puede ver **en inventario** (lo que hay hoy) o **producido esta semana** (últimos 7 días).
+- Muestra hasta 6 segmentos; si hay más rubros, los más pequeños se agrupan en "Otros". Cada fruta conserva siempre su color. Al tocar un rubro se ve su porcentaje en el centro. La leyenda lleva kg y porcentaje escritos.
+- Los cálculos los hace Postgres (`pulpa_por_fruta`).

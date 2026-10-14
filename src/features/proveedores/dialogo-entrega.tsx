@@ -97,7 +97,7 @@ export function DialogoEntrega({
           const lista = rubros.filter((r) => r.categoria === cat);
           return lista.length ? (
             <optgroup key={cat} label={cat === "fruta" ? "Frutas" : "Insumos"}>
-              {lista.map((r) => <option key={r.id} value={r.id}>{r.codigo} · {r.emoji} {r.nombre}</option>)}
+              {lista.map((r) => <option key={r.id} value={r.id}>{r.emoji} {r.nombre}</option>)}
             </optgroup>
           ) : null;
         })}

@@ -88,7 +88,7 @@ export function FiltrosProveedores({ inicial, rubros, monedas }: {
         <div className="grid gap-2 border-t pt-2 sm:grid-cols-4">
           <SelectNativo value={f.rubro} onChange={(e) => cambiar({ rubro: e.target.value })} aria-label="Rubro">
             <option value="">Cualquier producto</option>
-            {rubros.map((r) => <option key={r.id} value={r.id}>{r.codigo} · {r.nombre}</option>)}
+            {rubros.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
           </SelectNativo>
           <Input type="date" value={f.desde} onChange={(e) => cambiar({ desde: e.target.value })} aria-label="Entregas desde" />
           <Input type="date" value={f.hasta} onChange={(e) => cambiar({ hasta: e.target.value })} aria-label="Entregas hasta" />

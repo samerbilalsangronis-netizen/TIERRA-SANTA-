@@ -203,6 +203,13 @@ delete from public.entregas_proveedor where id in (3, 4);
 insert into public.abonos_proveedor (proveedor_id, moneda, monto) values (1, 'COP', 85000);
 select pg_temp.check((select saldo_cop from public.v_resumen_proveedores where id = 1) = 500000, 'saldo proveedor COP');
 
+-- Pulpa por fruta: 10 bolsas de 800 g + 5 de 1 kg de guanábana = 13 kg; 5 bolsas de 800 g de parchita = 4 kg
+select public.registrar_produccion('2026-01-05', public.ubicacion_predeterminada(),
+  '[{"producto_id":10,"cantidad":10},{"producto_id":11,"cantidad":5},{"producto_id":12,"cantidad":5}]'::jsonb);
+select pg_temp.check((select peso_kg from public.productos where id = 10) = 0.8 and (select fruta_id from public.productos where id = 11) = 1, 'bolsas enlazadas con su fruta');
+select pg_temp.check((select string_agg(nombre || '=' || kg::numeric(10,1), ',' order by kg desc) from public.pulpa_por_fruta('2026-01-05', '2026-01-05')) = 'Guanábana=13.0,Parchita=4.0', 'pulpa por fruta producida en el rango');
+select pg_temp.check((select kg from public.pulpa_por_fruta() where fruta_id = 1) = (select sum(e.cantidad * p.peso_kg) from public.existencias e join public.productos p on p.id = e.producto_id where p.fruta_id = 1), 'pulpa por fruta en inventario');
+
 -- Nómina
 insert into public.empleados (nombre, tipo, tarifa_dia) values ('Alejandro', 'fijo', 40000), ('Greismar', 'destajo', 0);
 select public.guardar_jornada('{"empleado_id":1,"fecha":"2026-10-07","estado":"media"}');

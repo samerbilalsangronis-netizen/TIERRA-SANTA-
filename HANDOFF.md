@@ -42,6 +42,7 @@ Todas, en orden:
 20261019000100_facturacion_fase5.sql        ← Fase 5: confirmar que Samer la pegó
 20261020000100_inventario_fase6.sql         ← Fase 6: PENDIENTE de que Samer la pegue
 20261021000100_presentaciones_800g_1kg.sql  ← separa fruta comprada (901…) de bolsas 800 g (código 1…) y 1 kg (101…): PENDIENTE
+20261022000100_pulpa_por_fruta.sql          ← productos.fruta_id/peso_kg + pulpa_por_fruta() (gráfico de dona): PENDIENTE
 ```
 **Regla:** nunca editar una migración ya aplicada en producción; crear una nueva con fecha posterior (`2026MMDD000100_descripcion.sql`). Después de agregar una, correr `scripts/generar-instalar.sh` (regenera `supabase/instalar.sql` para instalaciones nuevas) y verificar que aplica limpio **en una sola transacción** (el SQL Editor de Supabase corre todo como una transacción: por eso no se usa `ALTER TYPE … ADD VALUE` seguido de uso del valor; se prefirió `text` + `check`).
 
@@ -185,6 +186,7 @@ Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-14 (2ª sesión, cont. 3) | Catálogo en pestañas (Se vende con código / Fruta de proveedores y Insumos sin código). Dona "Porcentaje de pulpa por rubro" en Inventario (migración 20261022). Colores de gráficos en `globals.css` (`--viz-*`, validados con la skill dataviz). |
 | 2026-10-14 (2ª sesión, cont. 2) | Botón "Nuevo producto" en Inventario. Separación fruta comprada / bolsas 800 g y 1 kg (migración 20261021, recalcula existencias). Campo "Uso" en Catálogos. |
 | 2026-10-14 (2ª sesión, cont.) | Fase 6 Inventario (migración 20261020: `produccion_resumen`, `eliminar_produccion`, merma con motivo obligatorio, `v_stock_total.categoria`). Subida a ambas ramas. |
 | 2026-10-14 (2ª sesión) | Fase 5 Facturación completa + permisos de funciones endurecidos (migración 20261019). Samer pidió incluir en su momento la migración de los registros de los programas antiguos: el de Windows solo genera la factura y se registra en ERP Clientes (nº, monto, enlace postimages), así que todo sale de los Sheets (§7 Fase 9). Fase 5 subida también a `claude/tender-curie-r25soh` con permiso de Samer. |

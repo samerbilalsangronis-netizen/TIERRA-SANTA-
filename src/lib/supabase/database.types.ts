@@ -1709,11 +1709,13 @@ export type Database = {
           codigo: number;
           created_at: string;
           emoji: string | null;
+          fruta_id: number | null;
           id: number;
           kg_por_cesta: number | null;
           modo_pesaje: string;
           nombre: string;
           notas: string | null;
+          peso_kg: number | null;
           stock_minimo: number;
           tipo: Database["public"]["Enums"]["tipo_producto"];
           unidad: string;
@@ -1726,11 +1728,13 @@ export type Database = {
           codigo: number;
           created_at?: string;
           emoji?: string | null;
+          fruta_id?: number | null;
           id?: never;
           kg_por_cesta?: number | null;
           modo_pesaje?: string;
           nombre: string;
           notas?: string | null;
+          peso_kg?: number | null;
           stock_minimo?: number;
           tipo?: Database["public"]["Enums"]["tipo_producto"];
           unidad?: string;
@@ -1742,17 +1746,40 @@ export type Database = {
           codigo?: number;
           created_at?: string;
           emoji?: string | null;
+          fruta_id?: number | null;
           id?: never;
           kg_por_cesta?: number | null;
           modo_pesaje?: string;
           nombre?: string;
           notas?: string | null;
+          peso_kg?: number | null;
           stock_minimo?: number;
           tipo?: Database["public"]["Enums"]["tipo_producto"];
           unidad?: string;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "productos_fruta_id_fkey";
+            columns: ["fruta_id"];
+            isOneToOne: false;
+            referencedRelation: "productos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "productos_fruta_id_fkey";
+            columns: ["fruta_id"];
+            isOneToOne: false;
+            referencedRelation: "v_stock";
+            referencedColumns: ["producto_id"];
+          },
+          {
+            foreignKeyName: "productos_fruta_id_fkey";
+            columns: ["fruta_id"];
+            isOneToOne: false;
+            referencedRelation: "v_stock_total";
+            referencedColumns: ["producto_id"];
+          },
           {
             foreignKeyName: "productos_unidad_fkey";
             columns: ["unidad"];
@@ -2519,6 +2546,16 @@ export type Database = {
         }[];
       };
       puede_editar_facturas: { Args: Record<PropertyKey, never>; Returns: boolean };
+      pulpa_por_fruta: {
+        Args: { p_desde?: string; p_hasta?: string };
+        Returns: {
+          codigo: number;
+          emoji: string;
+          fruta_id: number;
+          kg: number;
+          nombre: string;
+        }[];
+      };
       reabrir_periodo_nomina: {
         Args: { p_motivo: string; p_periodo_id: number };
         Returns: undefined;

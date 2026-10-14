@@ -38,7 +38,7 @@ export default async function PaginaProveedor({ params, searchParams }: PageProp
       supabase.from("v_resumen_proveedores").select("cestas_pendientes, cestas_entregadas, cestas_devueltas, ultima_entrega").eq("id", id).maybeSingle(),
       supabase.from("v_saldos_proveedores_moneda").select("*").eq("proveedor_id", id),
       entregasQ, abonosQ, cestasQ,
-      supabase.from("productos").select("id, codigo, nombre, emoji, categoria, modo_pesaje, kg_por_cesta, unidad").neq("tipo", "terminado").eq("activo", true).order("codigo"),
+      supabase.from("productos").select("id, codigo, nombre, emoji, categoria, modo_pesaje, kg_por_cesta, unidad").neq("tipo", "terminado").eq("activo", true).order("nombre"),
       supabase.from("monedas").select("codigo").eq("activa", true).order("orden"),
       supabase.from("metodos_pago").select("id, nombre").eq("activo", true).order("orden"),
     ]);

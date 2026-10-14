@@ -16,6 +16,7 @@ import { TarjetaKpi } from "@/components/comunes/tarjeta-kpi";
 import { cargarStock, TIPOS_MOVIMIENTO, type FilaStock } from "@/features/inventario/datos";
 import { AccionesInventario, BotonEliminarProduccion, FiltrosUrl } from "@/features/inventario/dialogos";
 import { BadgeIndicador } from "@/features/inventario/badge";
+import { DonaPulpa } from "@/features/inventario/dona-pulpa";
 
 export const metadata: Metadata = { title: "Inventario" };
 const POR_PAGINA = 50;
@@ -53,10 +54,25 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
         ))}
       </nav>
 
-      {vista === "stock" && <VistaStock filas={filas} ubicaciones={ubicaciones} />}
+      {vista === "stock" && <><GraficoPulpa semana={t(sp.pulpa) === "semana"} /><VistaStock filas={filas} ubicaciones={ubicaciones} /></>}
       {vista === "produccion" && <VistaProduccion sp={sp} esAdmin={ajustar} />}
       {vista === "movimientos" && <VistaMovimientos sp={sp} filas={filas} ubicaciones={ubicaciones} />}
     </>
+  );
+}
+
+// ------------------------------------------------------------------ Gráfico de pulpa por rubro
+async function GraficoPulpa({ semana }: { semana: boolean }) {
+  const hoy = hoyISO();
+  const supabase = await crearClienteServidor();
+  const [{ data }, { data: frutas }] = await Promise.all([
+    supabase.rpc("pulpa_por_fruta", semana ? { p_desde: sumarDias(hoy, -6), p_hasta: hoy } : {}),
+    supabase.from("productos").select("id").eq("categoria", "fruta").neq("tipo", "terminado").order("codigo"),
+  ]);
+  return (
+    <DonaPulpa modo={semana ? "semana" : "inventario"} hrefInventario="/inventario" hrefSemana="/inventario?pulpa=semana"
+      ordenFrutas={(frutas ?? []).map((f) => f.id)}
+      segmentos={(data ?? []).map((d) => ({ ...d, kg: Number(d.kg) }))} />
   );
 }
 
