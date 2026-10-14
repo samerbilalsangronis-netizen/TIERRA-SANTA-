@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, Building2, History, KeyRound, ShieldCheck, Users } from "lucide-react";
+import { BookOpen, Building2, DatabaseBackup, History, KeyRound, ShieldCheck, Users } from "lucide-react";
 import { exigirPerfil } from "@/lib/auth/sesion";
 import { NOMBRE_ROL, puede } from "@/lib/auth/roles";
 import { formatearFechaHora } from "@/lib/fechas";
@@ -34,6 +34,11 @@ export default async function PaginaConfiguracion() {
       </section>
       {esAdmin && (
         <section className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
+          <a href="/configuracion/respaldo" download className="group rounded-2xl border border-success/30 bg-card p-5 transition-colors hover:border-success/60 sm:col-span-2">
+            <DatabaseBackup className="size-5 text-success" />
+            <p className="mt-3 font-semibold group-hover:text-success">Descargar respaldo en Excel</p>
+            <p className="text-sm text-muted-foreground">Toda la base de datos en un archivo .xlsx (una hoja por tabla). Guárdalo cada cierto tiempo.</p>
+          </a>
           {SECCIONES.map((s) => (
             <Link key={s.href} href={s.href} className="group rounded-2xl border bg-card p-5 transition-colors hover:border-primary/40">
               <s.icono className="size-5 text-primary" />

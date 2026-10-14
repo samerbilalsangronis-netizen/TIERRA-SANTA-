@@ -39,3 +39,19 @@ describe("Acceso de usuarios", () => {
     expect(evaluarAcceso({ estado: "INACTIVO" })).toEqual({ ok: false, motivo: "inactivo" });
   });
 });
+
+import { esquemaProducto, esquemaTasa } from "@/features/catalogos/esquemas";
+
+describe("Esquemas de catálogos", () => {
+  it("interpreta números escritos a mano", () => {
+    const t = esquemaTasa.parse({ fecha: "2026-10-14", moneda_origen: "USD", moneda_destino: "COP", tasa: "4.000", nota: "" });
+    expect(t.tasa).toBe(4000);
+    expect(esquemaTasa.parse({ fecha: "2026-10-14", moneda_origen: "COP", moneda_destino: "USD", tasa: "0,00025", nota: "" }).tasa).toBe(0.00025);
+  });
+  it("un rubro FIJO exige kg por cesta", () => {
+    const base = { codigo: "10", nombre: "Lulo", emoji: "", unidad: "kg", tipo: "ambos", modo_pesaje: "FIJO", stock_minimo: "", activo: true, notas: "" } as const;
+    expect(esquemaProducto.safeParse({ ...base, kg_por_cesta: "" }).success).toBe(false);
+    expect(esquemaProducto.parse({ ...base, kg_por_cesta: "12,5" }).kg_por_cesta).toBe(12.5);
+    expect(esquemaProducto.parse({ ...base, tipo: "terminado", kg_por_cesta: "" }).kg_por_cesta).toBeNull();
+  });
+});

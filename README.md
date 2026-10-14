@@ -10,7 +10,7 @@ Aplicación web de **Procesadora de Alimentos Tierra Santa** que reemplaza ERP C
 |---|---|---|
 | — | Esquema de base de datos completo (todas las fases) | ✅ |
 | 1 | Base: layout, tema, inicio de sesión con correo y logo, roles, usuarios, auditoría, empresa con logo | ✅ |
-| 2 | Catálogos (productos con código, unidades, ubicaciones, monedas/tasas, métodos de pago, tareas) | ⏳ |
+| 2 | Catálogos (productos con código, unidades, ubicaciones, monedas/tasas, métodos de pago, tareas) + respaldo a Excel | ✅ |
 | 3 | Proveedores unificados | ⏳ |
 | 4 | Clientes | ⏳ |
 | 5 | Facturación (UI y PDF; las funciones de BD ya existen) | ⏳ |
@@ -93,7 +93,7 @@ src/
     app/                 # barra lateral, barra superior, tema
     comunes/             # campos, KPI, paginación, confirmaciones, estados vacíos
   features/              # lógica por módulo: acciones (Server Actions), esquemas Zod, componentes
-    auth/ configuracion/ usuarios/ auditoria/
+    auth/ configuracion/ usuarios/ auditoria/ catalogos/
   lib/
     supabase/            # clientes (servidor, navegador, admin), proxy de sesión, tipos generados
     auth/                # roles/permisos, sesión, reglas de acceso

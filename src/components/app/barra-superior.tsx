@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { KeyRound, LogOut, Menu, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,16 @@ export function BarraSuperior({ nombre, usuario, rol, logo, razon, fechaHoy }: P
         </SheetContent>
       </Sheet>
 
+      <Link href="/dashboard" className="relative h-8 w-14 lg:hidden" aria-label="Inicio">
+        {logo === "/logo-tierra-santa.png" ? (
+          <>
+            <Image src="/logo-tierra-santa-negro.png" alt="" fill sizes="56px" className="object-contain dark:hidden" />
+            <Image src="/logo-tierra-santa.png" alt="" fill sizes="56px" className="hidden object-contain dark:block" />
+          </>
+        ) : (
+          <Image src={logo} alt="" fill sizes="56px" className="object-contain" unoptimized={logo.startsWith("http")} />
+        )}
+      </Link>
       <p className="hidden text-sm text-muted-foreground first-letter:uppercase sm:block">{fechaHoy}</p>
       <div className="ml-auto flex items-center gap-1">
         <SelectorTema />

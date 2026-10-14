@@ -69,3 +69,15 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 
 ## Logo
 - Logo oficial (alas + monograma TS) convertido a PNG transparente: **blanco** para la app oscura (`/logo-tierra-santa.png`) y **negro** para papel y modo claro (`/logo-tierra-santa-negro.png`). El original queda en `public/marca/`. Desde Configuración se puede subir otro.
+
+## Catálogos (Fase 2)
+- Se administran en **Configuración → Catálogos** (solo admin). Todos los usuarios activos los pueden consultar.
+- **Eliminar** solo funciona si el registro nunca se usó; si ya tiene historial, la app sugiere **desactivarlo** (deja de aparecer para elegir, pero el historial queda intacto).
+- Productos: el código es entero, único y editable. El sistema propone el siguiente libre. Un rubro FIJO exige kg por cesta (excepto los de tipo "producto terminado", que no se compran a proveedores).
+- Cambiar el precio de una tarea o los kg por cesta de un rubro no altera lo ya registrado (cada jornada/entrega guarda su copia).
+- Solo puede haber una ubicación predeterminada; no se puede desactivar ni borrar la predeterminada, ni la moneda por defecto de la empresa.
+- Tasas de cambio: una por día y par de monedas (registrar otra el mismo día la reemplaza). Son solo informativas.
+- Los números se pueden escribir como "4.000", "2.500", "12,5" o "0,25".
+
+## Respaldo
+- **Configuración → General → Descargar respaldo en Excel** (solo admin): un .xlsx con una hoja por tabla y una hoja RESUMEN con el conteo de registros.
