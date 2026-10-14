@@ -152,7 +152,7 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - Pantalla con **Personal** (lista con lo que se le debe a cada uno) y **Tareas** (precios; se cambian en Catálogos). Ficha del empleado con **Calendario · Panel · Abonos · Reporte** y botones **Abonar, Editar, Eliminar**.
 - **Calendario mensual** (Ant./Sig.) con lo ganado cada día; al tocar un día se abre "Jornada: <fecha>":
   - Por tarea: Asistió / No asistió, todas las tareas con su precio, cantidad y subtotal, pago adicional por día y "Ganado hoy".
-  - Fijo: Asistió / Media jornada / No asistió con su tarifa diaria (completa / mitad / 0); también admite tareas y pago adicional.
+  - Fijo: Asistió / Media jornada / No asistió con su tarifa diaria (completa / mitad / 0) y pago adicional. **Sin tareas** (pedido de Samer: el fijo cobra por día; en Asistencia del día tampoco tiene botón de tareas).
   - Falta justificada solo se marca cuando no asistió (no paga).
 - **Asistencia del día:** todos los empleados con botones grandes; un toque guarda. El botón de tareas abre la jornada completa. Al cambiar la asistencia se conservan las tareas y su precio de ese día.
 - **Abonos/adelantos** con monto, fecha, entregado por y nota. Lo que se le debe = ganado − abonos.

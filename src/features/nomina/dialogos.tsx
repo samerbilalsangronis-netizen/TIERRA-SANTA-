@@ -114,7 +114,8 @@ export function DialogoJornada({ empleado, fecha, jornada, tareas, bloqueada, on
     Object.fromEntries((jornada?.jornada_tareas ?? []).map((t) => [t.tarea_id, formatearCantidad(t.cantidad, 2)])),
   );
   // Tareas visibles: las activas + las que ya tenga la jornada
-  const lista = tareas.filter((t) => t.activa || cantidades[t.id]);
+  // El personal fijo cobra por día: no ve tareas
+  const lista = empleado.tipo === "fijo" ? [] : tareas.filter((t) => t.activa || cantidades[t.id]);
   const valorDe = (t: Tarea) => jornada?.jornada_tareas.find((x) => x.tarea_id === t.id)?.valor_unitario ?? t.valor;
   const tarifa = jornada?.tarifa_aplicada || empleado.tarifa_dia;
   const asistio = estado !== "no";
@@ -174,8 +175,8 @@ export function DialogoJornada({ empleado, fecha, jornada, tareas, bloqueada, on
 
           {asistio && (
             <>
-              <div>
-                <p className="mb-1.5 text-sm font-medium">Tareas {empleado.tipo === "fijo" && <span className="font-normal text-muted-foreground">(opcional)</span>}</p>
+              {empleado.tipo === "destajo" && (<div>
+                <p className="mb-1.5 text-sm font-medium">Tareas</p>
                 <ul className="divide-y rounded-xl border">
                   {lista.map((t) => {
                     const cant = parsearMonto(cantidades[t.id] ?? "");
@@ -193,7 +194,7 @@ export function DialogoJornada({ empleado, fecha, jornada, tareas, bloqueada, on
                   })}
                   {lista.length === 0 && <li className="px-3 py-2 text-sm text-muted-foreground">No hay tareas. Créalas en Configuración → Catálogos → Tareas.</li>}
                 </ul>
-              </div>
+              </div>)}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="adicional">Pago adicional por día (COP)</Label>

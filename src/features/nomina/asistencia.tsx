@@ -84,7 +84,9 @@ export function Asistencia({ fecha, empleados, jornadas, tareas, cerrado }: {
                       {guardando === e.id && actual !== b.valor ? <Loader2 className="mx-auto size-4 animate-spin" /> : b.texto}
                     </button>
                   ))}
-                  <Button variant="outline" className="h-12" onClick={() => setDetalle(e)} aria-label={`Tareas y detalle de ${e.nombre}`}><ListChecks className="size-4" /><span className="hidden sm:inline">Tareas</span></Button>
+                  {e.tipo === "destajo" && (
+                    <Button variant="outline" className="h-12" onClick={() => setDetalle(e)} aria-label={`Tareas y detalle de ${e.nombre}`}><ListChecks className="size-4" /><span className="hidden sm:inline">Tareas</span></Button>
+                  )}
                 </div>
               </div>
             </li>

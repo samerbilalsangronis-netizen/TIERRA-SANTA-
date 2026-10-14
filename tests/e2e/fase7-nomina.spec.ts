@@ -33,6 +33,11 @@ test("nómina: jornadas por tarea y fijas, asistencia rápida, abonos, cierre co
   await expect(page.getByText(/Jornada del .* guardada/)).toBeVisible();
 
   await crearEmpleado(page, fijo, "fijo", "40.000");
+  await page.locator("button.ring-2[aria-label^='Jornada del']").click();
+  await expect(page.getByRole("dialog").getByRole("radio", { name: "Media jornada" })).toBeVisible();
+  await expect(page.getByRole("dialog").getByLabel(/Cantidad de /)).toHaveCount(0);
+  await expect(page.getByRole("dialog").getByLabel("Pago adicional por día (COP)")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancelar" }).click();
 
   // Asistencia rápida en una fecha única
   const dia = fechaUnica();
@@ -40,6 +45,8 @@ test("nómina: jornadas por tarea y fijas, asistencia rápida, abonos, cierre co
   const filaFijo = page.getByRole("listitem").filter({ hasText: fijo });
   await filaFijo.getByRole("radio", { name: "Media" }).click();
   await expect(filaFijo).toContainText("20.000");
+  // El personal fijo no tiene botón de tareas ni lista de tareas en su jornada
+  await expect(filaFijo.getByRole("button", { name: /Tareas y detalle/ })).toHaveCount(0);
   // Destajo: 3 cestas de "Cortada de Durazno" (10.000) + 5.000 adicional = 35.000
   const filaDestajo = page.getByRole("listitem").filter({ hasText: destajo });
   await filaDestajo.getByRole("button", { name: `Tareas y detalle de ${destajo}` }).click();
