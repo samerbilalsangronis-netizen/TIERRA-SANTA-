@@ -49,14 +49,20 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 
 ## Inventario
 - Libro mayor de movimientos; la tabla `existencias` la mantiene un trigger. Los movimientos no se editan: se corrigen con otro movimiento.
-- **Forma MP / PT**: un mismo código (p. ej. 1 = Guanábana) tiene stock separado de **materia prima** (fruta recibida, kg) y **producto terminado** (pulpa). Las entregas entran como MP, la producción entra como PT (y opcionalmente descuenta MP), las facturas descuentan PT. Productos de tipo "materia prima" se venden desde MP.
-- Las entregas suman a inventario el **peso neto** (kg) cuando la opción está activa, en la ubicación configurada.
+- **El inventario solo crece con las entradas que registra la planta** (producción diaria). Lo que trae el proveedor **no** suma al inventario, porque la fruta se procesa antes de ser producto final (decisión de Samer, Fase 3). Se eliminó el interruptor de Configuración.
+- Las facturas descuentan el inventario; al anular o reducir una factura, se devuelve.
+- Existe la "forma" MP/PT en la base de datos para el futuro, pero hoy todo el stock es producto terminado (PT).
 - Con lotes activos, las salidas consumen el lote más viejo primero (FIFO); al reducir/anular una factura se devuelve a los mismos lotes.
 
 ## Proveedores
-- Al registrar una entrega se **copian** `modo_pesaje` y `kg_por_cesta` del rubro: cambiar luego el rubro no altera entregas pasadas.
+- Un solo módulo para COP y USD: cada entrega y cada abono lleva su moneda; los saldos se muestran por moneda, nunca mezclados.
+- Fórmulas idénticas al sistema anterior (FIJO por cesta / VARIABLE por kg total, merma descontada al precio por kg). La pantalla muestra el cálculo en vivo antes de guardar.
+- Al registrar una entrega se **copian** el pesaje y los kg por cesta del rubro: cambiar luego el rubro no altera entregas pasadas. Si al editar se cambia el rubro, se toma la configuración nueva.
 - La merma no puede superar el peso total.
-- Las cestas siguen siendo un registro aparte (como en el sistema actual); la pantalla de entrega podrá crear el movimiento de cestas automáticamente.
+- **Cestas:** al registrar una entrega viene marcada la casilla "anotar estas cestas como entregadas"; ese movimiento queda enlazado a la entrega (se actualiza o borra con ella). Las devoluciones se registran aparte con el botón "Cestas".
+- Foto de la entrega: se toma con la cámara del teléfono, se reduce a máx. 1600 px (JPEG) y se sube al bucket privado `entregas`; se ve con enlaces temporales. También se acepta una URL.
+- Estado de cuenta: hoja imprimible (botón "Imprimir / PDF" → Guardar como PDF del navegador) y descarga en Excel. El cálculo lo hace Postgres (`estado_cuenta_proveedor`), con saldo anterior cuando se filtra por fecha.
+- Permisos: operador y facturación registran entregas y cestas; abonos y eliminar entregas: admin y facturación; eliminar un proveedor: solo admin y solo si no tiene movimientos (si no, se desactiva).
 
 ## Nómina (según las capturas del sistema actual)
 - Pantalla por empleado con **calendario mensual** que muestra lo ganado cada día; al tocar un día se abre la jornada.

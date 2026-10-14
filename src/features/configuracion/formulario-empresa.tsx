@@ -41,9 +41,9 @@ function Interruptor({ etiqueta, ayuda, checked, onChange }: { etiqueta: string;
 }
 
 export function FormularioEmpresa({
-  inicial, logoUrl, tieneLogoPropio, monedas, ubicaciones,
+  inicial, logoUrl, tieneLogoPropio, monedas,
 }: {
-  inicial: DatosEmpresaValidos; logoUrl: string; tieneLogoPropio: boolean; monedas: Opcion[]; ubicaciones: Opcion[];
+  inicial: DatosEmpresaValidos; logoUrl: string; tieneLogoPropio: boolean; monedas: Opcion[];
 }) {
   const router = useRouter();
   const [guardando, iniciarGuardado] = useTransition();
@@ -188,15 +188,6 @@ export function FormularioEmpresa({
           />
           {err.roles_editan_factura && <p className="text-xs text-destructive">{err.roles_editan_factura.message}</p>}
         </div>
-        <Controller control={form.control} name="entregas_suman_inventario" render={({ field }) => (
-          <Interruptor etiqueta="Las entregas de proveedores suman materia prima al inventario"
-            ayuda="Cada entrega registra una entrada por compra con el peso neto (kg)." checked={field.value} onChange={field.onChange} />
-        )} />
-        <CampoSelect etiqueta="Ubicación donde entran las entregas" {...form.register("entregas_ubicacion_id", { setValueAs: (v) => (v === "" || v === null ? null : Number(v)) })}>
-          <option value="">Ubicación predeterminada</option>
-          {ubicaciones.map((u) => <option key={u.valor} value={u.valor}>{u.etiqueta}</option>)}
-        </CampoSelect>
-        <div />
         <Controller control={form.control} name="lotes_activos" render={({ field }) => (
           <Interruptor etiqueta="Control por lotes (FIFO)" ayuda="Cada producción crea un lote con su fecha; las salidas consumen primero el más viejo."
             checked={field.value} onChange={field.onChange} />

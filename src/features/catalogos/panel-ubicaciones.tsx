@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { CampoTexto } from "@/components/comunes/campos";
 import { guardarUbicacion } from "./acciones";
-import { DialogoFormulario } from "./dialogo-formulario";
+import { DialogoFormulario } from "@/components/comunes/dialogo-formulario";
 import { esquemaUbicacion } from "./esquemas";
 import { EtiquetaEstado, ListaCatalogo } from "./lista-catalogo";
-import { useFormularioCatalogo } from "./use-formulario";
+import { useFormulario } from "@/components/comunes/use-formulario";
 
 export type Ubicacion = { id: number; nombre: string; descripcion: string | null; es_cuarto_frio: boolean; predeterminada: boolean; activa: boolean };
 
@@ -50,7 +50,7 @@ export function PanelUbicaciones({ ubicaciones }: { ubicaciones: Ubicacion[] }) 
 }
 
 function FormUbicacion({ ubicacion, onCerrar }: { ubicacion: Ubicacion | null; onCerrar: () => void }) {
-  const { form, enviar, pendiente, err } = useFormularioCatalogo(
+  const { form, enviar, pendiente, err } = useFormulario(
     esquemaUbicacion,
     ubicacion ? { ...ubicacion, descripcion: ubicacion.descripcion ?? "" } : { nombre: "", descripcion: "", es_cuarto_frio: false, predeterminada: false, activa: true },
     guardarUbicacion, onCerrar,

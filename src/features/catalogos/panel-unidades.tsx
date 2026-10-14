@@ -4,10 +4,10 @@ import { Controller } from "react-hook-form";
 import { Switch } from "@/components/ui/switch";
 import { CampoTexto } from "@/components/comunes/campos";
 import { guardarUnidad } from "./acciones";
-import { DialogoFormulario } from "./dialogo-formulario";
+import { DialogoFormulario } from "@/components/comunes/dialogo-formulario";
 import { esquemaUnidad } from "./esquemas";
 import { EtiquetaEstado, ListaCatalogo } from "./lista-catalogo";
-import { useFormularioCatalogo } from "./use-formulario";
+import { useFormulario } from "@/components/comunes/use-formulario";
 
 export type Unidad = { codigo: string; nombre: string; plural: string; activa: boolean };
 
@@ -33,7 +33,7 @@ export function PanelUnidades({ unidades }: { unidades: Unidad[] }) {
 }
 
 function FormUnidad({ unidad, onCerrar }: { unidad: Unidad | null; onCerrar: () => void }) {
-  const { form, enviar, pendiente, err } = useFormularioCatalogo(
+  const { form, enviar, pendiente, err } = useFormulario(
     esquemaUnidad,
     unidad ? { ...unidad, nuevo: false } : { nuevo: true, codigo: "", nombre: "", plural: "", activa: true },
     guardarUnidad, onCerrar,

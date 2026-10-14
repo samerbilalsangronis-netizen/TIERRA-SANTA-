@@ -483,8 +483,6 @@ export type Database = {
           cambio_moneda_con_pagos: string;
           correo: string;
           direccion: string;
-          entregas_suman_inventario: boolean;
-          entregas_ubicacion_id: number | null;
           factura_numero_inicial: number;
           factura_prefijo: string;
           id: number;
@@ -509,8 +507,6 @@ export type Database = {
           cambio_moneda_con_pagos?: string;
           correo?: string;
           direccion?: string;
-          entregas_suman_inventario?: boolean;
-          entregas_ubicacion_id?: number | null;
           factura_numero_inicial?: number;
           factura_prefijo?: string;
           id?: number;
@@ -534,8 +530,6 @@ export type Database = {
           cambio_moneda_con_pagos?: string;
           correo?: string;
           direccion?: string;
-          entregas_suman_inventario?: boolean;
-          entregas_ubicacion_id?: number | null;
           factura_numero_inicial?: number;
           factura_prefijo?: string;
           id?: number;
@@ -556,20 +550,6 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
-          {
-            foreignKeyName: "empresa_entregas_ubicacion_fk";
-            columns: ["entregas_ubicacion_id"];
-            isOneToOne: false;
-            referencedRelation: "ubicaciones";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "empresa_entregas_ubicacion_fk";
-            columns: ["entregas_ubicacion_id"];
-            isOneToOne: false;
-            referencedRelation: "v_stock";
-            referencedColumns: ["ubicacion_id"];
-          },
           {
             foreignKeyName: "empresa_moneda_fk";
             columns: ["moneda_defecto"];
@@ -2222,6 +2202,42 @@ export type Database = {
         };
         Returns: undefined;
       };
+      buscar_proveedores: {
+        Args: {
+          p_con_saldo?: boolean;
+          p_desde?: string;
+          p_hasta?: string;
+          p_incluir_inactivos?: boolean;
+          p_moneda?: string;
+          p_producto?: number;
+          p_q?: string;
+        };
+        Returns: {
+          activo: boolean | null;
+          cestas_devueltas: number | null;
+          cestas_entregadas: number | null;
+          cestas_pendientes: number | null;
+          con_saldo: boolean | null;
+          documento: string | null;
+          id: number | null;
+          letra: string | null;
+          moneda_habitual: string | null;
+          nombre: string | null;
+          saldo_cop: number | null;
+          saldo_usd: number | null;
+          saldo_ves: number | null;
+          search: string | null;
+          telefono: string | null;
+          ubicacion: string | null;
+          ultima_entrega: string | null;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "v_resumen_proveedores";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       calcular_entrega: {
         Args: {
           p_cestas: number;
@@ -2250,6 +2266,21 @@ export type Database = {
       };
       es_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       es_usuario_activo: { Args: Record<PropertyKey, never>; Returns: boolean };
+      estado_cuenta_proveedor: {
+        Args: { p_desde?: string; p_hasta?: string; p_moneda: string; p_proveedor_id: number };
+        Returns: {
+          abono: number;
+          cargo: number;
+          cestas: number;
+          detalle: string;
+          fecha: string;
+          kg: number;
+          merma: number;
+          ref_id: number;
+          saldo: number;
+          tipo: string;
+        }[];
+      };
       exigir_rol: {
         Args: { roles: Database["public"]["Enums"]["rol_usuario"][] };
         Returns: undefined;

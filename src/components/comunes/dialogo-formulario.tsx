@@ -19,9 +19,9 @@ export function DialogoFormulario({
         </DialogHeader>
         <form onSubmit={onEnviar} noValidate className="grid gap-3 sm:grid-cols-2">
           {children}
-          <DialogFooter className="sm:col-span-2">
-            <Button type="button" variant="outline" onClick={onCerrar}>Cancelar</Button>
-            <Button type="submit" disabled={pendiente}>{pendiente && <Loader2 className="size-4 animate-spin" />} {textoGuardar}</Button>
+          <DialogFooter className="sticky bottom-0 z-10 flex-row justify-end bg-popover/95 backdrop-blur sm:col-span-2">
+            <Button type="button" variant="outline" className="flex-1 sm:flex-none" onClick={onCerrar}>Cancelar</Button>
+            <Button type="submit" className="flex-1 sm:flex-none" disabled={pendiente}>{pendiente && <Loader2 className="size-4 animate-spin" />} {textoGuardar}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

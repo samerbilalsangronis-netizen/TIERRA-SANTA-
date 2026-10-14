@@ -11,10 +11,10 @@ import { ConfirmarAccion } from "@/components/comunes/confirmar-accion";
 import { formatearFecha } from "@/lib/fechas";
 import { formatearNumero } from "@/lib/dinero";
 import { eliminarDeCatalogo, guardarMoneda, guardarTasa } from "./acciones";
-import { DialogoFormulario } from "./dialogo-formulario";
+import { DialogoFormulario } from "@/components/comunes/dialogo-formulario";
 import { esquemaMoneda, esquemaTasa } from "./esquemas";
 import { EtiquetaEstado, ListaCatalogo } from "./lista-catalogo";
-import { useFormularioCatalogo } from "./use-formulario";
+import { useFormulario } from "@/components/comunes/use-formulario";
 
 export type Moneda = { codigo: string; nombre: string; simbolo: string; decimales: number; activa: boolean; orden: number };
 export type Tasa = { id: number; fecha: string; moneda_origen: string; moneda_destino: string; tasa: number; nota: string | null };
@@ -80,7 +80,7 @@ function FilaTasa({ tasa }: { tasa: Tasa }) {
 }
 
 function FormMoneda({ moneda, onCerrar }: { moneda: Moneda | null; onCerrar: () => void }) {
-  const { form, enviar, pendiente, err } = useFormularioCatalogo(
+  const { form, enviar, pendiente, err } = useFormulario(
     esquemaMoneda,
     moneda ? { ...moneda, nuevo: false } : { nuevo: true, codigo: "", nombre: "", simbolo: "$", decimales: 2, activa: true, orden: 9 },
     guardarMoneda, onCerrar,
@@ -103,7 +103,7 @@ function FormMoneda({ moneda, onCerrar }: { moneda: Moneda | null; onCerrar: () 
 }
 
 function FormTasa({ monedas, hoy, onCerrar }: { monedas: Moneda[]; hoy: string; onCerrar: () => void }) {
-  const { form, enviar, pendiente, err } = useFormularioCatalogo(
+  const { form, enviar, pendiente, err } = useFormulario(
     esquemaTasa,
     { fecha: hoy, moneda_origen: "USD", moneda_destino: "COP", tasa: "", nota: "" },
     guardarTasa, onCerrar,

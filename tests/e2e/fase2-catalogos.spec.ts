@@ -75,8 +75,15 @@ test("ubicaciones: una sola predeterminada", async ({ page }) => {
 test("monedas: activar VES y registrar tasa", async ({ page }) => {
   await entrarComoAdmin(page);
   await page.goto("/configuracion/catalogos/monedas");
+  // Repetible: si VES ya está activa, primero se desactiva
+  const acciones = page.getByRole("button", { name: "Acciones de Bolívar" }).first();
+  if (await acciones.isVisible()) {
+    await acciones.click();
+    await page.getByRole("menuitem", { name: "Desactivar" }).click();
+    await expect(page.getByText(/Desactivado/)).toBeVisible();
+  }
   await page.getByText(/Ver inactivos/).click();
-  await page.getByRole("button", { name: "Acciones de Bolívar" }).first().click();
+  await acciones.click();
   await page.getByRole("menuitem", { name: "Activar" }).click();
   await expect(page.getByText("Activado.")).toBeVisible();
   await page.getByRole("button", { name: "Registrar tasa" }).click();

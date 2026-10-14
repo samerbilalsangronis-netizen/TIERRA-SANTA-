@@ -21,3 +21,9 @@ export async function entrarComoAdmin(p: Page) {
 }
 
 export const sufijo = () => Date.now().toString(36).slice(-5);
+
+/** Elige en un <select name=…> la primera opción cuyo texto contenga `texto`. */
+export async function elegirOpcion(p: Page, nombre: string, texto: string) {
+  const valor = await p.locator(`select[name=${nombre}] option`, { hasText: texto }).first().getAttribute("value");
+  await p.selectOption(`select[name=${nombre}]`, valor ?? "");
+}

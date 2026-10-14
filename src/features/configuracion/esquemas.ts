@@ -19,8 +19,6 @@ export const esquemaEmpresa = z.object({
   stock_insuficiente: z.enum(["advertir", "bloquear"]),
   cambio_moneda_con_pagos: z.enum(["convertir", "bloquear"]),
   roles_editan_factura: z.array(z.enum(ROLES)).min(1, "Al menos un rol"),
-  entregas_suman_inventario: z.boolean(),
-  entregas_ubicacion_id: z.coerce.number<string | number>().int().positive().nullable(),
   lotes_activos: z.boolean(),
   nomina_periodicidad: z.enum(["semanal", "quincenal", "mensual"]),
   nomina_inicio_semana: z.coerce.number<string | number>().int().min(0).max(6),

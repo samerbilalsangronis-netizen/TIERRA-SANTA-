@@ -4,10 +4,10 @@ import { Controller } from "react-hook-form";
 import { Switch } from "@/components/ui/switch";
 import { CampoTexto } from "@/components/comunes/campos";
 import { guardarMetodoPago } from "./acciones";
-import { DialogoFormulario } from "./dialogo-formulario";
+import { DialogoFormulario } from "@/components/comunes/dialogo-formulario";
 import { esquemaMetodoPago } from "./esquemas";
 import { EtiquetaEstado, ListaCatalogo } from "./lista-catalogo";
-import { useFormularioCatalogo } from "./use-formulario";
+import { useFormulario } from "@/components/comunes/use-formulario";
 
 export type MetodoPago = { id: number; nombre: string; activo: boolean; orden: number };
 
@@ -35,7 +35,7 @@ export function PanelMetodos({ metodos }: { metodos: MetodoPago[] }) {
 }
 
 function FormMetodo({ metodo, siguienteOrden, onCerrar }: { metodo: MetodoPago | null; siguienteOrden: number; onCerrar: () => void }) {
-  const { form, enviar, pendiente, err } = useFormularioCatalogo(
+  const { form, enviar, pendiente, err } = useFormulario(
     esquemaMetodoPago, metodo ?? { nombre: "", activo: true, orden: siguienteOrden }, guardarMetodoPago, onCerrar,
   );
   return (

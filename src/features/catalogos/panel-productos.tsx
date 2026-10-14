@@ -6,10 +6,10 @@ import { Switch } from "@/components/ui/switch";
 import { CampoArea, CampoSelect, CampoTexto } from "@/components/comunes/campos";
 import { formatearCantidad } from "@/lib/dinero";
 import { guardarProducto } from "./acciones";
-import { DialogoFormulario } from "./dialogo-formulario";
+import { DialogoFormulario } from "@/components/comunes/dialogo-formulario";
 import { esquemaProducto, TIPOS_PRODUCTO } from "./esquemas";
 import { EtiquetaEstado, ListaCatalogo } from "./lista-catalogo";
-import { useFormularioCatalogo } from "./use-formulario";
+import { useFormulario } from "@/components/comunes/use-formulario";
 
 export type Producto = {
   id: number; codigo: number; nombre: string; emoji: string | null; unidad: string;
@@ -42,7 +42,7 @@ export function PanelProductos({ productos, unidades }: { productos: Producto[];
           { titulo: "Producto", celda: (p) => <span className="font-medium">{p.emoji} {p.nombre}</span> },
           { titulo: "Unidad", celda: (p) => p.unidad },
           { titulo: "Tipo", celda: (p) => <span className="text-sm text-muted-foreground">{NOMBRE_TIPO[p.tipo]}</span> },
-          { titulo: "Pesaje (proveedores)", celda: (p) => p.tipo === "terminado" ? "—" : (
+          { titulo: "Compra a proveedores", celda: (p) => p.tipo === "terminado" ? "—" : (
             <span className="text-sm">{p.modo_pesaje}{p.modo_pesaje === "FIJO" && p.kg_por_cesta ? ` · ${formatearCantidad(p.kg_por_cesta)} kg/cesta` : ""}</span>) },
           { titulo: "Stock mínimo", className: "text-right", celda: (p) => <span className="tabular">{formatearCantidad(p.stock_minimo)} {p.unidad}</span> },
           { titulo: "Estado", celda: (p) => <EtiquetaEstado activo={p.activo} /> },
@@ -75,7 +75,7 @@ export function PanelProductos({ productos, unidades }: { productos: Producto[];
 function FormProducto({ producto, siguienteCodigo, unidades, onCerrar }: {
   producto: Producto | null; siguienteCodigo: number; unidades: Unidad[]; onCerrar: () => void;
 }) {
-  const { form, enviar, pendiente, err } = useFormularioCatalogo(
+  const { form, enviar, pendiente, err } = useFormulario(
     esquemaProducto,
     producto
       ? { ...producto, kg_por_cesta: producto.kg_por_cesta ?? "", emoji: producto.emoji ?? "", notas: producto.notas ?? "" }
@@ -104,6 +104,10 @@ function FormProducto({ producto, siguienteCodigo, unidades, onCerrar }: {
       </CampoSelect>
       {tipo !== "terminado" && (
         <>
+          <p className="rounded-lg bg-muted/50 p-2.5 text-xs text-muted-foreground sm:col-span-2">
+            Solo para calcular cuánto se le paga al proveedor. Lo que trae el proveedor <b>no suma al inventario</b>:
+            el inventario sube con las entradas de producción.
+          </p>
           <CampoSelect etiqueta="Pesaje en entregas de proveedores" {...form.register("modo_pesaje")}
             ayuda={modo === "FIJO" ? "kg = cestas × kg por cesta; el precio es por cesta." : "Se escribe el total de kg; el precio es el total de la entrega."}>
             <option value="FIJO">FIJO (por cesta)</option>

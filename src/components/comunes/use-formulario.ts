@@ -11,7 +11,8 @@ import type { Resultado } from "@/lib/acciones";
  * Formulario de catálogo: valida con Zod en el navegador, envía los valores crudos
  * a la Server Action (que vuelve a validar) y muestra el resultado.
  */
-export function useFormularioCatalogo<E extends z.ZodType<unknown, FieldValues>>(
+/** Hook de formulario estándar de la app. */
+export function useFormulario<E extends z.ZodType<unknown, FieldValues>>(
   esquema: E,
   inicial: DefaultValues<z.input<E>>,
   accion: (d: z.input<E>) => Promise<Resultado>,
@@ -32,7 +33,7 @@ export function useFormularioCatalogo<E extends z.ZodType<unknown, FieldValues>>
         Object.entries(r.campos ?? {}).forEach(([k, m]) => form.setError(k as Path<z.input<E>>, { message: m }));
         return;
       }
-      toast.success(r.mensaje);
+      if (r.mensaje) toast.success(r.mensaje);
       router.refresh();
       alGuardar();
     }),

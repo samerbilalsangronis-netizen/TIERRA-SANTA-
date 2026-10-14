@@ -5,10 +5,10 @@ import { Switch } from "@/components/ui/switch";
 import { CampoTexto } from "@/components/comunes/campos";
 import { formatearMonto } from "@/lib/dinero";
 import { guardarTarea } from "./acciones";
-import { DialogoFormulario } from "./dialogo-formulario";
+import { DialogoFormulario } from "@/components/comunes/dialogo-formulario";
 import { esquemaTarea } from "./esquemas";
 import { EtiquetaEstado, ListaCatalogo } from "./lista-catalogo";
-import { useFormularioCatalogo } from "./use-formulario";
+import { useFormulario } from "@/components/comunes/use-formulario";
 
 export type Tarea = { id: number; emoji: string | null; nombre: string; valor: number; unidad: string; activa: boolean; orden: number };
 
@@ -41,7 +41,7 @@ export function PanelTareas({ tareas }: { tareas: Tarea[] }) {
 }
 
 function FormTarea({ tarea, siguienteOrden, onCerrar }: { tarea: Tarea | null; siguienteOrden: number; onCerrar: () => void }) {
-  const { form, enviar, pendiente, err } = useFormularioCatalogo(
+  const { form, enviar, pendiente, err } = useFormulario(
     esquemaTarea,
     tarea ? { ...tarea, emoji: tarea.emoji ?? "" } : { emoji: "", nombre: "", valor: "", unidad: "cesta", activa: true, orden: siguienteOrden },
     guardarTarea, onCerrar,

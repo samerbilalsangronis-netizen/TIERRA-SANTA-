@@ -16,7 +16,6 @@ insert into public.ubicaciones (nombre, descripcion, es_cuarto_frio, predetermin
   ('Galpón', null, false, false),
   ('Otra sede', null, false, false);
 
-update public.empresa set entregas_ubicacion_id = (select id from public.ubicaciones where predeterminada) where id = 1;
 
 insert into public.productos (codigo, nombre, emoji, unidad, tipo, kg_por_cesta, modo_pesaje) values
   (1, 'Guanábana', '🍈', 'kg', 'ambos', 20, 'FIJO'),
