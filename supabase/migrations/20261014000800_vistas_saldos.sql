@@ -212,7 +212,7 @@ as $$
               when b.produccion_id is not null then 'Producción #' || b.produccion_id
               when b.traslado_id is not null then 'Traslado'
               else null end,
-         b.nota, pr.usuario
+         b.nota, pr.email
     from base b
     join public.ubicaciones u on u.id = b.ubicacion_id
     left join public.facturas f on f.id = b.factura_id

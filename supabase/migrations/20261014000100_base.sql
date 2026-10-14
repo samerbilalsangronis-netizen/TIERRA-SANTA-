@@ -45,40 +45,39 @@ end $$;
 -- ---------------------------------------------------------------------
 create table public.profiles (
   id                 uuid primary key references auth.users(id) on delete cascade,
-  usuario            text not null,
+  email              text not null,                 -- con el que inicia sesión (copia de auth.users)
   nombre             text not null default '',
-  email              text,
   rol                public.rol_usuario not null default 'solo_lectura',
   estado             public.estado_usuario not null default 'ACTIVO',
-  vence_el           date,
   ultimo_acceso      timestamptz,
   debe_cambiar_clave boolean not null default false,
   created_at         timestamptz not null default now(),
-  updated_at         timestamptz not null default now(),
-  constraint profiles_usuario_formato check (usuario ~ '^[a-z0-9._-]{3,40}$')
+  updated_at         timestamptz not null default now()
 );
-create unique index profiles_usuario_uk on public.profiles (lower(usuario));
+create unique index profiles_email_uk on public.profiles (lower(email));
 create trigger profiles_updated_at before update on public.profiles
   for each row execute function public.tg_set_updated_at();
 
--- Crea el perfil automáticamente al crear un usuario en auth
+-- Crea el perfil automáticamente al crear un usuario en auth.
+-- El PRIMER usuario que exista queda como admin: basta crearlo en
+-- Supabase → Authentication → Add user. Cualquier otro queda INACTIVO y sin
+-- acceso hasta que el panel de Usuarios (servidor con clave de servicio) le
+-- asigna rol y lo activa. Nunca se confía en user_metadata para el rol.
 create or replace function public.tg_nuevo_usuario()
 returns trigger language plpgsql security definer
 set search_path = public
 as $$
 declare
   v_meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
+  v_primero boolean := not exists (select 1 from public.profiles where rol = 'admin');
 begin
-  insert into public.profiles (id, usuario, nombre, email, rol, estado, vence_el, debe_cambiar_clave)
+  insert into public.profiles (id, email, nombre, rol, estado)
   values (
     new.id,
-    lower(coalesce(nullif(v_meta->>'usuario', ''), split_part(new.email, '@', 1))),
-    coalesce(v_meta->>'nombre', ''),
-    case when new.email like '%@usuarios.tierrasanta.local' then null else new.email end,
-    coalesce((v_meta->>'rol')::public.rol_usuario, 'solo_lectura'),
-    'ACTIVO',
-    nullif(v_meta->>'vence_el', '')::date,
-    coalesce((v_meta->>'debe_cambiar_clave')::boolean, false)
+    lower(new.email),
+    coalesce(nullif(v_meta->>'nombre', ''), split_part(new.email, '@', 1)),
+    case when v_primero then 'admin'::public.rol_usuario else 'solo_lectura' end,
+    case when v_primero then 'ACTIVO'::public.estado_usuario else 'INACTIVO' end
   )
   on conflict (id) do nothing;
   return new;
@@ -87,11 +86,25 @@ end $$;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.tg_nuevo_usuario();
 
+-- Mantiene el correo del perfil igual al de Auth
+create or replace function public.tg_usuario_correo()
+returns trigger language plpgsql security definer
+set search_path = public
+as $$
+begin
+  if new.email is distinct from old.email then
+    update public.profiles set email = lower(new.email) where id = new.id;
+  end if;
+  return new;
+end $$;
+create trigger on_auth_user_email after update of email on auth.users
+  for each row execute function public.tg_usuario_correo();
+
 -- ---------------------------------------------------------------------
 -- Helpers de autorización (usados en RLS y funciones)
 -- ---------------------------------------------------------------------
 
--- Rol del usuario actual si está ACTIVO y no vencido; null en otro caso
+-- Rol del usuario actual si está ACTIVO; null en otro caso
 create or replace function public.rol_actual()
 returns public.rol_usuario language sql stable security definer
 set search_path = public
@@ -99,7 +112,6 @@ as $$
   select p.rol from public.profiles p
   where p.id = auth.uid()
     and p.estado = 'ACTIVO'
-    and (p.vence_el is null or p.vence_el >= public.hoy())
 $$;
 
 create or replace function public.es_usuario_activo()
@@ -124,16 +136,15 @@ begin
   end if;
 end $$;
 
--- Evita que un no-admin cambie su propio rol/estado/vencimiento
+-- Evita que un no-admin cambie su propio rol/estado/correo
 create or replace function public.tg_profiles_proteger()
 returns trigger language plpgsql as $$
 begin
   if auth.uid() is not null and not public.es_admin() then
     if new.rol is distinct from old.rol
        or new.estado is distinct from old.estado
-       or new.vence_el is distinct from old.vence_el
-       or new.usuario is distinct from old.usuario then
-      raise exception 'Solo un administrador puede cambiar usuario, rol, estado o vencimiento.' using errcode = '42501';
+       or new.email is distinct from old.email then
+      raise exception 'Solo un administrador puede cambiar correo, rol o estado.' using errcode = '42501';
     end if;
   end if;
   return new;
@@ -176,7 +187,7 @@ as $$
 begin
   insert into public.audit_log (usuario_id, usuario, accion, tabla, registro_id, antes, despues, nota)
   values (auth.uid(),
-          (select usuario from public.profiles where id = auth.uid()),
+          coalesce((select email from public.profiles where id = auth.uid()), 'sistema'),
           p_accion, p_tabla, p_registro_id, p_antes, p_despues, p_nota);
 end $$;
 

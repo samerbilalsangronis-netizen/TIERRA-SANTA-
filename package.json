@@ -12,7 +12,7 @@
     "test:sql": "scripts/probar-sql.sh",
     "typecheck": "tsc --noEmit",
     "db:types": "supabase gen types typescript --local --schema public > src/lib/supabase/database.types.ts",
-    "crear-admin": "tsx --env-file=.env.local scripts/crear-admin.ts"
+    "db:instalar": "scripts/generar-instalar.sh"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

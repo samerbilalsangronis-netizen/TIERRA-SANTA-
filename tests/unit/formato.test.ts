@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatearCantidad, formatearMonto, formatearNumero, parsearMonto } from "@/lib/dinero";
 import { formatearFecha, hoyISO, parsearFecha } from "@/lib/fechas";
-import { evaluarAcceso, diasParaVencer } from "@/lib/auth/acceso";
+import { evaluarAcceso } from "@/lib/auth/acceso";
 
 describe("Formato de montos", () => {
   it("muestra la moneda con miles con punto y decimales con coma", () => {
@@ -33,14 +33,9 @@ describe("Fechas", () => {
 });
 
 describe("Acceso de usuarios", () => {
-  it("rechaza bloqueados, inactivos y vencidos", () => {
-    expect(evaluarAcceso({ estado: "BLOQUEADO", vence_el: null })).toEqual({ ok: false, motivo: "bloqueado" });
-    expect(evaluarAcceso({ estado: "INACTIVO", vence_el: null })).toEqual({ ok: false, motivo: "inactivo" });
-    expect(evaluarAcceso({ estado: "ACTIVO", vence_el: "2026-10-13" }, "2026-10-14")).toMatchObject({ ok: false, motivo: "vencido" });
-    expect(evaluarAcceso({ estado: "ACTIVO", vence_el: "2026-10-14" }, "2026-10-14")).toEqual({ ok: true });
-  });
-  it("días para vencer", () => {
-    expect(diasParaVencer("2026-10-20", "2026-10-14")).toBe(6);
-    expect(diasParaVencer(null)).toBeNull();
+  it("solo entran usuarios ACTIVOS", () => {
+    expect(evaluarAcceso({ estado: "ACTIVO" })).toEqual({ ok: true });
+    expect(evaluarAcceso({ estado: "BLOQUEADO" })).toEqual({ ok: false, motivo: "bloqueado" });
+    expect(evaluarAcceso({ estado: "INACTIVO" })).toEqual({ ok: false, motivo: "inactivo" });
   });
 });

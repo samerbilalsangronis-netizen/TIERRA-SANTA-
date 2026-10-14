@@ -4,14 +4,14 @@ import { ADMIN, alertaFormulario, entrarComoAdmin, iniciarSesion, sufijo } from 
 test("pantalla de inicio: logo y error de contraseña", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("main img").first()).toBeVisible();
-  await iniciarSesion(page, ADMIN.usuario, "clave-incorrecta");
-  await expect(alertaFormulario(page)).toHaveText("Usuario o contraseña incorrectos.");
+  await iniciarSesion(page, ADMIN.correo, "clave-incorrecta");
+  await expect(alertaFormulario(page)).toHaveText("Correo o contraseña incorrectos.");
 });
 
 test("rutas privadas redirigen al inicio y la sesión salta al dashboard", async ({ page }) => {
   await page.goto("/configuracion/usuarios");
   await expect(page).toHaveURL(/siguiente=%2Fconfiguracion%2Fusuarios/);
-  await page.fill("#usuario", ADMIN.usuario.toUpperCase()); // no distingue mayúsculas
+  await page.fill("#correo", ADMIN.correo.toUpperCase()); // no distingue mayúsculas
   await page.fill("#clave", ADMIN.clave);
   await page.click("button[type=submit]");
   await expect(page).toHaveURL(/\/configuracion\/usuarios/);
@@ -19,52 +19,49 @@ test("rutas privadas redirigen al inicio y la sesión salta al dashboard", async
   await expect(page).toHaveURL(/\/dashboard/);
 });
 
-test("usuario: crear, primer inicio, permisos, bloqueo y vencimiento", async ({ browser }) => {
+test("usuario: crear, primer inicio, permisos y bloqueo", async ({ browser }) => {
   const admin = await browser.newPage();
   await entrarComoAdmin(admin);
-  const usuario = `op.${sufijo()}`;
+  const correo = `op.${sufijo()}@tierrasanta.test`;
 
   await admin.goto("/configuracion/usuarios");
   await admin.getByRole("button", { name: "Nuevo usuario" }).click();
-  await admin.fill("input[name=usuario]", usuario);
   await admin.fill("input[name=nombre]", "Operador de Prueba");
+  await admin.fill("input[name=correo]", correo);
   await admin.selectOption("select[name=rol]", "operador");
   await admin.fill("input[name=clave]", "Temporal123");
   await admin.getByRole("button", { name: "Crear usuario" }).click();
-  await expect(admin.getByText(`Usuario ${usuario} creado.`)).toBeVisible();
+  await expect(admin.getByText(`Usuario ${correo} creado.`)).toBeVisible();
 
+  // Primer inicio: obliga a cambiar la contraseña
   const op = await browser.newPage();
-  await iniciarSesion(op, usuario, "Temporal123");
+  await iniciarSesion(op, correo, "Temporal123");
   await expect(op).toHaveURL(/\/auth\/cambiar-clave/);
   await op.fill("input[name=clave]", "NuevaClave9");
   await op.fill("input[name=confirmar]", "NuevaClave9");
   await op.getByRole("button", { name: "Guardar" }).click();
   await expect(op).toHaveURL(/\/dashboard/);
 
+  // Permisos por rol
   await op.goto("/nomina");
   await expect(op).toHaveURL(/\/sin-permiso/);
 
+  // Bloqueo: la sesión abierta se cierra y el login se rechaza
   await admin.reload();
-  await admin.getByRole("button", { name: `Acciones de ${usuario}` }).first().click();
+  await admin.getByRole("button", { name: `Acciones de ${correo}` }).first().click();
   await admin.getByRole("menuitem", { name: "Bloquear" }).click();
   await expect(admin.getByText("Usuario bloqueado.")).toBeVisible();
   await op.goto("/dashboard");
   await expect(op).toHaveURL(/motivo=bloqueado/);
-  await iniciarSesion(op, usuario, "NuevaClave9");
+  await iniciarSesion(op, correo, "NuevaClave9");
   await expect(alertaFormulario(op)).toContainText("BLOQUEADO");
 
-  await admin.getByRole("button", { name: `Acciones de ${usuario}` }).first().click();
+  // Reactivar
+  await admin.getByRole("button", { name: `Acciones de ${correo}` }).first().click();
   await admin.getByRole("menuitem", { name: "Activar" }).click();
   await expect(admin.getByText("Usuario activado.")).toBeVisible();
-  await admin.getByRole("button", { name: `Acciones de ${usuario}` }).first().click();
-  await admin.getByRole("menuitem", { name: "Editar" }).click();
-  await admin.fill("input[name=vence_el]", "2026-01-01");
-  await admin.getByRole("button", { name: "Guardar" }).click();
-  await expect(admin.getByText("Usuario actualizado.")).toBeVisible();
-  await iniciarSesion(op, usuario, "NuevaClave9");
-  await expect(alertaFormulario(op)).toHaveText("Tu suscripción venció el 01/01/2026.");
-  await admin.reload();
-  await expect(admin.getByRole("row", { name: new RegExp(usuario) }).getByText("BLOQUEADO")).toBeVisible();
+  await iniciarSesion(op, correo, "NuevaClave9");
+  await expect(op).toHaveURL(/\/dashboard/);
 });
 
 test("configuración de empresa con logo", async ({ page }) => {

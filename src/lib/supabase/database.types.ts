@@ -1780,42 +1780,36 @@ export type Database = {
         Row: {
           created_at: string;
           debe_cambiar_clave: boolean;
-          email: string | null;
+          email: string;
           estado: Database["public"]["Enums"]["estado_usuario"];
           id: string;
           nombre: string;
           rol: Database["public"]["Enums"]["rol_usuario"];
           ultimo_acceso: string | null;
           updated_at: string;
-          usuario: string;
-          vence_el: string | null;
         };
         ComputedFields: never;
         Insert: {
           created_at?: string;
           debe_cambiar_clave?: boolean;
-          email?: string | null;
+          email: string;
           estado?: Database["public"]["Enums"]["estado_usuario"];
           id: string;
           nombre?: string;
           rol?: Database["public"]["Enums"]["rol_usuario"];
           ultimo_acceso?: string | null;
           updated_at?: string;
-          usuario: string;
-          vence_el?: string | null;
         };
         Update: {
           created_at?: string;
           debe_cambiar_clave?: boolean;
-          email?: string | null;
+          email?: string;
           estado?: Database["public"]["Enums"]["estado_usuario"];
           id?: string;
           nombre?: string;
           rol?: Database["public"]["Enums"]["rol_usuario"];
           ultimo_acceso?: string | null;
           updated_at?: string;
-          usuario?: string;
-          vence_el?: string | null;
         };
         Relationships: [];
       };

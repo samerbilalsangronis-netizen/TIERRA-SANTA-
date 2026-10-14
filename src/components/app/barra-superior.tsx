@@ -17,7 +17,7 @@ type Props = { nombre: string; usuario: string; rol: Rol; logo: string; razon: s
 
 export function BarraSuperior({ nombre, usuario, rol, logo, razon, fechaHoy }: Props) {
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const iniciales = (nombre || usuario).split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  const iniciales = (nombre || usuario).split(/[\s@.]+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
   return (
     <header className="no-print sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background/85 px-3 backdrop-blur sm:px-5">
@@ -47,7 +47,7 @@ export function BarraSuperior({ nombre, usuario, rol, logo, razon, fechaHoy }: P
                   {iniciales}
                 </span>
                 <span className="hidden text-left leading-tight sm:block">
-                  <span className="block text-sm font-medium">{nombre || usuario}</span>
+                  <span className="block max-w-40 truncate text-sm font-medium">{nombre || usuario}</span>
                   <span className="block text-[11px] text-muted-foreground">{NOMBRE_ROL[rol]}</span>
                 </span>
               </Button>
@@ -56,7 +56,7 @@ export function BarraSuperior({ nombre, usuario, rol, logo, razon, fechaHoy }: P
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuGroup>
               <DropdownMenuLabel>
-                <span className="flex items-center gap-2"><UserRound className="size-4" /> {usuario}</span>
+                <span className="flex items-center gap-2 truncate"><UserRound className="size-4 shrink-0" /> {usuario}</span>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

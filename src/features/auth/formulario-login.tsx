@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2, LogIn, ShieldAlert } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,11 +17,11 @@ export function FormularioLogin({ siguiente, avisoInicial }: { siguiente?: strin
   const [pendiente, iniciar] = useTransition();
   const form = useForm<DatosLogin>({
     resolver: zodResolver(esquemaLogin),
-    defaultValues: { usuario: "", clave: "", siguiente },
+    defaultValues: { correo: "", clave: "", siguiente },
   });
 
   useEffect(() => {
-    form.setFocus("usuario");
+    form.setFocus("correo");
   }, [form]);
 
   const enviar = form.handleSubmit((datos) => {
@@ -35,13 +34,6 @@ export function FormularioLogin({ siguiente, avisoInicial }: { siguiente?: strin
         form.setFocus("clave");
         return;
       }
-      const dias = r.datos.diasRestantes;
-      if (dias !== null && dias <= 7) {
-        toast.warning(
-          dias === 0 ? "Tu suscripción vence HOY." : `Tu suscripción vence en ${dias} día${dias === 1 ? "" : "s"}.`,
-          { duration: 8000 },
-        );
-      }
       router.replace(r.datos.destino);
       router.refresh();
     });
@@ -52,18 +44,20 @@ export function FormularioLogin({ siguiente, avisoInicial }: { siguiente?: strin
   return (
     <form onSubmit={enviar} noValidate className="space-y-4 rounded-2xl border border-white/10 bg-[#111118]/80 p-5 shadow-2xl shadow-black/40 backdrop-blur">
       <div className="space-y-1.5">
-        <Label htmlFor="usuario" className="text-[#c9c8d6]">Usuario</Label>
+        <Label htmlFor="correo" className="text-[#c9c8d6]">Correo</Label>
         <Input
-          id="usuario"
-          autoComplete="username"
+          id="correo"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
           autoCapitalize="none"
           spellCheck={false}
-          placeholder="tu.usuario"
+          placeholder="tu@correo.com"
           className="h-11 border-white/10 bg-[#0a0a0f] text-base text-white placeholder:text-[#5f5e70]"
-          aria-invalid={!!errores.usuario}
-          {...form.register("usuario")}
+          aria-invalid={!!errores.correo}
+          {...form.register("correo")}
         />
-        {errores.usuario && <p className="text-xs text-[#f87171]">{errores.usuario.message}</p>}
+        {errores.correo && <p className="text-xs text-[#f87171]">{errores.correo.message}</p>}
       </div>
 
       <div className="space-y-1.5">

@@ -9,7 +9,7 @@ Aplicación web de **Procesadora de Alimentos Tierra Santa** que reemplaza ERP C
 | Fase | Contenido | Estado |
 |---|---|---|
 | — | Esquema de base de datos completo (todas las fases) | ✅ |
-| 1 | Base: layout, tema, inicio de sesión con logo, perfiles/roles/estado/vencimiento, usuarios, auditoría, empresa con logo | ✅ |
+| 1 | Base: layout, tema, inicio de sesión con correo y logo, roles, usuarios, auditoría, empresa con logo | ✅ |
 | 2 | Catálogos (productos con código, unidades, ubicaciones, monedas/tasas, métodos de pago, tareas) | ⏳ |
 | 3 | Proveedores unificados | ⏳ |
 | 4 | Clientes | ⏳ |
@@ -20,45 +20,46 @@ Aplicación web de **Procesadora de Alimentos Tierra Santa** que reemplaza ERP C
 | 9 | Migración desde Google Sheets | ⏳ |
 | 10 | Pulido y despliegue | ⏳ |
 
-## Instalación local
+## Puesta en marcha (Supabase web + Vercel)
 
-Requisitos: Node 20+ y Docker (para Supabase local).
+No hace falta instalar nada en tu computadora.
 
+**1. Supabase (supabase.com, en el navegador)**
+1. Crea un proyecto nuevo.
+2. Ve a **SQL Editor → New query**, pega **todo** el contenido de [`supabase/instalar.sql`](supabase/instalar.sql) y pulsa **Run**. Crea las tablas, funciones, seguridad, buckets de archivos y datos iniciales.
+3. Ve a **Authentication → Users → Add user → Create new user**: escribe tu correo y contraseña y marca *Auto Confirm User*. **El primer usuario que crees queda como administrador.**
+4. Recomendado: en **Authentication → Sign In / Providers** desactiva *Allow new users to sign up* (los usuarios los crea el admin desde la app). Aunque alguien se registrara por su cuenta, quedaría INACTIVO y sin acceso.
+5. Copia de **Project Settings → API**: la *Project URL*, la clave *anon / publishable* y la clave *service_role / secret*.
+
+**2. Vercel**
+1. Importa el repositorio de GitHub (Next.js, sin cambiar nada del build).
+2. Agrega las variables de entorno:
+
+| Variable | Valor |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | clave anon / publishable |
+| `SUPABASE_SERVICE_ROLE_KEY` | clave service_role / secret (solo servidor; sirve para crear usuarios y cambiar contraseñas desde la app) |
+
+3. Despliega y entra con el correo y la contraseña del paso 1.3. Los demás usuarios se crean en **Configuración → Usuarios**.
+
+**Actualizaciones de la base de datos:** cada fase que agregue tablas traerá un archivo nuevo en `supabase/migrations/`; se pega solo ese archivo en el SQL Editor (te lo indicaré en cada entrega).
+
+### Desarrollo local (opcional, para programadores)
 ```bash
 npm install
-npx supabase start            # levanta Postgres/Auth/Storage locales y aplica supabase/migrations
-cp .env.example .env.local    # pegar API URL, anon key y service_role key que imprime `supabase start`
-npm run crear-admin -- samer "MiClave2026" "Samer"   # primer administrador
-npm run dev                   # http://localhost:3000
+npx supabase start          # Supabase en Docker con las migraciones
+cp .env.example .env.local  # pegar URL y claves que imprime `supabase start`
+npm run dev
 ```
-
-El usuario inicia sesión con su **nombre de usuario** (no hace falta correo). Internamente se usa `usuario@usuarios.tierrasanta.local` como correo de Supabase Auth.
-
-## Supabase en la nube
-
-1. Crear el proyecto en supabase.com (región cercana, p. ej. `us-east-1`).
-2. Aplicar las migraciones: `npx supabase link --project-ref <ref>` y `npx supabase db push`.
-3. En **Authentication → Providers → Email**: desactivar "Confirm email" (los usuarios los crea el admin) y desactivar el registro público ("Allow new users to sign up" = off).
-4. Crear el primer admin con `npm run crear-admin` apuntando `.env.local` al proyecto de la nube.
-5. Los buckets `empresa` (público), `entregas` y `facturas` (privados) los crea la migración `..._storage.sql`.
-
-Tipos TypeScript: `npm run db:types` (contra Supabase local) regenera `src/lib/supabase/database.types.ts`.
-
-## Despliegue en Vercel
-
-1. Importar el repositorio de GitHub en Vercel (framework Next.js, sin cambios de build).
-2. Variables de entorno (Production y Preview):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (o `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
-   - `SUPABASE_SERVICE_ROLE_KEY` — **solo servidor**, nunca con prefijo `NEXT_PUBLIC_`
-3. En Supabase → Authentication → URL Configuration, poner la URL de Vercel como *Site URL*.
+`npm run db:types` regenera los tipos TypeScript y `npm run db:instalar` regenera `supabase/instalar.sql`.
 
 ## Pruebas
 
 ```bash
 npm test              # unitarias: fórmulas de entregas FIJO/VARIABLE, IVA, reparto de pagos, saldos, nómina, formatos
 npm run test:sql      # migraciones + flujo factura → inventario → cuenta por cobrar en Postgres (requiere PGHOST/PGPORT/PGUSER)
-npm run test:e2e      # Playwright en PC y teléfono (requiere Supabase local, build y admin E2E)
+npm run test:e2e      # Playwright en PC y teléfono (Supabase local + admin admin@tierrasanta.test / Clave2026)
 npm run typecheck && npm run lint
 ```
 
@@ -78,6 +79,7 @@ supabase/
     …0900_seguridad_rls.sql         RLS de todas las tablas y permisos de funciones
     …1000_storage.sql               buckets y políticas
     …1100_datos_iniciales.sql       unidades, ubicaciones, frutas 1–9, métodos de pago, tareas
+  instalar.sql           # todas las migraciones juntas, para pegar en el SQL Editor
   tests/                 # shim de Supabase + prueba SQL de extremo a extremo
 src/
   app/
@@ -98,7 +100,7 @@ src/
     calculos/            # fórmulas puras (espejo de la BD) para vistas previas y pruebas
     dinero.ts fechas.ts  # decimal.js, formato es-VE, zona America/Caracas
   proxy.ts               # refresco de sesión y protección de rutas (antes "middleware")
-scripts/                 # crear-admin, probar-sql (y en la Fase 9: migrar)
+scripts/                 # generar-instalar, probar-sql (y en la Fase 9: migrar)
 tests/unit  tests/e2e
 ```
 

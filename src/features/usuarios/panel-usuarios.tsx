@@ -12,19 +12,14 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EstadoVacio } from "@/components/comunes/estado-vacio";
 import { NOMBRE_ROL, type EstadoUsuario, type Rol } from "@/lib/auth/roles";
-import { formatearFecha, formatearFechaHora } from "@/lib/fechas";
-import { cn } from "@/lib/utils";
+import { formatearFechaHora } from "@/lib/fechas";
 import { cambiarEstadoUsuario } from "./acciones";
 import { DialogoUsuario, DialogoRestablecer } from "./dialogos-usuario";
 
 export type FilaUsuario = {
-  id: string; usuario: string; nombre: string; email: string | null; rol: Rol; estado: EstadoUsuario;
-  vence_el: string | null; ultimo_acceso: string | null; debe_cambiar_clave: boolean;
+  id: string; email: string; nombre: string; rol: Rol; estado: EstadoUsuario;
+  ultimo_acceso: string | null; debe_cambiar_clave: boolean;
 };
-
-function diasEntre(desde: string, hasta: string) {
-  return Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / 86_400_000);
-}
 
 export function EstadoBadge({ estado }: { estado: EstadoUsuario }) {
   const clases = {
@@ -35,20 +30,7 @@ export function EstadoBadge({ estado }: { estado: EstadoUsuario }) {
   return <Badge variant="outline" className={clases}>{estado}</Badge>;
 }
 
-function Vencimiento({ vence, hoy }: { vence: string | null; hoy: string }) {
-  if (!vence) return <span className="text-muted-foreground">Sin vencimiento</span>;
-  const dias = diasEntre(hoy, vence);
-  return (
-    <span className={cn(dias < 0 ? "text-destructive" : dias <= 7 ? "text-warning" : "")}>
-      {formatearFecha(vence)}
-      <span className="block text-[11px] text-muted-foreground">
-        {dias < 0 ? `Venció hace ${-dias} d` : dias === 0 ? "Vence hoy" : `Faltan ${dias} d`}
-      </span>
-    </span>
-  );
-}
-
-export function PanelUsuarios({ usuarios, yoId, hoy }: { usuarios: FilaUsuario[]; yoId: string; hoy: string }) {
+export function PanelUsuarios({ usuarios, yoId }: { usuarios: FilaUsuario[]; yoId: string }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
   const [editando, setEditando] = useState<FilaUsuario | null>(null);
@@ -58,7 +40,7 @@ export function PanelUsuarios({ usuarios, yoId, hoy }: { usuarios: FilaUsuario[]
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    return q ? usuarios.filter((u) => `${u.usuario} ${u.nombre} ${u.email ?? ""}`.toLowerCase().includes(q)) : usuarios;
+    return q ? usuarios.filter((u) => `${u.nombre} ${u.email}`.toLowerCase().includes(q)) : usuarios;
   }, [usuarios, busqueda]);
 
   function cambiarEstado(u: FilaUsuario, estado: EstadoUsuario) {
@@ -73,7 +55,7 @@ export function PanelUsuarios({ usuarios, yoId, hoy }: { usuarios: FilaUsuario[]
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar usuario o nombre…" className="pl-8" />
+          <Input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar por nombre o correo…" className="pl-8" />
         </div>
         <Button onClick={() => setNuevo(true)}><UserPlus className="size-4" /> Nuevo usuario</Button>
       </div>
@@ -90,7 +72,6 @@ export function PanelUsuarios({ usuarios, yoId, hoy }: { usuarios: FilaUsuario[]
                   <TableHead>Usuario</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Vencimiento</TableHead>
                   <TableHead>Último acceso</TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
@@ -99,15 +80,14 @@ export function PanelUsuarios({ usuarios, yoId, hoy }: { usuarios: FilaUsuario[]
                 {filtrados.map((u) => (
                   <TableRow key={u.id}>
                     <TableCell>
-                      <p className="font-medium">{u.nombre || u.usuario} {u.id === yoId && <span className="text-xs text-primary">(tú)</span>}</p>
-                      <p className="text-xs text-muted-foreground">@{u.usuario}{u.email ? ` · ${u.email}` : ""}</p>
+                      <p className="font-medium">{u.nombre} {u.id === yoId && <span className="text-xs text-primary">(tú)</span>}</p>
+                      <p className="text-xs text-muted-foreground">{u.email}</p>
                     </TableCell>
                     <TableCell>{NOMBRE_ROL[u.rol]}</TableCell>
                     <TableCell>
                       <EstadoBadge estado={u.estado} />
                       {u.debe_cambiar_clave && <p className="mt-1 text-[11px] text-warning">Debe cambiar clave</p>}
                     </TableCell>
-                    <TableCell><Vencimiento vence={u.vence_el} hoy={hoy} /></TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatearFechaHora(u.ultimo_acceso)}</TableCell>
                     <TableCell>
                       <MenuAcciones u={u} yoId={yoId} onEditar={setEditando} onRestablecer={setRestablecer} onEstado={cambiarEstado} />
@@ -122,9 +102,9 @@ export function PanelUsuarios({ usuarios, yoId, hoy }: { usuarios: FilaUsuario[]
             {filtrados.map((u) => (
               <div key={u.id} className="flex items-start justify-between gap-2 rounded-2xl border bg-card p-3">
                 <div className="min-w-0 space-y-1">
-                  <p className="font-medium">{u.nombre || u.usuario}</p>
-                  <p className="text-xs text-muted-foreground">@{u.usuario} · {NOMBRE_ROL[u.rol]}</p>
-                  <div className="flex items-center gap-2 text-xs"><EstadoBadge estado={u.estado} /> <Vencimiento vence={u.vence_el} hoy={hoy} /></div>
+                  <p className="font-medium">{u.nombre}</p>
+                  <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                  <div className="flex items-center gap-2 text-xs"><EstadoBadge estado={u.estado} /> {NOMBRE_ROL[u.rol]}</div>
                 </div>
                 <MenuAcciones u={u} yoId={yoId} onEditar={setEditando} onRestablecer={setRestablecer} onEstado={cambiarEstado} />
               </div>
@@ -148,7 +128,7 @@ function MenuAcciones({
 }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={`Acciones de ${u.usuario}`}><MoreHorizontal className="size-4" /></Button>} />
+      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={`Acciones de ${u.email}`}><MoreHorizontal className="size-4" /></Button>} />
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem onClick={() => onEditar(u)}><Pencil className="size-4" /> Editar</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onRestablecer(u)}><KeyRound className="size-4" /> Restablecer contraseña</DropdownMenuItem>

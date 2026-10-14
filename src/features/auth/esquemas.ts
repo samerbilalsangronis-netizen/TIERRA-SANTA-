@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 export const esquemaLogin = z.object({
-  usuario: z.string().trim().min(1, "Escribe tu usuario"),
+  correo: z.string().trim().toLowerCase().min(1, "Escribe tu correo").pipe(z.email("Correo no válido")),
   clave: z.string().min(1, "Escribe tu contraseña"),
   siguiente: z.string().optional(),
 });
-export type DatosLogin = z.infer<typeof esquemaLogin>;
+export type DatosLogin = z.input<typeof esquemaLogin>;
 
 export const esquemaClave = z
   .string()

@@ -1,13 +1,25 @@
 -- Prueba de extremo a extremo (SQL) del flujo factura → inventario → cuenta por cobrar.
 -- Se ejecuta sobre una BD con shim_supabase.sql + migraciones. Falla con excepción si algo no cuadra.
 \set ON_ERROR_STOP 1
+-- El primer usuario queda como admin automáticamente
 insert into auth.users (id, email, raw_user_meta_data) values
-  ('00000000-0000-0000-0000-000000000001', 'admin@usuarios.tierrasanta.local', '{"usuario":"admin","nombre":"Admin","rol":"admin"}'),
-  ('00000000-0000-0000-0000-000000000002', 'ventas@usuarios.tierrasanta.local', '{"usuario":"ventas","nombre":"Ventas","rol":"facturacion"}'),
-  ('00000000-0000-0000-0000-000000000003', 'lector@usuarios.tierrasanta.local', '{"usuario":"lector","nombre":"Lector","rol":"solo_lectura"}');
+  ('00000000-0000-0000-0000-000000000001', 'admin@tierrasanta.com', '{"nombre":"Admin"}');
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-000000000002', 'ventas@tierrasanta.com', '{"nombre":"Ventas"}'),
+  ('00000000-0000-0000-0000-000000000003', 'lector@tierrasanta.com', '{"nombre":"Lector"}');
+-- Un registro público (sin app_metadata) intenta darse rol admin por user_metadata: queda INACTIVO
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-000000000004', 'intruso@x.com', '{"rol":"admin"}');
 
 create or replace function pg_temp.check(cond boolean, msg text) returns void language plpgsql as $$
 begin if not coalesce(cond, false) then raise exception 'PRUEBA FALLIDA: %', msg; end if; raise notice 'ok: %', msg; end $$;
+
+select pg_temp.check((select rol = 'admin' and estado = 'ACTIVO' from public.profiles where email = 'admin@tierrasanta.com'), 'primer usuario es admin');
+select pg_temp.check((select estado = 'INACTIVO' from public.profiles where email = 'ventas@tierrasanta.com'), 'usuarios nuevos nacen INACTIVOS');
+-- Lo que hace el panel de Usuarios (clave de servicio) al crear la cuenta
+update public.profiles set rol = 'facturacion', estado = 'ACTIVO' where email = 'ventas@tierrasanta.com';
+update public.profiles set rol = 'solo_lectura', estado = 'ACTIVO' where email = 'lector@tierrasanta.com';
+select pg_temp.check((select rol = 'solo_lectura' and estado = 'INACTIVO' from public.profiles where email = 'intruso@x.com'), 'registro público sin acceso');
 
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
@@ -119,5 +131,7 @@ do $$ begin
   insert into public.clientes (nombre) values ('x');
   raise exception 'PRUEBA FALLIDA: solo_lectura insertó';
 exception when insufficient_privilege then raise notice 'ok: solo_lectura no inserta'; end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
+select pg_temp.check((select count(*) from public.clientes) = 0, 'usuario INACTIVO no ve datos');
 reset role;
 select 'TODAS LAS PRUEBAS PASARON' as resultado;

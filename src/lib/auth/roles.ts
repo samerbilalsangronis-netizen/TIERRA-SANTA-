@@ -43,16 +43,3 @@ const PERMISOS: Record<Rol, Permiso[]> = {
 export function puede(rol: Rol | null | undefined, permiso: Permiso): boolean {
   return rol ? PERMISOS[rol].includes(permiso) : false;
 }
-
-/** Dominio interno para usuarios que inician sesión solo con nombre de usuario. */
-export const DOMINIO_INTERNO = "usuarios.tierrasanta.local";
-
-export function normalizarUsuario(usuario: string) {
-  return usuario.trim().toLowerCase();
-}
-
-export function correoInterno(usuario: string) {
-  return `${normalizarUsuario(usuario)}@${DOMINIO_INTERNO}`;
-}
-
-export const REGEX_USUARIO = /^[a-z0-9._-]{3,40}$/;

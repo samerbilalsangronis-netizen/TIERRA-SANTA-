@@ -3,7 +3,6 @@ import { revalidatePath } from "next/cache";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { exigirPerfil } from "@/lib/auth/sesion";
-import { correoInterno } from "@/lib/auth/roles";
 import { erroresZod, exito, fallo, mensajeErrorBD, type Resultado } from "@/lib/acciones";
 import {
   esquemaEditarUsuario, esquemaNuevoUsuario, esquemaRestablecer,
@@ -12,13 +11,13 @@ import {
 
 function sinClaveServicio() {
   return !process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? fallo("Falta SUPABASE_SERVICE_ROLE_KEY en el servidor: no se pueden administrar cuentas.")
+    ? fallo("Falta la variable SUPABASE_SERVICE_ROLE_KEY en Vercel: sin ella no se pueden crear cuentas ni cambiar contraseñas.")
     : null;
 }
 
-async function registrar(adminId: string, adminUsuario: string, accion: string, registroId: string, despues?: object, nota?: string) {
+async function registrar(adminId: string, adminCorreo: string, accion: string, registroId: string, despues?: object, nota?: string) {
   await crearClienteAdmin().from("audit_log").insert({
-    usuario_id: adminId, usuario: adminUsuario, accion, tabla: "usuarios", registro_id: registroId,
+    usuario_id: adminId, usuario: adminCorreo, accion, tabla: "usuarios", registro_id: registroId,
     despues: (despues ?? null) as never, nota: nota ?? null,
   });
 }
@@ -32,25 +31,28 @@ export async function crearUsuario(datos: DatosNuevoUsuario): Promise<Resultado>
   const d = v.data;
 
   const admin = crearClienteAdmin();
-  const { data: existe } = await admin.from("profiles").select("id").eq("usuario", d.usuario).maybeSingle();
-  if (existe) return fallo("Ese nombre de usuario ya existe.", { usuario: "Ya existe" });
-
   const { data, error } = await admin.auth.admin.createUser({
-    email: d.correo ?? correoInterno(d.usuario),
+    email: d.correo,
     password: d.clave,
     email_confirm: true,
-    user_metadata: {
-      usuario: d.usuario, nombre: d.nombre, rol: d.rol, vence_el: d.vence_el ?? "",
-      debe_cambiar_clave: d.debe_cambiar_clave,
-    },
+    user_metadata: { nombre: d.nombre },
   });
   if (error || !data.user) {
     const msg = error?.code === "email_exists" ? "Ya existe una cuenta con ese correo." : `No se pudo crear la cuenta: ${error?.message ?? ""}`;
-    return fallo(msg);
+    return fallo(msg, error?.code === "email_exists" ? { correo: "Ya existe" } : undefined);
   }
-  await registrar(yo.id, yo.usuario, "CREAR_USUARIO", data.user.id, { usuario: d.usuario, nombre: d.nombre, rol: d.rol, vence_el: d.vence_el });
+  // El trigger crea el perfil INACTIVO (así un registro público no tiene acceso);
+  // aquí, con la clave de servicio, se le asigna el rol y se activa.
+  const { error: errorPerfil } = await admin.from("profiles").update({
+    nombre: d.nombre, rol: d.rol, estado: "ACTIVO", debe_cambiar_clave: d.debe_cambiar_clave,
+  }).eq("id", data.user.id);
+  if (errorPerfil) {
+    await admin.auth.admin.deleteUser(data.user.id);
+    return fallo(mensajeErrorBD(errorPerfil));
+  }
+  await registrar(yo.id, yo.email, "CREAR_USUARIO", data.user.id, { correo: d.correo, nombre: d.nombre, rol: d.rol });
   revalidatePath("/configuracion/usuarios");
-  return exito(undefined, `Usuario ${d.usuario} creado.`);
+  return exito(undefined, `Usuario ${d.correo} creado.`);
 }
 
 export async function editarUsuario(datos: DatosEditarUsuario): Promise<Resultado> {
@@ -58,29 +60,24 @@ export async function editarUsuario(datos: DatosEditarUsuario): Promise<Resultad
   const v = esquemaEditarUsuario.safeParse(datos);
   if (!v.success) return fallo("Revisa los campos marcados.", erroresZod(v.error));
   const d = v.data;
-
   if (d.id === yo.id && (d.rol !== "admin" || d.estado !== "ACTIVO")) {
     return fallo("No puedes quitarte el rol de administrador ni bloquear tu propio usuario.");
   }
 
   const supabase = await crearClienteServidor();
-  const { data: anterior } = await supabase.from("profiles").select("usuario, email").eq("id", d.id).maybeSingle();
+  const { data: anterior } = await supabase.from("profiles").select("email").eq("id", d.id).maybeSingle();
   if (!anterior) return fallo("Usuario no encontrado.");
 
-  // Cambio de correo: se actualiza en Auth (requiere clave de servicio)
-  if ((anterior.email ?? null) !== d.correo) {
+  // El correo vive en Auth; un trigger lo copia al perfil
+  if (anterior.email !== d.correo) {
     const sinClave = sinClaveServicio();
     if (sinClave) return sinClave;
-    const { error } = await crearClienteAdmin().auth.admin.updateUserById(d.id, {
-      email: d.correo ?? correoInterno(anterior.usuario), email_confirm: true,
-    });
-    if (error) return fallo(`No se pudo cambiar el correo: ${error.message}`);
+    const { error } = await crearClienteAdmin().auth.admin.updateUserById(d.id, { email: d.correo, email_confirm: true });
+    if (error) return fallo(error.code === "email_exists" ? "Ya existe una cuenta con ese correo." : `No se pudo cambiar el correo: ${error.message}`);
   }
 
-  // Con la sesión del admin: queda en la bitácora con su nombre (trigger de auditoría)
-  const { error } = await supabase.from("profiles").update({
-    nombre: d.nombre, email: d.correo, rol: d.rol, estado: d.estado, vence_el: d.vence_el,
-  }).eq("id", d.id);
+  // Con la sesión del admin: la bitácora registra quién hizo el cambio
+  const { error } = await supabase.from("profiles").update({ nombre: d.nombre, rol: d.rol, estado: d.estado }).eq("id", d.id);
   if (error) return fallo(mensajeErrorBD(error));
   revalidatePath("/configuracion/usuarios");
   return exito(undefined, "Usuario actualizado.");
@@ -107,7 +104,7 @@ export async function restablecerClave(datos: DatosRestablecer): Promise<Resulta
   if (error) return fallo(`No se pudo restablecer: ${error.message}`);
   const supabase = await crearClienteServidor();
   await supabase.from("profiles").update({ debe_cambiar_clave: v.data.debe_cambiar_clave }).eq("id", v.data.id);
-  await registrar(yo.id, yo.usuario, "RESTABLECER_CLAVE", v.data.id, undefined,
+  await registrar(yo.id, yo.email, "RESTABLECER_CLAVE", v.data.id, undefined,
     v.data.debe_cambiar_clave ? "Se exigirá cambio en el próximo inicio" : undefined);
   return exito(undefined, "Contraseña restablecida.");
 }

@@ -7,7 +7,7 @@ import { puede, type Permiso, type Rol } from "./roles";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export type Perfil = Tables<"profiles">;
-export { evaluarAcceso, diasParaVencer, type EstadoAcceso } from "./acceso";
+export { evaluarAcceso, type EstadoAcceso } from "./acceso";
 
 /** Perfil del usuario con sesión (o null). Memoizado por petición. */
 export const obtenerPerfil = cache(async (): Promise<Perfil | null> => {
@@ -20,8 +20,8 @@ export const obtenerPerfil = cache(async (): Promise<Perfil | null> => {
 });
 
 /**
- * Exige sesión válida (activo, no vencido) y, opcionalmente, un permiso.
- * Si el usuario fue bloqueado o venció mientras navegaba, se cierra su sesión.
+ * Exige sesión válida (usuario ACTIVO) y, opcionalmente, un permiso.
+ * Si el usuario fue bloqueado mientras navegaba, se cierra su sesión.
  */
 export async function exigirPerfil(permiso?: Permiso): Promise<Perfil & { rol: Rol }> {
   const perfil = await obtenerPerfil();

@@ -18,7 +18,7 @@ export default async function PaginaCambiarClave() {
           </div>
           <div>
             <h1 className="font-heading text-lg font-bold">Cambiar contraseña</h1>
-            <p className="text-sm text-muted-foreground">Hola, {perfil.nombre || perfil.usuario}</p>
+            <p className="text-sm text-muted-foreground">Hola, {perfil.nombre || perfil.email}</p>
           </div>
         </div>
         {perfil.debe_cambiar_clave && (

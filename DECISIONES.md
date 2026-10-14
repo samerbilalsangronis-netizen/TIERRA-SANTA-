@@ -12,12 +12,12 @@ Cosas que el documento dejaba abiertas y cómo se resolvieron. Todas se pueden c
 - Zona horaria `America/Caracas` en BD (`public.hoy()`) y en la app.
 
 ## Usuarios y acceso
-- Inicio de sesión con **nombre de usuario**: si el usuario no tiene correo, en Supabase Auth se usa `usuario@usuarios.tierrasanta.local`. El servidor busca el correo con la clave de servicio (nunca en el navegador).
-- Se valida primero la contraseña y luego el estado, para no revelar el estado de una cuenta a quien no conoce la clave.
-- Vencida la suscripción, al intentar entrar el usuario queda **BLOQUEADO** (igual que el sistema anterior). Desde 7 días antes se muestra aviso con los días que faltan.
-- Si un usuario es bloqueado o vence mientras navega, se cierra su sesión en la siguiente página; además la BD le niega todo (las políticas RLS usan `rol_actual()`, que exige ACTIVO y no vencido).
-- Contraseñas: mínimo 8 caracteres con letras y números. Las cuentas nuevas tienen contraseña temporal y se exige cambiarla en el primer inicio (también al migrar usuarios).
+- Inicio de sesión **solo con correo y contraseña** (Supabase Auth). No hay suscripción ni vencimiento.
+- Estados: ACTIVO, BLOQUEADO, INACTIVO. Solo entran los ACTIVOS. Si un usuario es bloqueado mientras navega, se cierra su sesión en la siguiente página; además la BD le niega todo (las políticas RLS usan `rol_actual()`, que exige ACTIVO).
+- **El primer usuario creado en Supabase queda como admin** (para arrancar sin consola). Los siguientes nacen INACTIVOS y el panel de Usuarios les asigna rol y los activa con la clave de servicio; así, si alguien se registrara por su cuenta, no tendría acceso. El rol nunca se toma de datos que el propio usuario pueda enviar.
+- Contraseñas: mínimo 8 caracteres con letras y números. Al crear un usuario se puede exigir que cambie la contraseña en su primer inicio.
 - No se borran usuarios: se pasan a INACTIVO o BLOQUEADO. Un admin no puede quitarse su rol ni bloquearse a sí mismo.
+- Instalación pensada para **Supabase web + Vercel**: `supabase/instalar.sql` se pega en el SQL Editor y en Vercel solo se configuran 3 variables de entorno.
 
 ## Roles (por defecto)
 | | admin | facturación | operador | solo lectura |

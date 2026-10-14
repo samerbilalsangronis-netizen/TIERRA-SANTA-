@@ -11,9 +11,9 @@ const TABLAS = [
   ["clientes", "Clientes"], ["proveedores", "Proveedores"], ["entregas_proveedor", "Entregas"], ["abonos_proveedor", "Abonos a proveedores"],
   ["productos", "Productos"], ["existencias", "Inventario"], ["producciones", "Producción"], ["empleados", "Empleados"],
   ["jornadas", "Jornadas"], ["abonos_empleados", "Abonos a empleados"], ["profiles", "Perfiles"], ["usuarios", "Usuarios"],
-  ["empresa", "Empresa"], ["auth", "Inicios de sesión"],
+  ["empresa", "Empresa"],
 ] as const;
-const ACCIONES = ["", "CREAR", "EDITAR", "BORRAR", "EMITIR", "ANULAR", "AJUSTE", "CERRAR", "REABRIR", "LOGIN", "LOGIN_RECHAZADO", "CREAR_USUARIO", "RESTABLECER_CLAVE"];
+const ACCIONES = ["", "CREAR", "EDITAR", "BORRAR", "EMITIR", "ANULAR", "AJUSTE", "CERRAR", "REABRIR", "CREAR_USUARIO", "RESTABLECER_CLAVE"];
 
 type Filtros = Record<"tabla" | "accion" | "usuario" | "desde" | "hasta" | "registro", string>;
 

@@ -10,7 +10,6 @@ export const metadata: Metadata = { title: "Iniciar sesión" };
 const MENSAJES_SALIDA: Record<string, string> = {
   bloqueado: "Tu usuario fue BLOQUEADO. Comunícate con el administrador.",
   inactivo: "Tu usuario está INACTIVO. Comunícate con el administrador.",
-  vencido: "Tu suscripción venció. Comunícate con el administrador.",
   sesion: "Tu sesión expiró. Vuelve a iniciar sesión.",
 };
 

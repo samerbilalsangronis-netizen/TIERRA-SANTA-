@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
  * Pruebas de extremo a extremo. Requieren:
  *  - Supabase local corriendo (`npx supabase start`) con las migraciones aplicadas
  *  - .env.local apuntando a ese Supabase
- *  - Un admin creado: E2E_ADMIN_USUARIO / E2E_ADMIN_CLAVE (por defecto samer / Clave2026)
+ *  - Un admin creado: E2E_ADMIN_CORREO / E2E_ADMIN_CLAVE (por defecto admin@tierrasanta.test / Clave2026)
  * Uso: npm run test:e2e   (se prueba en PC y en teléfono)
  */
 export default defineConfig({

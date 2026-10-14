@@ -1,23 +1,13 @@
 import { z } from "zod";
-import { ESTADOS_USUARIO, REGEX_USUARIO, ROLES } from "@/lib/auth/roles";
+import { ESTADOS_USUARIO, ROLES } from "@/lib/auth/roles";
 import { esquemaClave } from "@/features/auth/esquemas";
 
-const fechaOpcional = z
-  .string()
-  .trim()
-  .refine((v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v), "Fecha no válida")
-  .transform((v) => (v === "" ? null : v));
-
-const correoOpcional = z
-  .union([z.literal(""), z.email("Correo no válido")])
-  .transform((v) => (v === "" ? null : v.toLowerCase()));
+const correo = z.string().trim().toLowerCase().min(1, "Escribe el correo").pipe(z.email("Correo no válido"));
 
 export const esquemaNuevoUsuario = z.object({
-  usuario: z.string().trim().toLowerCase().regex(REGEX_USUARIO, "3 a 40 caracteres: letras minúsculas, números, punto, guion"),
+  correo,
   nombre: z.string().trim().min(2, "Escribe el nombre").max(100),
-  correo: correoOpcional,
   rol: z.enum(ROLES),
-  vence_el: fechaOpcional,
   clave: esquemaClave,
   debe_cambiar_clave: z.boolean(),
 });
@@ -25,11 +15,10 @@ export type DatosNuevoUsuario = z.input<typeof esquemaNuevoUsuario>;
 
 export const esquemaEditarUsuario = z.object({
   id: z.uuid(),
+  correo,
   nombre: z.string().trim().min(2, "Escribe el nombre").max(100),
-  correo: correoOpcional,
   rol: z.enum(ROLES),
   estado: z.enum(ESTADOS_USUARIO),
-  vence_el: fechaOpcional,
 });
 export type DatosEditarUsuario = z.input<typeof esquemaEditarUsuario>;
 

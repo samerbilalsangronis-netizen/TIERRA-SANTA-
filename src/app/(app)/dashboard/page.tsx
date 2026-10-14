@@ -30,7 +30,7 @@ export default async function PaginaDashboard() {
     <>
       <EncabezadoPagina
         icono={LayoutDashboard}
-        titulo={`Hola, ${perfil.nombre.split(" ")[0] || perfil.usuario}`}
+        titulo={`Hola, ${perfil.nombre.split(" ")[0] || perfil.email.split("@")[0]}`}
         descripcion="Resumen general. Las métricas de ventas, compras y producción por periodo llegan en la Fase 8."
       />
 
