@@ -146,3 +146,15 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - Dona con el **porcentaje de pulpa de cada fruta**: las bolsas se pasan a kg (bolsas × kg de pulpa por bolsa: 0,8 / 1) y se suman por fruta de origen (la de 800 g y la de 1 kg juntas). Se puede ver **en inventario** (lo que hay hoy) o **producido esta semana** (últimos 7 días).
 - Muestra hasta 6 segmentos; si hay más rubros, los más pequeños se agrupan en "Otros". Cada fruta conserva siempre su color. Al tocar un rubro se ve su porcentaje en el centro. La leyenda lleva kg y porcentaje escritos.
 - Los cálculos los hace Postgres (`pulpa_por_fruta`).
+
+## Nómina (Fase 7)
+- Solo el **admin** entra a Nómina (montos incluidos). Todo en COP.
+- Pantalla con **Personal** (lista con lo que se le debe a cada uno) y **Tareas** (precios; se cambian en Catálogos). Ficha del empleado con **Calendario · Panel · Abonos · Reporte** y botones **Abonar, Editar, Eliminar**.
+- **Calendario mensual** (Ant./Sig.) con lo ganado cada día; al tocar un día se abre "Jornada: <fecha>":
+  - Por tarea: Asistió / No asistió, todas las tareas con su precio, cantidad y subtotal, pago adicional por día y "Ganado hoy".
+  - Fijo: Asistió / Media jornada / No asistió con su tarifa diaria (completa / mitad / 0); también admite tareas y pago adicional.
+  - Falta justificada solo se marca cuando no asistió (no paga).
+- **Asistencia del día:** todos los empleados con botones grandes; un toque guarda. El botón de tareas abre la jornada completa. Al cambiar la asistencia se conservan las tareas y su precio de ese día.
+- **Abonos/adelantos** con monto, fecha, entregado por y nota. Lo que se le debe = ganado − abonos.
+- **Periodos** (semanal por defecto, según Configuración → Empresa; se propone el siguiente). Antes de cerrar se ve el resumen calculado. Al **cerrar** se congela lo ganado y, si se marca, se registra el **pago** de lo que se debe (los saldos quedan en 0). En un periodo cerrado no se pueden crear, cambiar ni borrar jornadas ni abonos. **Reabrir** exige motivo y quita el pago automático.
+- **Recibo por empleado** imprimible (uno por página) y **Excel** del periodo.

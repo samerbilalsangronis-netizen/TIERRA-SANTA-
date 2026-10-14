@@ -84,3 +84,21 @@ test("inventario en el teléfono: stock en tarjetas y producción con botón fij
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   await page.screenshot({ path: "test-results/produccion-telefono.png" });
 });
+
+test("nómina en el teléfono: lista, ficha con calendario y asistencia con botones grandes", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "solo teléfono");
+  await entrarComoAdmin(page);
+  await page.goto("/nomina");
+  await expect(page.getByRole("heading", { name: "Nómina" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  const primero = page.locator("a[href^='/nomina/']").filter({ hasNotText: /Asistencia|Periodos/ }).first();
+  test.skip((await primero.count()) === 0, "no hay empleados en la base de prueba");
+  await primero.click();
+  await expect(page.getByRole("button", { name: "Abonar" })).toBeVisible();
+  await expect(page.locator("button[aria-label^='Jornada del']").first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: "test-results/nomina-ficha-telefono.png", fullPage: true });
+  await page.goto("/nomina/asistencia");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: "test-results/nomina-asistencia-telefono.png" });
+});

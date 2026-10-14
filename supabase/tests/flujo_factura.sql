@@ -217,6 +217,25 @@ select public.guardar_jornada(jsonb_build_object('empleado_id', 2, 'fecha', '202
   'tareas', jsonb_build_array(jsonb_build_object('tarea_id', (select id from public.tareas_nomina where nombre = 'Cortada de Durazno'), 'cantidad', 3))));
 select pg_temp.check((select ganado from public.jornadas where empleado_id = 1) = 20000, 'media jornada fijo');
 select pg_temp.check((select ganado from public.jornadas where empleado_id = 2) = 30000, 'destajo 3 × 10.000');
+select public.guardar_jornada('{"empleado_id":1,"fecha":"2026-10-06","estado":"asistio","pago_adicional":5000}');
+insert into public.abonos_empleados (empleado_id, fecha, monto, entregado_por) values (1, '2026-10-06', 15000, 'Samer');
+select pg_temp.check((select ganado || '|' || abonos || '|' || neto from public.nomina_resumen('2026-10-05', '2026-10-11') where empleado_id = 1)
+  = '65000.00|15000.00|50000.00', 'resumen del periodo: 45.000 + 20.000 − 15.000');
+insert into public.periodos_nomina (desde, hasta) values ('2026-10-05', '2026-10-11') returning id as per \gset
+select public.cerrar_periodo_nomina(:per, true, 'Samer');
+select pg_temp.check((select neto from public.periodo_nomina_items where periodo_id = :per and empleado_id = 1) = 50000, 'cierre congela el neto');
+select pg_temp.check((select saldo_neto from public.v_resumen_empleados where id = 1) = 0, 'liquidación deja el saldo en 0');
+do $$ begin
+  delete from public.jornadas where empleado_id = 1 and fecha = '2026-10-06';
+  raise exception 'PRUEBA FALLIDA: borró jornada de periodo cerrado';
+exception when raise_exception then
+  if sqlerrm like 'PRUEBA FALLIDA%' then raise; end if;
+  raise notice 'ok: no se borran jornadas de un periodo cerrado';
+end $$;
+select public.reabrir_periodo_nomina(:per, 'Corrección');
+select pg_temp.check((select saldo_neto from public.v_resumen_empleados where id = 1) = 50000, 'reabrir quita la liquidación');
+delete from public.jornadas where empleado_id = 1 and fecha = '2026-10-06';
+select pg_temp.check((select count(*) from public.jornadas where empleado_id = 1) = 1, 'periodo abierto: se puede borrar la jornada');
 
 -- Permisos: solo lectura no puede emitir ni ver nómina
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false);

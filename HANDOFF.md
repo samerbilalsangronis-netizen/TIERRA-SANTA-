@@ -43,6 +43,7 @@ Todas, en orden:
 20261020000100_inventario_fase6.sql         ← Fase 6: PENDIENTE de que Samer la pegue
 20261021000100_presentaciones_800g_1kg.sql  ← separa fruta comprada (901…) de bolsas 800 g (código 1…) y 1 kg (101…): PENDIENTE
 20261022000100_pulpa_por_fruta.sql          ← productos.fruta_id/peso_kg + pulpa_por_fruta() (gráfico de dona): PENDIENTE
+20261023000100_nomina_fase7.sql             ← Fase 7: bloqueo de borrado en periodos cerrados + nomina_resumen(): PENDIENTE
 ```
 **Regla:** nunca editar una migración ya aplicada en producción; crear una nueva con fecha posterior (`2026MMDD000100_descripcion.sql`). Después de agregar una, correr `scripts/generar-instalar.sh` (regenera `supabase/instalar.sql` para instalaciones nuevas) y verificar que aplica limpio **en una sola transacción** (el SQL Editor de Supabase corre todo como una transacción: por eso no se usa `ALTER TYPE … ADD VALUE` seguido de uso del valor; se prefirió `text` + `check`).
 
@@ -105,8 +106,8 @@ Patrones a respetar:
 | 4 Clientes (pagos por factura, pago múltiple, recibos, cajas, estado de cuenta, antigüedad) | ✅ | Último ajuste: pagos se aplican solos + formulario simple de abono. |
 | 5 Facturación | ✅ | Emisión por teclado, borradores, editar con historial, duplicar, anular, PDF carta, listado con filtros y totales. Falta que Samer pegue la migración 20261019 y revise en su web. |
 | 6 Inventario (UI) | ✅ | `/inventario` (vistas Stock · Producción · Movimientos), `/inventario/produccion`, `/inventario/[id]` (kardex), Excel de stock y kardex. Código en `src/features/inventario/`. Lotes FIFO: la BD los maneja si se activan en Empresa, pero la UI no los muestra aún. |
-| 7 Nómina (UI) | ⏳ | |
-| 8 Dashboard, métricas y reportes | ⏳ | |
+| 7 Nómina (UI) | ✅ | `/nomina` (Personal/Tareas), `/nomina/[id]` (Calendario · Panel · Abonos · Reporte), `/nomina/asistencia`, `/nomina/periodos` (+ `[id]`, `/recibos`, `/excel`). Código en `src/features/nomina/`. Cálculo de periodos en `src/lib/calculos/nomina.ts`. |
+| 8 Dashboard, métricas y reportes | ⏳ **siguiente** | |
 | 9 Migración de registros de los programas anteriores (Google Sheets **y programa de facturación de Windows**) | ⏳ | Pedido explícito de Samer (2026-10-14): incluir los registros antiguos. Ver §7. |
 | 10 Pulido, rendimiento, accesibilidad, README Vercel | ⏳ | |
 
@@ -123,14 +124,7 @@ Rutas: `/facturacion` (listado, `buscar_facturas`/`totales_facturas`), `/factura
 
 ### Fase 6 · Inventario — ✅ HECHA (ver DECISIONES.md)
 
-### Fase 7 · Nómina (según capturas de Samer)
-- Lista de empleados a la izquierda (Personal / Tareas), ficha con pestañas **Calendario · Panel · Abonos · Reporte**; botones Abonar, Editar, Eliminar.
-- **Calendario mensual** (Ant./Sig.) con lo ganado cada día; tocar un día abre "Jornada: dd de mes yyyy":
-  - **Destajo:** Asistió / No asistió, Justificada, lista de **todas las tareas** con su precio por unidad, campo de cantidad y subtotal por tarea, "**Pago adicional por día (COP)**", "Ganado hoy".
-  - **Fijo:** Asistió / Media jornada / No asistió, Justificada, "Ganado hoy" calculado con la tarifa diaria de la ficha (completa / mitad / 0).
-- Registro rápido de asistencia diaria (pantalla con todos los empleados, botones grandes para celular).
-- Abonos/adelantos (monto COP, entregado por, nota). Saldo neto = ganado − abonos.
-- Periodos (semanal por defecto, configurable): cierre que congela, descuenta abonos, recibo por empleado imprimible y resumen. Historial, filtros, exportación. **Solo admin ve montos.**
+### Fase 7 · Nómina — ✅ HECHA (ver DECISIONES.md)
 
 ### Fase 8 · Dashboard, métricas y reportes
 Selector de periodo (hoy, semana, semana pasada, mes, mes pasado, rango) con comparación al periodo anterior. Ventas por moneda, nº facturas, ticket promedio, producto más vendido (cantidad y monto), top 5 productos, top 10 clientes, ventas por día (líneas), por producto (barras), por cliente; CxC y clientes críticos; CxP a proveedores por moneda; compras por rubro/proveedor (kg y monto), merma total y % por proveedor; producción del periodo y stock con alertas; cajas/cestas pendientes; nómina del periodo (solo admin). Reportes con rango, filtros, pantalla, PDF y Excel: ventas (periodo/cliente/producto), libro de facturas (con anuladas), estados de cuenta, antigüedad CxC, compras por proveedor/rubro con merma, kardex e inventario valorizado opcional, producción diaria, nómina por periodo/empleado, movimiento de cajas/cestas. **Todas las agregaciones en Postgres (RPC/vistas).** Recharts (cargar skill `dataviz` antes de hacer gráficas).
@@ -180,12 +174,13 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test     # 17 
 ```
 Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E crean datos con sufijos aleatorios y son repetibles. Para capturas de pantalla, script de Playwright con `executablePath: "/opt/pw-browsers/chromium"`, y mirar la imagen.
 
-**Antes de entregar cada fase:** tsc + eslint + vitest + prueba SQL + build + Playwright completo (21 pruebas) + capturas PC y teléfono + regenerar `instalar.sql` + actualizar README/DECISIONES/HANDOFF + commit en español con las líneas de atribución + push a la rama asignada + darle a Samer el enlace raw del SQL nuevo (con el nombre de esa rama en la URL).
+**Antes de entregar cada fase:** tsc + eslint + vitest + prueba SQL + build + Playwright completo (24 pruebas) + capturas PC y teléfono + regenerar `instalar.sql` + actualizar README/DECISIONES/HANDOFF + commit en español con las líneas de atribución + push a la rama asignada + darle a Samer el enlace raw del SQL nuevo (con el nombre de esa rama en la URL).
 
 ## 9. Bitácora de sesiones
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-14 (2ª sesión, cont. 4) | Fase 7 Nómina completa (migración 20261023). |
 | 2026-10-14 (2ª sesión, cont. 3) | Catálogo en pestañas (Se vende con código / Fruta de proveedores y Insumos sin código). Dona "Porcentaje de pulpa por rubro" en Inventario (migración 20261022). Colores de gráficos en `globals.css` (`--viz-*`, validados con la skill dataviz). |
 | 2026-10-14 (2ª sesión, cont. 2) | Botón "Nuevo producto" en Inventario. Separación fruta comprada / bolsas 800 g y 1 kg (migración 20261021, recalcula existencias). Campo "Uso" en Catálogos. |
 | 2026-10-14 (2ª sesión, cont.) | Fase 6 Inventario (migración 20261020: `produccion_resumen`, `eliminar_produccion`, merma con motivo obligatorio, `v_stock_total.categoria`). Subida a ambas ramas. |

@@ -2532,6 +2532,24 @@ export type Database = {
       };
       kpis_clientes: { Args: Record<PropertyKey, never>; Returns: Json };
       kpis_proveedores: { Args: Record<PropertyKey, never>; Returns: Json };
+      nomina_resumen: {
+        Args: { p_desde: string; p_hasta: string };
+        Returns: {
+          abonos: number;
+          activo: boolean;
+          dias_asistidos: number;
+          empleado_id: number;
+          faltas: number;
+          ganado: number;
+          medias: number;
+          neto: number;
+          nombre: string;
+          saldo_anterior: number;
+          tipo: Database["public"]["Enums"]["tipo_empleado"];
+          total_dias: number;
+          total_tareas: number;
+        }[];
+      };
       normalizar: { Args: { t: string }; Returns: string };
       produccion_resumen: {
         Args: { p_desde: string; p_hasta: string };

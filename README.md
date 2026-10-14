@@ -17,7 +17,7 @@ Aplicación web de **Procesadora de Alimentos Tierra Santa** que reemplaza ERP C
 | 4 | Clientes (pagos factura por factura, pago múltiple, saldo a favor, recibos, cajas, estado de cuenta, antigüedad) | ✅ |
 | 5 | Facturación (emisión por teclado, borradores, edición con historial, anulación, PDF, listado con filtros) | ✅ |
 | 6 | Inventario (stock por ubicación con alertas, producción diaria, merma, traslados, ajustes, kardex y Excel) | ✅ |
-| 7 | Nómina (calendario por empleado, jornadas fijo/destajo) | ⏳ |
+| 7 | Nómina (calendario por empleado, jornadas fijo/destajo, asistencia rápida, abonos, periodos con cierre y recibos) | ✅ |
 | 8 | Dashboard, métricas y reportes | ⏳ |
 | 9 | Migración de los registros de los programas anteriores (Google Sheets y programa de facturación de Windows) | ⏳ |
 | 10 | Pulido y despliegue | ⏳ |

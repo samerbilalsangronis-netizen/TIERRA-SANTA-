@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { calcularEntrega } from "@/lib/calculos/entregas";
 import { calcularTotales, estadoPago, repartirPago } from "@/lib/calculos/factura";
 import { estadoCliente, etiquetaMoneda, pendientes, saldoProveedor } from "@/lib/calculos/saldos";
-import { calcularJornada, saldoNeto } from "@/lib/calculos/nomina";
+import { calcularJornada, diasDelMes, periodoDeFecha, saldoNeto } from "@/lib/calculos/nomina";
 
 describe("Entregas de proveedores", () => {
   it("POR KILO: 400 kg de guanábana a 3.000/kg con 10 kg de merma", () => {
@@ -124,5 +124,25 @@ describe("Nómina", () => {
   });
   it("saldo neto = ganado − abonos", () => {
     expect(saldoNeto([30000, 30000], [20000]).toNumber()).toBe(40000);
+  });
+});
+
+describe("Periodos de nómina", () => {
+  it("semana que empieza el lunes", () => {
+    expect(periodoDeFecha("2026-10-14", "semanal", 1)).toEqual({ desde: "2026-10-12", hasta: "2026-10-18" });
+    expect(periodoDeFecha("2026-10-12", "semanal", 1)).toEqual({ desde: "2026-10-12", hasta: "2026-10-18" });
+    expect(periodoDeFecha("2026-10-18", "semanal", 1)).toEqual({ desde: "2026-10-12", hasta: "2026-10-18" });
+    expect(periodoDeFecha("2026-10-14", "semanal", 6)).toEqual({ desde: "2026-10-10", hasta: "2026-10-16" });
+  });
+  it("quincena y mes", () => {
+    expect(periodoDeFecha("2026-02-20", "quincenal")).toEqual({ desde: "2026-02-16", hasta: "2026-02-28" });
+    expect(periodoDeFecha("2026-10-15", "quincenal")).toEqual({ desde: "2026-10-01", hasta: "2026-10-15" });
+    expect(periodoDeFecha("2026-10-31", "mensual")).toEqual({ desde: "2026-10-01", hasta: "2026-10-31" });
+  });
+  it("calendario de octubre 2026 (empieza jueves) con semanas desde el lunes", () => {
+    const dias = diasDelMes("2026-10", 1);
+    expect(dias.slice(0, 4)).toEqual([null, null, null, "2026-10-01"]);
+    expect(dias.length % 7).toBe(0);
+    expect(dias.filter(Boolean)).toHaveLength(31);
   });
 });
