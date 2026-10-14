@@ -136,11 +136,10 @@ Selector de periodo (hoy, semana, semana pasada, mes, mes pasado, rango) con com
 ### Fase 9 · Migración de los registros de los programas anteriores (`scripts/migrar` y/o pantalla en la app)
 **Samer pidió explícitamente (2026-10-14) que se migren los registros de los programas antiguos.** Son dos fuentes:
 
-**A) Programa de facturación de Windows** (el que reemplaza la Fase 5). Aún NO sabemos qué programa es ni en qué formato exporta: **preguntarle** el nombre del programa y pedirle una exportación de ejemplo (Excel/CSV, copia de la base de datos o PDFs). Plan:
-- Clientes del programa (código, razón social, cédula/RIF, teléfono, dirección) → `clientes`, conservando su **número/código** cuando sea posible y fusionando con los de ERP Clientes por nombre normalizado o cédula (lista para confirmar).
-- Facturas viejas con sus **líneas** (código de producto, cantidad, precio, IVA) → facturas históricas que **conserven su número original** y sus líneas, **sin tocar inventario** (hará falta una variante de `registrar_factura_externa` que acepte líneas, o `origen = 'externa'` con `factura_lineas`). Productos por código (1 = Guanábana…).
-- Anuladas como anuladas. Saldos/pagos: decidir con Samer si los cobros viven en ERP Clientes (Sheets) o en el programa de Windows, para **no contarlos dos veces**.
-- Configurar `empresa.factura_numero_inicial` = último número del programa de Windows + 1, para que la numeración continúe sin saltos ni choques.
+**A) Programa de facturación de Windows — NO hace falta migrarlo aparte** (aclarado por Samer el 2026-10-14). Samer solo lo usa para **generar** la factura; luego la registra a mano en **ERP Clientes** (Sheets) con el **nº de factura, el monto y un enlace de postimages** (imagen de la factura). Los pagos también viven solo en ERP Clientes. Por lo tanto:
+- Toda la historia de facturas y pagos sale de ERP Clientes (punto B): cada factura → factura histórica (`origen = 'externa'`) con `numero_externo` = nº del programa de Windows, monto, moneda y `soporte_url` = enlace de postimages (se ve con "Ver soporte" en la ficha del cliente). Sin líneas de productos y sin tocar inventario.
+- No hay riesgo de contar pagos dos veces (el programa de Windows no lleva cobros).
+- Al terminar la migración, poner `empresa.factura_numero_inicial` = último nº de factura del programa de Windows + 1, para que la Fase 5 siga la misma numeración. Desde entonces el programa de Windows deja de usarse.
 
 **B) Google Sheets (Apps Script)** — lee los .xlsx exportados, modo **simulación** que solo reporta. Estructura:
 - **ERP Clientes:** "Panel de Control" desde fila 9 (nombre real en columna H oculta). Una hoja por cliente, datos desde fila 10: facturas B–F (nº, fecha, URL, tipo USD/COP, monto) → facturas `externa`; abonos I–K (fecha, monto, tipo) → pagos (se aplican solos); empaques N–P (fecha, retiradas, devueltas). Hoja "Usuarios" (crear cuentas nuevas; contraseñas viejas no se migran; forzar cambio).
@@ -185,5 +184,5 @@ Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E
 
 | Fecha | Qué se hizo |
 |---|---|
-| 2026-10-14 (2ª sesión) | Fase 5 Facturación completa + permisos de funciones endurecidos (migración 20261019). Samer pidió incluir en su momento la migración de los registros de los programas antiguos (Windows + Sheets): anotado en §7 Fase 9. |
+| 2026-10-14 (2ª sesión) | Fase 5 Facturación completa + permisos de funciones endurecidos (migración 20261019). Samer pidió incluir en su momento la migración de los registros de los programas antiguos: el de Windows solo genera la factura y se registra en ERP Clientes (nº, monto, enlace postimages), así que todo sale de los Sheets (§7 Fase 9). Fase 5 subida también a `claude/tender-curie-r25soh` con permiso de Samer. |
 | 2026-10-14 | Esquema completo; Fases 1–4; logo oficial; login por correo (sin vencimiento); instalación vía Supabase web; entregas por kilo/unidad/cesta e insumos (sin inventario de insumos); entregas no suman inventario; pagos de clientes se aplican solos + formulario simple de abono (caso Carlos fact. 1515: abono 87.877 quedó suelto y se corrigió con la migración 20261018). |
