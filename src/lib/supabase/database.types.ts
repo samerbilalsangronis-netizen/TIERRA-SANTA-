@@ -2250,6 +2250,35 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      buscar_facturas: {
+        Args: {
+          p_cliente_id?: number;
+          p_desde?: string;
+          p_desplazamiento?: number;
+          p_estado?: string;
+          p_hasta?: string;
+          p_limite?: number;
+          p_moneda?: string;
+          p_q?: string;
+        };
+        Returns: {
+          cliente_id: number;
+          cliente_nombre: string;
+          cliente_numero: number;
+          estado: Database["public"]["Enums"]["estado_factura"];
+          estado_pago: string;
+          fecha: string;
+          id: number;
+          moneda: string;
+          numero: number;
+          numero_externo: string;
+          origen: Database["public"]["Enums"]["origen_factura"];
+          pagado: number;
+          saldo: number;
+          total: number;
+          version: number;
+        }[];
+      };
       buscar_proveedores: {
         Args: {
           p_con_saldo?: boolean;
@@ -2358,6 +2387,60 @@ export type Database = {
       factura_liberar_exceso: { Args: { p_id: number }; Returns: number };
       factura_sincronizar_inventario: { Args: { p_id: number }; Returns: Json };
       factura_snapshot: { Args: { p_id: number }; Returns: Json };
+      facturas_filtradas: {
+        Args: {
+          p_cliente_id?: number;
+          p_desde?: string;
+          p_estado?: string;
+          p_hasta?: string;
+          p_moneda?: string;
+          p_q?: string;
+        };
+        Returns: {
+          anulada_el: string | null;
+          anulada_por: string | null;
+          base_imponible: number;
+          cliente_direccion: string | null;
+          cliente_documento: string | null;
+          cliente_id: number;
+          cliente_nombre: string | null;
+          cliente_numero: number | null;
+          cliente_telefono: string | null;
+          condicion: Database["public"]["Enums"]["condicion_pago"];
+          created_at: string;
+          created_by: string | null;
+          emitida_el: string | null;
+          emitida_por: string | null;
+          estado: Database["public"]["Enums"]["estado_factura"];
+          estado_pago: string | null;
+          exento: number;
+          fecha: string;
+          id: number;
+          iva: number;
+          iva_pct: number;
+          moneda: string;
+          motivo_anulacion: string | null;
+          numero: number | null;
+          numero_externo: string | null;
+          observaciones: string | null;
+          origen: Database["public"]["Enums"]["origen_factura"];
+          pagado: number;
+          saldo: number | null;
+          soporte_path: string | null;
+          soporte_url: string | null;
+          subtotal: number;
+          total: number;
+          ubicacion_id: number | null;
+          updated_at: string;
+          version: number;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "facturas";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       fecha_en_periodo_cerrado: { Args: { p_fecha: string }; Returns: boolean };
       forma_compra: {
         Args: { p_producto_id: number };
@@ -2474,6 +2557,24 @@ export type Database = {
         Args: { roles: Database["public"]["Enums"]["rol_usuario"][] };
         Returns: boolean;
       };
+      totales_facturas: {
+        Args: {
+          p_cliente_id?: number;
+          p_desde?: string;
+          p_estado?: string;
+          p_hasta?: string;
+          p_moneda?: string;
+          p_q?: string;
+        };
+        Returns: {
+          anuladas: number;
+          cantidad: number;
+          moneda: string;
+          pagado: number;
+          saldo: number;
+          total: number;
+        }[];
+      };
       trasladar_inventario: {
         Args: {
           p_cantidad: number;
@@ -2489,6 +2590,14 @@ export type Database = {
       ultimo_precio: {
         Args: { p_cliente_id: number; p_moneda: string; p_producto_id: number };
         Returns: number;
+      };
+      ultimos_precios_cliente: {
+        Args: { p_cliente_id: number; p_moneda: string };
+        Returns: {
+          fecha: string;
+          precio: number;
+          producto_id: number;
+        }[];
       };
     };
     Enums: {

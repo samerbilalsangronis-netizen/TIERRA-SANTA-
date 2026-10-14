@@ -118,8 +118,12 @@ export function FichaCliente(props: {
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={`Acciones de la factura ${doc(f)}`}><MoreHorizontal className="size-4" /></Button>} />
       <DropdownMenuContent align="end" className="w-56">
+        {f.origen === "sistema" && <DropdownMenuItem render={<Link href={`/facturacion/${f.id}`} />}><Printer className="size-4" /> Ver / imprimir factura</DropdownMenuItem>}
         <DropdownMenuItem onClick={() => setDialogo({ tipo: "detalle", factura: f })}><Eye className="size-4" /> Ver pagos de la factura</DropdownMenuItem>
         {f.soporte && <DropdownMenuItem render={<a href={f.soporte} target="_blank" rel="noreferrer" />}><Paperclip className="size-4" /> Ver soporte</DropdownMenuItem>}
+        {permisos.facturar && f.origen === "sistema" && f.estado === "emitida" && (
+          <DropdownMenuItem render={<Link href={`/facturacion/${f.id}/editar`} />}><Pencil className="size-4" /> Editar</DropdownMenuItem>
+        )}
         {permisos.facturar && f.origen === "externa" && f.estado === "emitida" && (
           <DropdownMenuItem onClick={() => setDialogo({ tipo: "externa", factura: { ...f } })}><Pencil className="size-4" /> Editar</DropdownMenuItem>
         )}
@@ -220,6 +224,7 @@ export function FichaCliente(props: {
 
         <div className="no-print mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {permisos.cobrar && <Button size="lg" className="bg-success text-black hover:bg-success/85" onClick={() => abrirPago(monedasCliente.find((m) => (saldos.find((s) => s.moneda === m)?.pendiente ?? 0) > 0) ?? monedasCliente[0])}><Banknote className="size-4" /> Registrar pago</Button>}
+          {permisos.facturar && cliente.activo && <Link href={`/facturacion/nueva?cliente=${cliente.id}`} className={buttonVariants({ size: "lg", variant: "outline" })}><FileText className="size-4" /> Nueva factura</Link>}
           {permisos.facturar && <Button size="lg" variant="outline" onClick={() => setDialogo({ tipo: "externa" })}><FilePlus2 className="size-4" /> Factura histórica</Button>}
           {permisos.editar && <Button size="lg" variant="outline" onClick={() => setDialogo({ tipo: "empaque" })}><Package className="size-4" /> Cajas</Button>}
           {monedasCliente.map((m) => (
@@ -441,6 +446,9 @@ export function FichaCliente(props: {
                 </dl>
                 {f.motivo_anulacion && <p className="text-sm text-destructive">Anulada: {f.motivo_anulacion}</p>}
                 {f.observaciones && <p className="text-sm text-muted-foreground">{f.observaciones}</p>}
+                {f.origen === "sistema" && (
+                  <Link href={`/facturacion/${f.id}`} className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit" })}><Printer className="size-3.5" /> Ver / imprimir factura</Link>
+                )}
                 <div>
                   <p className="mb-1 text-sm font-medium">Historial de pagos</p>
                   {historial.length === 0 ? <p className="text-sm text-muted-foreground">Sin pagos aplicados.</p> : (
@@ -468,7 +476,7 @@ export function FichaCliente(props: {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Anular la factura {dialogo?.tipo === "anular" ? doc(dialogo.factura) : ""}?</AlertDialogTitle>
             <AlertDialogDescription>
-              La factura queda visible como ANULADA (no se borra), deja de sumar a la deuda y, si tenía pagos, quedan como saldo a favor del cliente.
+              La factura queda visible como ANULADA (no se borra) y deja de sumar a la deuda. Si tenía pagos, se descuentan de otras facturas pendientes del cliente.
               Si es del sistema, el inventario se devuelve.
             </AlertDialogDescription>
           </AlertDialogHeader>

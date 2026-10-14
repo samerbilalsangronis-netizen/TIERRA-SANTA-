@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [{ protocol: "https", hostname: "*.supabase.co" }],
   },
+  // El PDF de la factura lee el logo por defecto desde public/
+  outputFileTracingIncludes: {
+    "/facturacion/[id]/pdf": ["./public/logo-tierra-santa-negro.png"],
+  },
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },
   },

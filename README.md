@@ -15,11 +15,11 @@ Aplicación web de **Procesadora de Alimentos Tierra Santa** que reemplaza ERP C
 | 2 | Catálogos (productos con código, unidades, ubicaciones, monedas/tasas, métodos de pago, tareas) + respaldo a Excel | ✅ |
 | 3 | Proveedores unificados (entregas con foto, abonos, cestas, estado de cuenta PDF/Excel) | ✅ |
 | 4 | Clientes (pagos factura por factura, pago múltiple, saldo a favor, recibos, cajas, estado de cuenta, antigüedad) | ✅ |
-| 5 | Facturación (UI y PDF; las funciones de BD ya existen) | ⏳ |
+| 5 | Facturación (emisión por teclado, borradores, edición con historial, anulación, PDF, listado con filtros) | ✅ |
 | 6 | Inventario (UI; las funciones de BD ya existen) | ⏳ |
 | 7 | Nómina (calendario por empleado, jornadas fijo/destajo) | ⏳ |
 | 8 | Dashboard, métricas y reportes | ⏳ |
-| 9 | Migración desde Google Sheets | ⏳ |
+| 9 | Migración de los registros de los programas anteriores (Google Sheets y programa de facturación de Windows) | ⏳ |
 | 10 | Pulido y despliegue | ⏳ |
 
 ## Puesta en marcha (Supabase web + Vercel)

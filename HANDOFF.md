@@ -3,7 +3,7 @@
 > Documento para continuar el proyecto en otra sesión **sin perder nada**.
 > Léelo completo antes de tocar código. Mantenlo actualizado al final de cada fase
 > (sección "Estado actual" y "Bitácora de sesiones").
-> Última actualización: **2026-10-14 · fin de Fase 4 + ajuste de pagos**.
+> Última actualización: **2026-10-14 · fin de Fase 5 (Facturación)**.
 
 ---
 
@@ -24,7 +24,7 @@
 | Cosa | Valor |
 |---|---|
 | Repo GitHub | `samerbilalsangronis-netizen/TIERRA-SANTA-` |
-| Rama de trabajo | **`claude/tender-curie-r25soh`** (main está vacío; Vercel despliega esta rama como Production Branch). No abrir PR salvo que lo pida. |
+| Rama de trabajo | Fases 1–4: **`claude/tender-curie-r25soh`** (Vercel la despliega como Production Branch). La Fase 5 se hizo en **`claude/blissful-pascal-tyz36p`** (parte del mismo commit final de la 4). Para verla en producción, Samer debe cambiar la Production Branch en Vercel a la rama nueva, o hay que unir las ramas. Cada sesión nueva trabaja en la rama que le asignen: verificar cuál despliega Vercel. No abrir PR salvo que lo pida. |
 | Vercel | `https://tierra-santa-lime.vercel.app` |
 | Supabase | proyecto `jvhrxawfjxncthdqpkmf` → `https://jvhrxawfjxncthdqpkmf.supabase.co` |
 | Clave pública (anon, no secreta) | empieza `eyJhbGciOiJIUzI1NiIs…` (está en el historial; sirve para verificar desde fuera con `curl` que una función existe: si responde `permission denied` existe, si responde `PGRST202` no) |
@@ -39,6 +39,7 @@ Todas, en orden:
 20261016000100_compras_kilo_unidad_insumos.sql
 20261017000100_clientes_fase4.sql
 20261018000100_pagos_se_aplican_solos.sql
+20261019000100_facturacion_fase5.sql        ← Fase 5: PENDIENTE de que Samer la pegue
 ```
 **Regla:** nunca editar una migración ya aplicada en producción; crear una nueva con fecha posterior (`2026MMDD000100_descripcion.sql`). Después de agregar una, correr `scripts/generar-instalar.sh` (regenera `supabase/instalar.sql` para instalaciones nuevas) y verificar que aplica limpio **en una sola transacción** (el SQL Editor de Supabase corre todo como una transacción: por eso no se usa `ALTER TYPE … ADD VALUE` seguido de uso del valor; se prefirió `text` + `check`).
 
@@ -98,34 +99,24 @@ Patrones a respetar:
 | 1 Base (login con logo, roles, usuarios, auditoría, empresa, tema) | ✅ | Logo oficial (alas + TS) blanco/negro en `public/` |
 | 2 Catálogos + respaldo Excel | ✅ | |
 | 3 Proveedores (kilo/unidad/cesta, insumos, foto, estado de cuenta) | ✅ | |
-| 4 Clientes (pagos por factura, pago múltiple, recibos, cajas, estado de cuenta, antigüedad) | ✅ | Último ajuste: pagos se aplican solos + formulario simple de abono. **Esperando confirmación de Samer** de que le gusta cómo quedó Carlos (fact. 1515). |
-| 5 Facturación | ⏳ **siguiente** | Ver §7 |
+| 4 Clientes (pagos por factura, pago múltiple, recibos, cajas, estado de cuenta, antigüedad) | ✅ | Último ajuste: pagos se aplican solos + formulario simple de abono. |
+| 5 Facturación | ✅ | Emisión por teclado, borradores, editar con historial, duplicar, anular, PDF carta, listado con filtros y totales. Falta que Samer pegue la migración 20261019 y revise en su web. |
 | 6 Inventario (UI) | ⏳ | |
 | 7 Nómina (UI) | ⏳ | |
 | 8 Dashboard, métricas y reportes | ⏳ | |
-| 9 Migración desde Google Sheets | ⏳ | |
+| 9 Migración de registros de los programas anteriores (Google Sheets **y programa de facturación de Windows**) | ⏳ | Pedido explícito de Samer (2026-10-14): incluir los registros antiguos. Ver §7. |
 | 10 Pulido, rendimiento, accesibilidad, README Vercel | ⏳ | |
 
 ### Pendientes pequeños detectados
-- **Endurecer permisos de funciones**: `buscar_clientes`/`buscar_proveedores` aún son ejecutables por `anon` (vía PUBLIC). Sin riesgo (las vistas niegan a anon), pero en la próxima migración: `revoke execute on all functions in schema public from public;` y volver a dar `grant execute … to authenticated` (y `empresa_publica()` a anon). Probar que la app sigue funcionando.
+- ~~Endurecer permisos de funciones~~ hecho en 20261019 (anon solo ejecuta `empresa_publica`).
 - Productos: Samer debe revisar kg por cesta reales; las frutas quedaron "Por kilo" y la piña "Por unidad".
 - Inventario de insumos: **NO** se quiere (confirmado).
 - Fechas `<input type=date>` se muestran según el idioma del navegador (en su Chrome sale dd/mm/aaaa: OK).
 
 ## 7. Lo que falta, con los requisitos originales (para no olvidar nada)
 
-### Fase 5 · Facturación (reemplaza el programa de Windows) — SIGUIENTE
-- Pantalla de emisión: buscador de cliente por **número**, nombre o cédula (autocompleta razón social, cédula/RIF, teléfono, dirección) + botón "Registrar cliente nuevo" sin salir (ya existe `DialogoCliente` con `alCrear`).
-- Encabezado: nº automático (no editable, `emitir_factura`), fecha (hoy), **switch de moneda USD/COP** (VES si activa), condición contado/crédito, ubicación de salida, observaciones.
-- Líneas: teclear el **código** (1 → Guanábana) autocompleta descripción y unidad; también buscar por nombre; cantidad, **precio manual** (sugerir `ultimo_precio`), casilla IVA por línea (% de empresa, editable), subtotal. **Teclado**: Enter/Tab pasa de campo, Enter en la última columna crea línea nueva. Solo productos categoría fruta (no insumos).
-- Totales: subtotal, base imponible, IVA, exento, total (usar `src/lib/calculos/factura.ts`, igual a la BD). Mostrar stock disponible por línea y advertir/bloquear según `empresa.stock_insuficiente`.
-- Guardar = emitir en una transacción (ya en BD). Opcional en la misma pantalla: cajas entregadas y abono inicial.
-- Operaciones: ver, imprimir, **PDF** (`@react-pdf/renderer`) + vista HTML imprimible idéntica, duplicar como borrador, **editar** (mismo número; historial de versiones visible: quién, cuándo, qué cambió), anular con motivo (sello "ANULADA"). Borradores no afectan inventario ni saldos. Permiso de edición por rol (`empresa.roles_editan_factura`).
-- Cambio de moneda con pagos: pedir tasa (o bloquear según config `cambio_moneda_con_pagos`).
-- **PDF impecable**: carta; logo, razón social, RIF, dirección, teléfonos; a la derecha título configurable (`empresa.titulo_documento`: Factura/Nota de entrega/Pedido), número (prefijo) y fecha; bloque cliente (nº, razón social, cédula/RIF, teléfono, dirección); tabla código/descripción/cantidad/unidad/precio/IVA sí-no/total con filas alternadas; totales a la derecha, **total en letras**, moneda clara; observaciones, condición de pago, firma/recibido, pie configurable (`pie_factura`, `texto_legal`), paginación. No afirmar validez fiscal (SENIAT).
-- Listado de facturas: búsqueda por número, cliente, fecha, producto; filtros estado/moneda/rango; totales del filtro; paginación en servidor.
-- Las facturas emitidas ya aparecen solas en la ficha del cliente (Fase 4). En la ficha, enlazar a la factura y agregar botón "Nueva factura" para ese cliente.
-- Prueba E2E Playwright: factura → inventario → cuenta por cobrar (requisito del documento).
+### Fase 5 · Facturación — ✅ HECHA
+Rutas: `/facturacion` (listado, `buscar_facturas`/`totales_facturas`), `/facturacion/nueva` (`?cliente=`, `?duplicar=`), `/facturacion/[id]` (hoja HTML + pagos + historial), `/facturacion/[id]/editar` (también continúa borradores), `/facturacion/[id]/pdf` (`?descargar=1`). Código en `src/features/facturacion/`. Monto en letras: `src/lib/numeros-a-letras.ts`. Pendiente menor: no hay pantalla para elegir el producto con el ratón en una lista grande (se escribe código o nombre).
 
 ### Fase 6 · Inventario
 Movimientos (libro mayor), **producción diaria** (formulario rápido de varios productos con fecha y responsable; sin consumo de materia prima porque las entregas no entran a inventario), salidas por factura (automáticas), traslados entre ubicaciones, merma/daño, ajustes por conteo (solo admin, con motivo), stock por producto y ubicación con indicador normal/bajo/agotado y alertas en dashboard, **kardex** filtrable y exportable, producción diaria/semanal, lotes FIFO activables. Búsqueda, filtros, agrupación por tipo/ubicación/letra.
@@ -142,13 +133,22 @@ Movimientos (libro mayor), **producción diaria** (formulario rápido de varios 
 ### Fase 8 · Dashboard, métricas y reportes
 Selector de periodo (hoy, semana, semana pasada, mes, mes pasado, rango) con comparación al periodo anterior. Ventas por moneda, nº facturas, ticket promedio, producto más vendido (cantidad y monto), top 5 productos, top 10 clientes, ventas por día (líneas), por producto (barras), por cliente; CxC y clientes críticos; CxP a proveedores por moneda; compras por rubro/proveedor (kg y monto), merma total y % por proveedor; producción del periodo y stock con alertas; cajas/cestas pendientes; nómina del periodo (solo admin). Reportes con rango, filtros, pantalla, PDF y Excel: ventas (periodo/cliente/producto), libro de facturas (con anuladas), estados de cuenta, antigüedad CxC, compras por proveedor/rubro con merma, kardex e inventario valorizado opcional, producción diaria, nómina por periodo/empleado, movimiento de cajas/cestas. **Todas las agregaciones en Postgres (RPC/vistas).** Recharts (cargar skill `dataviz` antes de hacer gráficas).
 
-### Fase 9 · Migración desde Google Sheets (`scripts/migrar`)
-Lee los .xlsx exportados, modo **simulación** que solo reporta. Estructura:
+### Fase 9 · Migración de los registros de los programas anteriores (`scripts/migrar` y/o pantalla en la app)
+**Samer pidió explícitamente (2026-10-14) que se migren los registros de los programas antiguos.** Son dos fuentes:
+
+**A) Programa de facturación de Windows** (el que reemplaza la Fase 5). Aún NO sabemos qué programa es ni en qué formato exporta: **preguntarle** el nombre del programa y pedirle una exportación de ejemplo (Excel/CSV, copia de la base de datos o PDFs). Plan:
+- Clientes del programa (código, razón social, cédula/RIF, teléfono, dirección) → `clientes`, conservando su **número/código** cuando sea posible y fusionando con los de ERP Clientes por nombre normalizado o cédula (lista para confirmar).
+- Facturas viejas con sus **líneas** (código de producto, cantidad, precio, IVA) → facturas históricas que **conserven su número original** y sus líneas, **sin tocar inventario** (hará falta una variante de `registrar_factura_externa` que acepte líneas, o `origen = 'externa'` con `factura_lineas`). Productos por código (1 = Guanábana…).
+- Anuladas como anuladas. Saldos/pagos: decidir con Samer si los cobros viven en ERP Clientes (Sheets) o en el programa de Windows, para **no contarlos dos veces**.
+- Configurar `empresa.factura_numero_inicial` = último número del programa de Windows + 1, para que la numeración continúe sin saltos ni choques.
+
+**B) Google Sheets (Apps Script)** — lee los .xlsx exportados, modo **simulación** que solo reporta. Estructura:
 - **ERP Clientes:** "Panel de Control" desde fila 9 (nombre real en columna H oculta). Una hoja por cliente, datos desde fila 10: facturas B–F (nº, fecha, URL, tipo USD/COP, monto) → facturas `externa`; abonos I–K (fecha, monto, tipo) → pagos (se aplican solos); empaques N–P (fecha, retiradas, devueltas). Hoja "Usuarios" (crear cuentas nuevas; contraseñas viejas no se migran; forzar cambio).
 - **ERP Proveedores (COP) y ERP Proveedores USD:** "Panel de Control" / "Panel de Control USD" (nombre en columna E oculta), "Configuración"/"Configuración USD" (rubros B5:D19: nombre, kg, FIJO/VARIABLE). Una hoja por proveedor, datos desde fila 10: entregas B fecha, C rubro, E cestas, F kg total si VARIABLE, G precio, I merma, J URL foto (→ modo FIJO o VARIABLE legado); abonos P fecha, Q monto; cestas T fecha, U entregadas, V devueltas. La moneda sale del archivo. Ignorar hojas `_PLANTILLA_*`. Proveedores en ambos archivos se fusionan por nombre normalizado (mostrar lista para confirmar).
 - **Nómina:** EMPLEADOS (id, nombre, tipo, tarifa, registro), TAREAS (id, emoji, tarea, valor, unidad), ASISTENCIA (clave, id empleado, nombre, fecha, estado, justificado, ganado, detalle tareas JSON — normalizar `__dia__`/`_dia_` a `PAGO_DIA` → `pago_adicional`), ABONOS (id, id empleado, empleado, fecha, monto, entregado por, nota). Datos desde fila 4.
 - Reporte final de verificación: saldos por cliente/proveedor/empleado viejo vs nuevo (deben coincidir).
-- Como Samer no usa terminal: probablemente hacer la migración como **pantalla en la app** (subir los .xlsx, simular, confirmar) en vez de solo script. Consultar con él.
+- Como Samer no usa terminal: hacer la migración como **pantalla en la app** (Configuración → Migración: subir archivos, simular, ver reporte, confirmar) además del script. Consultar con él.
+- Orden sugerido: catálogos → clientes/proveedores/empleados → facturas (Windows + históricas de Sheets sin duplicar) → pagos → entregas/abonos/cestas → nómina → reporte de verificación.
 
 ### Fase 10 · Pulido
 Rendimiento (<1 s con miles de registros; índices/pg_trgm ya están), pruebas, accesibilidad, README de despliegue, revisar todo en teléfono.
@@ -179,10 +179,11 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test     # 17 
 ```
 Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E crean datos con sufijos aleatorios y son repetibles. Para capturas de pantalla, script de Playwright con `executablePath: "/opt/pw-browsers/chromium"`, y mirar la imagen.
 
-**Antes de entregar cada fase:** tsc + eslint + vitest + prueba SQL + build + Playwright completo + capturas PC y teléfono + regenerar `instalar.sql` + actualizar README/DECISIONES/HANDOFF + commit en español con las líneas de atribución + push a `claude/tender-curie-r25soh` + darle a Samer el enlace raw del SQL nuevo.
+**Antes de entregar cada fase:** tsc + eslint + vitest + prueba SQL + build + Playwright completo (19 pruebas) + capturas PC y teléfono + regenerar `instalar.sql` + actualizar README/DECISIONES/HANDOFF + commit en español con las líneas de atribución + push a la rama asignada + darle a Samer el enlace raw del SQL nuevo (con el nombre de esa rama en la URL).
 
 ## 9. Bitácora de sesiones
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-14 (2ª sesión) | Fase 5 Facturación completa + permisos de funciones endurecidos (migración 20261019). Samer pidió incluir en su momento la migración de los registros de los programas antiguos (Windows + Sheets): anotado en §7 Fase 9. |
 | 2026-10-14 | Esquema completo; Fases 1–4; logo oficial; login por correo (sin vencimiento); instalación vía Supabase web; entregas por kilo/unidad/cesta e insumos (sin inventario de insumos); entregas no suman inventario; pagos de clientes se aplican solos + formulario simple de abono (caso Carlos fact. 1515: abono 87.877 quedó suelto y se corrigió con la migración 20261018). |

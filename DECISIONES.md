@@ -109,3 +109,16 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - **Antigüedad de saldos:** 0–15, 16–30, 31–60 y +60 días desde la fecha de la factura; en la ficha (por moneda) y en un reporte general con Excel.
 - **Recibo de pago** imprimible / PDF con logo, detalle de facturas abonadas y saldo a favor generado.
 - Las facturas del sistema (con líneas de productos) se emiten desde Facturación (Fase 5) y aparecerán solas en la ficha.
+
+## Facturación (Fase 5)
+- **Pantalla de emisión** pensada para teclado: el cliente se busca por número, nombre o cédula/RIF (Enter elige); en cada línea se escribe el **código** (o parte del nombre) y Enter pasa a cantidad → precio → línea nueva. Ctrl+Enter emite. En el teléfono las líneas se ven como tarjetas y el total con el botón Emitir quedan fijos abajo.
+- Solo se facturan productos de categoría **fruta** que no sean "materia prima".
+- **Precio sugerido**: el último precio usado con ese cliente en esa moneda (se puede cambiar).
+- Se muestra el stock disponible de cada producto en la ubicación de salida. Si no alcanza: aviso (se puede emitir) o bloqueo, según Configuración → Empresa.
+- Al emitir se puede anotar lo **cobrado al entregar** ("Pagó completo" llena el total; "Contado" lo marca solo) y las **cajas que se lleva**. Todo en una sola transacción.
+- **Borradores**: no tienen número ni tocan inventario/saldos; se continúan y se emiten después, o se descartan.
+- **Duplicar** abre una factura nueva con las mismas líneas y la fecha de hoy (no se guarda hasta emitir o guardar borrador).
+- **Editar**: mismo número; se puede dejar un motivo. El historial muestra quién, cuándo y qué cambió.
+- **PDF** tamaño carta generado en el servidor (@react-pdf/renderer) con el mismo contenido que la hoja en pantalla: logo, datos de la empresa, título configurable, número con prefijo, cliente, líneas, totales, **monto en letras**, firmas, pie y textos legales, páginas numeradas, sello ANULADA. El botón "Imprimir" usa la hoja HTML.
+- Listado con búsqueda por nº de factura (con o sin ceros/prefijo), cliente, cédula/RIF o producto; filtros por estado, moneda y fechas; totales del filtro por moneda; 50 por página. Las facturas históricas también aparecen y abren la ficha del cliente.
+- Permisos: los usuarios sin sesión ya no pueden ejecutar ninguna función de la base de datos (salvo el nombre y logo de la pantalla de inicio).

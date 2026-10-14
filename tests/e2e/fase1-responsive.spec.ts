@@ -46,3 +46,24 @@ test("ficha de cliente en el teléfono: sin desbordes y con botones de pago", as
   const botones = await page.locator("a:has-text('Cuenta')").evaluateAll((els) => els.every((e) => e.scrollWidth <= e.clientWidth + 1));
   expect(botones).toBe(true);
 });
+
+test("facturar desde el teléfono: líneas en tarjetas, total fijo abajo y sin desbordes", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "solo teléfono");
+  await entrarComoAdmin(page);
+  await page.goto("/facturacion/nueva");
+  await page.getByLabel("Buscar cliente").fill("a");
+  const opcion = page.getByRole("option").first();
+  test.skip((await opcion.getByRole("button").count()) === 0, "no hay clientes en la base de prueba");
+  await opcion.getByRole("button").click();
+  await page.getByLabel("Código o nombre del producto").first().fill("2");
+  await page.getByLabel("Cantidad línea 1").fill("3");
+  await page.getByLabel("Precio línea 1").fill("5");
+  await expect(page.getByRole("button", { name: /^Emitir/ })).toBeInViewport();
+  await expect(page.getByText("USD $ 15,00").last()).toBeInViewport();
+  const desborde = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(desborde).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: "test-results/factura-telefono.png", fullPage: true });
+  await page.goto("/facturacion");
+  await expect(page.getByRole("heading", { name: "Facturación" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});

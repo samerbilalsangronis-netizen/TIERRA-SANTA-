@@ -130,6 +130,20 @@ select public.emitir_factura(jsonb_build_object('cliente_id', 1, 'moneda', 'USD'
   'lineas', '[{"producto_id":1,"cantidad":1,"precio_unitario":1}]'::jsonb));
 select pg_temp.check((select max(numero) from public.facturas) = 4, 'sin huecos tras error');
 
+-- Listado de facturas (Fase 5): búsqueda, filtros y totales del filtro
+select pg_temp.check((select count(*) from public.buscar_facturas('000004')) = 1, 'buscar factura por número con ceros');
+select pg_temp.check((select count(*) from public.buscar_facturas('guanabana')) >= 2, 'buscar factura por producto');
+select pg_temp.check((select count(*) from public.buscar_facturas('ana perez')) = 1, 'buscar factura por cliente');
+select pg_temp.check((select count(*) from public.buscar_facturas(null, 'anulada')) = 1, 'filtro anuladas');
+select pg_temp.check((select cantidad from public.totales_facturas(null, null, 'COP')) = 1, 'totales por moneda');
+select pg_temp.check((select saldo from public.totales_facturas(p_cliente_id => 2)) = 130, 'saldo del filtro por cliente');
+select pg_temp.check((select precio from public.ultimos_precios_cliente(1, 'USD') where producto_id = 1) = 1, 'último precio por producto');
+select public.guardar_borrador_factura('{"cliente_id":2,"moneda":"USD","lineas":[{"producto_id":1,"cantidad":2,"precio_unitario":5}]}') as bor \gset
+select pg_temp.check((select count(*) from public.buscar_facturas(null, 'borrador')) = 1, 'borrador solo con su filtro');
+select pg_temp.check(public.stock_disponible(1) = 499, 'el borrador no toca inventario');
+select public.emitir_factura(jsonb_build_object('id', :bor));
+select pg_temp.check((select numero from public.facturas where id = :bor) = 5 and public.stock_disponible(1) = 497, 'borrador emitido con número e inventario');
+
 -- Proveedores: FIJO y VARIABLE
 insert into public.proveedores (nombre) values ('Finca El Topo');
 insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, modo_pesaje, cestas, precio, merma)
@@ -181,5 +195,12 @@ do $$ begin
 exception when insufficient_privilege then raise notice 'ok: solo_lectura no inserta'; end $$;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 select pg_temp.check((select count(*) from public.clientes) = 0, 'usuario INACTIVO no ve datos');
+-- Anónimos (sin sesión) no ejecutan funciones
+set role anon;
+do $$ begin
+  perform public.buscar_clientes('x');
+  raise exception 'PRUEBA FALLIDA: anon ejecutó buscar_clientes';
+exception when insufficient_privilege then raise notice 'ok: anon no ejecuta funciones'; end $$;
+select pg_temp.check((select count(*) from public.empresa_publica()) = 1, 'anon ve los datos públicos del inicio');
 reset role;
 select 'TODAS LAS PRUEBAS PASARON' as resultado;
