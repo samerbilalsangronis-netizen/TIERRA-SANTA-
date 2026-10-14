@@ -237,6 +237,26 @@ select pg_temp.check((select saldo_neto from public.v_resumen_empleados where id
 delete from public.jornadas where empleado_id = 1 and fecha = '2026-10-06';
 select pg_temp.check((select count(*) from public.jornadas where empleado_id = 1) = 1, 'periodo abierto: se puede borrar la jornada');
 
+-- Dashboard y reportes (Fase 8): cuadran con las tablas
+select pg_temp.check((select sum((v->>'total')::numeric) from jsonb_array_elements(public.resumen_periodo('2000-01-01', '2100-01-01')->'ventas') v)
+  = (select sum(total) from public.facturas where estado = 'emitida'), 'resumen: ventas = facturas emitidas');
+select pg_temp.check((public.resumen_periodo('2000-01-01', '2100-01-01')->'nomina'->>'ganado')::numeric = (select sum(ganado) from public.jornadas), 'resumen: nómina para el admin');
+select pg_temp.check((public.resumen_periodo('2000-01-01', '2100-01-01')->'vendido'->>'unidades')::numeric
+  = (select sum(l.cantidad) from public.factura_lineas l join public.facturas f on f.id = l.factura_id where f.estado = 'emitida'), 'resumen: unidades vendidas');
+select pg_temp.check((select sum(monto) from public.ventas_por_producto('2000-01-01', '2100-01-01', 'USD'))
+  = (select sum(l.total_linea) from public.factura_lineas l join public.facturas f on f.id = l.factura_id where f.estado = 'emitida' and f.moneda = 'USD'), 'ventas por producto');
+select pg_temp.check((select sum(total) from public.ventas_por_cliente('2000-01-01', '2100-01-01', 'USD'))
+  = (select sum(total) from public.facturas where estado = 'emitida' and moneda = 'USD'), 'ventas por cliente');
+select pg_temp.check((select count(*) from public.ventas_semanales(12, 'USD')) = 12
+  and (select min(extract(isodow from semana)) from public.ventas_semanales(12, 'USD')) = 1, 'ventas semanales: 12 semanas desde el lunes');
+select pg_temp.check((select sum(unidades) from public.ventas_semanales(52, 'USD', '2026-12-31'))
+  = (select sum(l.cantidad) from public.factura_lineas l join public.facturas f on f.id = l.factura_id
+      where f.estado = 'emitida' and f.fecha >= date_trunc('week', date '2026-12-31') - interval '51 weeks'), 'ventas semanales cuadran');
+select pg_temp.check((select count(*) from public.ventas_por_dia('2026-10-01', '2026-10-31', 'USD')) = 31, 'ventas por día con días en 0');
+select pg_temp.check((select sum(total) from public.compras_por_proveedor('2000-01-01', '2100-01-01')) = (select sum(total) from public.entregas_proveedor), 'compras por proveedor');
+select pg_temp.check((select pendientes from public.cajas_cestas('2000-01-01', '2100-01-01') where tipo = 'cajas' and id = 1)
+  = (select cajas_pendientes from public.v_resumen_clientes where id = 1), 'cajas pendientes');
+
 -- Permisos: solo lectura no puede emitir ni ver nómina
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false);
 do $$ begin
@@ -249,6 +269,7 @@ do $$ begin
   raise exception 'PRUEBA FALLIDA: solo_lectura registró merma';
 exception when insufficient_privilege then raise notice 'ok: solo_lectura no toca inventario'; end $$;
 select pg_temp.check((select count(*) from public.clientes) = 2, 'solo_lectura ve clientes');
+select pg_temp.check(public.resumen_periodo('2000-01-01', '2100-01-01')->'nomina' = 'null'::jsonb, 'solo_lectura no ve la nómina en el dashboard');
 do $$ begin
   insert into public.clientes (nombre) values ('x');
   raise exception 'PRUEBA FALLIDA: solo_lectura insertó';

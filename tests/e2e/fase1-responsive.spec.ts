@@ -102,3 +102,13 @@ test("nómina en el teléfono: lista, ficha con calendario y asistencia con boto
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   await page.screenshot({ path: "test-results/nomina-asistencia-telefono.png" });
 });
+
+test("dashboard y reportes en el teléfono: sin desbordes", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "solo teléfono");
+  await entrarComoAdmin(page);
+  await expect(page.getByRole("region", { name: "Rendimiento semanal" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: "test-results/dashboard-telefono.png", fullPage: true });
+  await page.goto("/reportes/ventas-producto");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});

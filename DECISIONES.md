@@ -158,3 +158,12 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - **Abonos/adelantos** con monto, fecha, entregado por y nota. Lo que se le debe = ganado − abonos.
 - **Periodos** (semanal por defecto, según Configuración → Empresa; se propone el siguiente). Antes de cerrar se ve el resumen calculado. Al **cerrar** se congela lo ganado y, si se marca, se registra el **pago** de lo que se debe (los saldos quedan en 0). En un periodo cerrado no se pueden crear, cambiar ni borrar jornadas ni abonos. **Reabrir** exige motivo y quita el pago automático.
 - **Recibo por empleado** imprimible (uno por página) y **Excel** del periodo.
+
+## Dashboard y reportes (Fase 8)
+- **Periodo:** Hoy · Esta semana · Semana pasada · Este mes (por defecto) · Mes pasado · Rango. Se compara con el periodo anterior de igual largo; "esta semana" y "este mes" se comparan con los mismos días del periodo anterior (justo a mitad de mes). Semanas de lunes a domingo.
+- **Cifras:** ventas USD y COP (nº de facturas), **productos vendidos** (bolsas y kg de pulpa, pedido de Samer), producción (kg), facturas (promedio por factura), cobrado, compras a proveedores (kg y % de merma) y nómina (solo admin). Flecha verde/roja según si mejoró o empeoró (en compras y nómina subir no es "bueno").
+- **Rendimiento semanal** (pedido de Samer): lo vendido cada semana en las últimas 12; si una semana vendió más que la anterior la línea sube y el punto es verde ▲, si vendió menos baja y el punto es rojo ▼. Se ve en bolsas o en monto de la moneda elegida.
+- Gráficos: ventas por día, productos más vendidos (top 5), mejores clientes (top 10). La moneda de los gráficos se elige arriba (por defecto la que más facturas tuvo).
+- Columna de **alertas**: por cobrar USD/COP y los que deben desde hace más tiempo, stock bajo/agotado, cajas en clientes, cestas con proveedores y lo que se debe a proveedores.
+- **Reportes** (pantalla, imprimir/PDF y Excel): ventas por producto, ventas por cliente, libro de facturas (con anuladas en 0), compras por proveedor con merma, producción diaria, cajas y cestas. Enlaces a los que ya existían (antigüedad, estados de cuenta, kardex, nómina).
+- Ventas = facturas emitidas (anuladas y borradores no cuentan). Montos por producto sin IVA. Todas las sumas las hace Postgres.

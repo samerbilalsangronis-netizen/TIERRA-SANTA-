@@ -2345,6 +2345,17 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      cajas_cestas: {
+        Args: { p_desde: string; p_hasta: string };
+        Returns: {
+          id: number;
+          nombre: string;
+          pendientes: number;
+          salieron: number;
+          tipo: string;
+          volvieron: number;
+        }[];
+      };
       calcular_entrega: {
         Args: {
           p_cestas: number;
@@ -2360,6 +2371,21 @@ export type Database = {
       cerrar_periodo_nomina: {
         Args: { p_entregado_por?: string; p_liquidar?: boolean; p_periodo_id: number };
         Returns: undefined;
+      };
+      compras_por_proveedor: {
+        Args: { p_desde: string; p_hasta: string };
+        Returns: {
+          entregas: number;
+          kg: number;
+          merma: number;
+          merma_pct: number;
+          moneda: string;
+          proveedor: string;
+          proveedor_id: number;
+          rubro: string;
+          total: number;
+          unidades: number;
+        }[];
       };
       editar_factura: { Args: { p: Json }; Returns: Json };
       editar_factura_externa: { Args: { p: Json }; Returns: undefined };
@@ -2606,6 +2632,7 @@ export type Database = {
         Args: { p_accion: string; p_antes: Json; p_id: number; p_motivo: string };
         Returns: undefined;
       };
+      resumen_periodo: { Args: { p_desde: string; p_hasta: string }; Returns: Json };
       rol_actual: {
         Args: Record<PropertyKey, never>;
         Returns: Database["public"]["Enums"]["rol_usuario"];
@@ -2666,6 +2693,47 @@ export type Database = {
           fecha: string;
           precio: number;
           producto_id: number;
+        }[];
+      };
+      ventas_por_cliente: {
+        Args: { p_desde: string; p_hasta: string; p_moneda: string };
+        Returns: {
+          cliente_id: number;
+          facturas: number;
+          nombre: string;
+          numero: number;
+          pagado: number;
+          saldo: number;
+          total: number;
+        }[];
+      };
+      ventas_por_dia: {
+        Args: { p_desde: string; p_hasta: string; p_moneda: string };
+        Returns: {
+          facturas: number;
+          fecha: string;
+          total: number;
+        }[];
+      };
+      ventas_por_producto: {
+        Args: { p_desde: string; p_hasta: string; p_moneda: string };
+        Returns: {
+          cantidad: number;
+          codigo: number;
+          facturas: number;
+          monto: number;
+          nombre: string;
+          producto_id: number;
+          unidad: string;
+        }[];
+      };
+      ventas_semanales: {
+        Args: { p_hasta?: string; p_moneda: string; p_semanas: number };
+        Returns: {
+          kg: number;
+          semana: string;
+          total: number;
+          unidades: number;
         }[];
       };
     };
