@@ -2151,6 +2151,7 @@ export type Database = {
       v_stock_total: {
         Row: {
           activo: boolean | null;
+          categoria: string | null;
           codigo: number | null;
           emoji: string | null;
           indicador: string | null;
@@ -2337,6 +2338,7 @@ export type Database = {
       editar_factura_externa: { Args: { p: Json }; Returns: undefined };
       editar_pago_cliente: { Args: { p: Json; p_id: number }; Returns: Json };
       eliminar_pago_cliente: { Args: { p_id: number }; Returns: undefined };
+      eliminar_produccion: { Args: { p_id: number; p_motivo: string }; Returns: undefined };
       emitir_factura: { Args: { p: Json }; Returns: Json };
       empresa_publica: {
         Args: Record<PropertyKey, never>;
@@ -2504,6 +2506,18 @@ export type Database = {
       kpis_clientes: { Args: Record<PropertyKey, never>; Returns: Json };
       kpis_proveedores: { Args: Record<PropertyKey, never>; Returns: Json };
       normalizar: { Args: { t: string }; Returns: string };
+      produccion_resumen: {
+        Args: { p_desde: string; p_hasta: string };
+        Returns: {
+          cantidad: number;
+          codigo: number;
+          emoji: string;
+          fecha: string;
+          nombre: string;
+          producto_id: number;
+          unidad: string;
+        }[];
+      };
       puede_editar_facturas: { Args: Record<PropertyKey, never>; Returns: boolean };
       reabrir_periodo_nomina: {
         Args: { p_motivo: string; p_periodo_id: number };

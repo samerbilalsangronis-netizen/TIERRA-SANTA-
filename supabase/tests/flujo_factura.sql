@@ -144,6 +144,30 @@ select pg_temp.check(public.stock_disponible(1) = 499, 'el borrador no toca inve
 select public.emitir_factura(jsonb_build_object('id', :bor));
 select pg_temp.check((select numero from public.facturas where id = :bor) = 5 and public.stock_disponible(1) = 497, 'borrador emitido con número e inventario');
 
+-- Inventario (Fase 6): producción, merma, traslado, ajuste, kardex y eliminar producción
+select public.registrar_produccion('2026-10-10', public.ubicacion_predeterminada(),
+  '[{"producto_id":1,"cantidad":100},{"producto_id":3,"cantidad":40}]'::jsonb, 'Samer', 'Lote prueba') as prod \gset
+select pg_temp.check(public.stock_disponible(1) = 597, 'producción suma 100');
+select pg_temp.check((select cantidad from public.produccion_resumen('2026-10-10', '2026-10-10') where producto_id = 3) = 40, 'resumen de producción por día');
+select public.registrar_merma_inventario(1, public.ubicacion_predeterminada(), 'PT', 7, 'Se descongeló');
+select pg_temp.check(public.stock_disponible(1) = 590, 'merma descuenta');
+do $$ begin
+  perform public.registrar_merma_inventario(1, public.ubicacion_predeterminada(), 'PT', 1, ' ');
+  raise exception 'PRUEBA FALLIDA: merma sin motivo';
+exception when raise_exception then
+  if sqlerrm like 'PRUEBA FALLIDA%' then raise; end if;
+  raise notice 'ok: merma exige motivo';
+end $$;
+select public.trasladar_inventario(1, 'PT', public.ubicacion_predeterminada(), (select id from public.ubicaciones where nombre = 'Cuarto frío planta'), 90, 'A congelar');
+select pg_temp.check(public.stock_disponible(1, (select id from public.ubicaciones where nombre = 'Cuarto frío planta')) = 90
+  and public.stock_disponible(1) = 590, 'traslado mueve sin cambiar el total');
+select public.ajustar_inventario(1, (select id from public.ubicaciones where nombre = 'Cuarto frío planta'), 'PT', 88, 'Conteo físico');
+select pg_temp.check(public.stock_disponible(1) = 588, 'ajuste por conteo');
+select pg_temp.check((select saldo from public.kardex(1) order by fecha desc, id desc limit 1) = 588, 'kardex: saldo final = stock');
+select public.eliminar_produccion(:prod, 'Registrada dos veces');
+select pg_temp.check(public.stock_disponible(3) = 0 and public.stock_disponible(1) = 488, 'eliminar producción devuelve el stock');
+select pg_temp.check((select categoria from public.v_stock_total where producto_id = 1) = 'fruta', 'stock total con categoría');
+
 -- Proveedores: FIJO y VARIABLE
 insert into public.proveedores (nombre) values ('Finca El Topo');
 insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, modo_pesaje, cestas, precio, merma)
@@ -188,6 +212,10 @@ do $$ begin
   raise exception 'PRUEBA FALLIDA: solo_lectura emitió';
 exception when insufficient_privilege then raise notice 'ok: solo_lectura no emite'; end $$;
 select pg_temp.check((select count(*) from public.empleados) = 0, 'solo_lectura no ve nómina');
+do $$ begin
+  perform public.registrar_merma_inventario(1, 1, 'PT', 1, 'x');
+  raise exception 'PRUEBA FALLIDA: solo_lectura registró merma';
+exception when insufficient_privilege then raise notice 'ok: solo_lectura no toca inventario'; end $$;
 select pg_temp.check((select count(*) from public.clientes) = 2, 'solo_lectura ve clientes');
 do $$ begin
   insert into public.clientes (nombre) values ('x');

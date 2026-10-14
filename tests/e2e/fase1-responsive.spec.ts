@@ -67,3 +67,20 @@ test("facturar desde el teléfono: líneas en tarjetas, total fijo abajo y sin d
   await expect(page.getByRole("heading", { name: "Facturación" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 });
+
+test("inventario en el teléfono: stock en tarjetas y producción con botón fijo", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "solo teléfono");
+  await entrarComoAdmin(page);
+  for (const ruta of ["/inventario", "/inventario?vista=produccion", "/inventario?vista=movimientos"]) {
+    await page.goto(ruta);
+    await expect(page.getByRole("heading", { name: "Inventario" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  }
+  await page.goto("/inventario");
+  await page.screenshot({ path: "test-results/inventario-telefono.png", fullPage: true });
+  await page.goto("/inventario/produccion");
+  await expect(page.getByRole("button", { name: "Guardar producción" })).toBeInViewport();
+  await page.getByLabel("Cantidad producida de Guanábana").fill("30");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: "test-results/produccion-telefono.png" });
+});

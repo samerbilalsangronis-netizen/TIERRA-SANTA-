@@ -3,7 +3,7 @@
 > Documento para continuar el proyecto en otra sesión **sin perder nada**.
 > Léelo completo antes de tocar código. Mantenlo actualizado al final de cada fase
 > (sección "Estado actual" y "Bitácora de sesiones").
-> Última actualización: **2026-10-14 · fin de Fase 5 (Facturación)**.
+> Última actualización: **2026-10-14 · fin de Fase 6 (Inventario)**.
 
 ---
 
@@ -39,7 +39,8 @@ Todas, en orden:
 20261016000100_compras_kilo_unidad_insumos.sql
 20261017000100_clientes_fase4.sql
 20261018000100_pagos_se_aplican_solos.sql
-20261019000100_facturacion_fase5.sql        ← Fase 5: PENDIENTE de que Samer la pegue
+20261019000100_facturacion_fase5.sql        ← Fase 5: confirmar que Samer la pegó
+20261020000100_inventario_fase6.sql         ← Fase 6: PENDIENTE de que Samer la pegue
 ```
 **Regla:** nunca editar una migración ya aplicada en producción; crear una nueva con fecha posterior (`2026MMDD000100_descripcion.sql`). Después de agregar una, correr `scripts/generar-instalar.sh` (regenera `supabase/instalar.sql` para instalaciones nuevas) y verificar que aplica limpio **en una sola transacción** (el SQL Editor de Supabase corre todo como una transacción: por eso no se usa `ALTER TYPE … ADD VALUE` seguido de uso del valor; se prefirió `text` + `check`).
 
@@ -101,7 +102,7 @@ Patrones a respetar:
 | 3 Proveedores (kilo/unidad/cesta, insumos, foto, estado de cuenta) | ✅ | |
 | 4 Clientes (pagos por factura, pago múltiple, recibos, cajas, estado de cuenta, antigüedad) | ✅ | Último ajuste: pagos se aplican solos + formulario simple de abono. |
 | 5 Facturación | ✅ | Emisión por teclado, borradores, editar con historial, duplicar, anular, PDF carta, listado con filtros y totales. Falta que Samer pegue la migración 20261019 y revise en su web. |
-| 6 Inventario (UI) | ⏳ | |
+| 6 Inventario (UI) | ✅ | `/inventario` (vistas Stock · Producción · Movimientos), `/inventario/produccion`, `/inventario/[id]` (kardex), Excel de stock y kardex. Código en `src/features/inventario/`. Lotes FIFO: la BD los maneja si se activan en Empresa, pero la UI no los muestra aún. |
 | 7 Nómina (UI) | ⏳ | |
 | 8 Dashboard, métricas y reportes | ⏳ | |
 | 9 Migración de registros de los programas anteriores (Google Sheets **y programa de facturación de Windows**) | ⏳ | Pedido explícito de Samer (2026-10-14): incluir los registros antiguos. Ver §7. |
@@ -118,8 +119,7 @@ Patrones a respetar:
 ### Fase 5 · Facturación — ✅ HECHA
 Rutas: `/facturacion` (listado, `buscar_facturas`/`totales_facturas`), `/facturacion/nueva` (`?cliente=`, `?duplicar=`), `/facturacion/[id]` (hoja HTML + pagos + historial), `/facturacion/[id]/editar` (también continúa borradores), `/facturacion/[id]/pdf` (`?descargar=1`). Código en `src/features/facturacion/`. Monto en letras: `src/lib/numeros-a-letras.ts`. Pendiente menor: no hay pantalla para elegir el producto con el ratón en una lista grande (se escribe código o nombre).
 
-### Fase 6 · Inventario
-Movimientos (libro mayor), **producción diaria** (formulario rápido de varios productos con fecha y responsable; sin consumo de materia prima porque las entregas no entran a inventario), salidas por factura (automáticas), traslados entre ubicaciones, merma/daño, ajustes por conteo (solo admin, con motivo), stock por producto y ubicación con indicador normal/bajo/agotado y alertas en dashboard, **kardex** filtrable y exportable, producción diaria/semanal, lotes FIFO activables. Búsqueda, filtros, agrupación por tipo/ubicación/letra.
+### Fase 6 · Inventario — ✅ HECHA (ver DECISIONES.md)
 
 ### Fase 7 · Nómina (según capturas de Samer)
 - Lista de empleados a la izquierda (Personal / Tareas), ficha con pestañas **Calendario · Panel · Abonos · Reporte**; botones Abonar, Editar, Eliminar.
@@ -178,11 +178,12 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test     # 17 
 ```
 Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E crean datos con sufijos aleatorios y son repetibles. Para capturas de pantalla, script de Playwright con `executablePath: "/opt/pw-browsers/chromium"`, y mirar la imagen.
 
-**Antes de entregar cada fase:** tsc + eslint + vitest + prueba SQL + build + Playwright completo (19 pruebas) + capturas PC y teléfono + regenerar `instalar.sql` + actualizar README/DECISIONES/HANDOFF + commit en español con las líneas de atribución + push a la rama asignada + darle a Samer el enlace raw del SQL nuevo (con el nombre de esa rama en la URL).
+**Antes de entregar cada fase:** tsc + eslint + vitest + prueba SQL + build + Playwright completo (21 pruebas) + capturas PC y teléfono + regenerar `instalar.sql` + actualizar README/DECISIONES/HANDOFF + commit en español con las líneas de atribución + push a la rama asignada + darle a Samer el enlace raw del SQL nuevo (con el nombre de esa rama en la URL).
 
 ## 9. Bitácora de sesiones
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-14 (2ª sesión, cont.) | Fase 6 Inventario (migración 20261020: `produccion_resumen`, `eliminar_produccion`, merma con motivo obligatorio, `v_stock_total.categoria`). Subida a ambas ramas. |
 | 2026-10-14 (2ª sesión) | Fase 5 Facturación completa + permisos de funciones endurecidos (migración 20261019). Samer pidió incluir en su momento la migración de los registros de los programas antiguos: el de Windows solo genera la factura y se registra en ERP Clientes (nº, monto, enlace postimages), así que todo sale de los Sheets (§7 Fase 9). Fase 5 subida también a `claude/tender-curie-r25soh` con permiso de Samer. |
 | 2026-10-14 | Esquema completo; Fases 1–4; logo oficial; login por correo (sin vencimiento); instalación vía Supabase web; entregas por kilo/unidad/cesta e insumos (sin inventario de insumos); entregas no suman inventario; pagos de clientes se aplican solos + formulario simple de abono (caso Carlos fact. 1515: abono 87.877 quedó suelto y se corrigió con la migración 20261018). |

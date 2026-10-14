@@ -20,7 +20,7 @@ export default async function PaginaDashboard() {
   const [kc, kp, alertas] = await Promise.all([
     supabase.rpc("kpis_clientes"),
     supabase.rpc("kpis_proveedores"),
-    supabase.from("v_stock_total").select("producto_id, codigo, nombre, emoji, unidad, stock_pt, stock_minimo, indicador")
+    supabase.from("v_stock_total").select("producto_id, codigo, nombre, emoji, unidad, stock_pt, stock_minimo, indicador").eq("categoria", "fruta").neq("tipo", "materia_prima")
       .eq("activo", true).neq("indicador", "normal").order("codigo").limit(8),
   ]);
   const c = (kc.data ?? {}) as Partial<KpisClientes>;

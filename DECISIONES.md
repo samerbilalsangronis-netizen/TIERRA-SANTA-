@@ -122,3 +122,13 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - **PDF** tamaño carta generado en el servidor (@react-pdf/renderer) con el mismo contenido que la hoja en pantalla: logo, datos de la empresa, título configurable, número con prefijo, cliente, líneas, totales, **monto en letras**, firmas, pie y textos legales, páginas numeradas, sello ANULADA. El botón "Imprimir" usa la hoja HTML.
 - Listado con búsqueda por nº de factura (con o sin ceros/prefijo), cliente, cédula/RIF o producto; filtros por estado, moneda y fechas; totales del filtro por moneda; 50 por página. Las facturas históricas también aparecen y abren la ficha del cliente.
 - Permisos: los usuarios sin sesión ya no pueden ejecutar ninguna función de la base de datos (salvo el nombre y logo de la pantalla de inicio).
+
+## Inventario (Fase 6)
+- El inventario es **solo de producto terminado** (frutas que se venden). Sube con la **producción** y baja con **facturas**, **merma** y **ajustes**. Las entregas de proveedores no entran (confirmado por Samer).
+- **Producción diaria:** una pantalla con todos los productos; se escribe solo lo producido (Enter pasa al siguiente). Fecha, ubicación, responsable (por defecto quien registra) y nota. Si se registró por error, el admin la elimina con motivo y el stock vuelve.
+- **Merma:** producto terminado que se perdió; exige motivo. La registran admin, facturación y operador.
+- **Traslado:** mueve entre ubicaciones; el total no cambia.
+- **Ajuste por conteo:** solo admin; se escribe lo contado y el sistema registra la diferencia con su motivo.
+- **Estado del stock:** Agotado (≤ 0), Bajo (menor al mínimo del producto), Normal. Las alertas del Dashboard ignoran los insumos.
+- **Kardex** por producto con saldo después de cada movimiento, filtro por fechas y ubicación, y descarga a Excel. También hay Excel del stock actual.
+- Las cantidades pueden quedar negativas si se factura sin stock con la opción "advertir" (se ve como Agotado).
