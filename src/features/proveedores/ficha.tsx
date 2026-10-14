@@ -199,8 +199,8 @@ export function FichaProveedor(props: {
           {permisos.pagar && <Button size="lg" variant="outline" className="border-success/40 text-success" onClick={() => setDialogo({ tipo: "abono" })}><Banknote className="size-4" /> Abonar</Button>}
           {permisos.editar && usaCestas && <Button size="lg" variant="outline" onClick={() => setDialogo({ tipo: "cestas" })}><Package className="size-4" /> Cestas</Button>}
           {monedasMostrar.map((m) => (
-            <Link key={m} href={estadoCuentaHref(m)} className={buttonVariants({ size: "lg", variant: "outline" })}>
-              <FileText className="size-4" /> Estado de cuenta {monedasMostrar.length > 1 ? m : ""}
+            <Link key={m} href={estadoCuentaHref(m)} className={buttonVariants({ size: "lg", variant: "outline", className: "min-w-0" })}>
+              <FileText className="size-4" /> <span className="truncate"><span className="sm:hidden">Cuenta</span><span className="hidden sm:inline">Estado de cuenta</span> {monedasMostrar.length > 1 ? m : ""}</span>
             </Link>
           ))}
         </div>

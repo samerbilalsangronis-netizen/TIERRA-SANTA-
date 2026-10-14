@@ -13,7 +13,9 @@ export function BotonImprimir() {
   );
 }
 
-export function FiltrosEstadoCuenta({ moneda, desde, hasta, monedas }: { moneda: string; desde: string; hasta: string; monedas: string[] }) {
+export function FiltrosEstadoCuenta({ moneda, desde, hasta, monedas, soloCorte }: {
+  moneda: string; desde: string; hasta: string; monedas: string[]; /** Solo fecha de corte (sin "desde"). */ soloCorte?: boolean;
+}) {
   const router = useRouter();
   const ruta = usePathname();
   const ir = (c: Partial<{ moneda: string; desde: string; hasta: string }>) => {
@@ -25,8 +27,8 @@ export function FiltrosEstadoCuenta({ moneda, desde, hasta, monedas }: { moneda:
       <SelectNativo value={moneda} onChange={(e) => ir({ moneda: e.target.value })} className="h-9 w-24" aria-label="Moneda">
         {monedas.map((m) => <option key={m} value={m}>{m}</option>)}
       </SelectNativo>
-      <Input type="date" value={desde} onChange={(e) => ir({ desde: e.target.value })} className="h-9 w-[9.5rem]" aria-label="Desde" />
-      <Input type="date" value={hasta} onChange={(e) => ir({ hasta: e.target.value })} className="h-9 w-[9.5rem]" aria-label="Hasta" />
+      {!soloCorte && <Input type="date" value={desde} onChange={(e) => ir({ desde: e.target.value })} className="h-9 w-[9.5rem]" aria-label="Desde" />}
+      <Input type="date" value={hasta} onChange={(e) => ir({ hasta: e.target.value })} className="h-9 w-[9.5rem]" aria-label={soloCorte ? "Fecha de corte" : "Hasta"} />
     </div>
   );
 }

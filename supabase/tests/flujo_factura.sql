@@ -91,6 +91,30 @@ select public.anular_factura((select id from public.facturas where numero = 1), 
 select pg_temp.check(public.stock_disponible(1) = 500, 'anulación devuelve inventario');
 select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = -1310, 'pagos quedan a favor');
 
+-- Estado de cuenta del cliente: saldo final = saldo del resumen (USD)
+select pg_temp.check(
+  (select coalesce(sum(cargo - abono), 0) from public.estado_cuenta_cliente(1, 'USD'))
+    = (select saldo_usd from public.v_resumen_clientes where numero = 1), 'estado de cuenta cliente cuadra con el saldo USD');
+select pg_temp.check(
+  (select coalesce(sum(cargo - abono), 0) from public.estado_cuenta_cliente(1, 'COP'))
+    = (select saldo_cop from public.v_resumen_clientes where numero = 1), 'estado de cuenta cliente cuadra con el saldo COP');
+select pg_temp.check((select count(*) from public.buscar_clientes('carlos')) = 1, 'buscar cliente por nombre');
+select pg_temp.check((select count(*) from public.buscar_clientes('1')) = 1, 'buscar cliente por número');
+
+-- Factura externa/histórica y su edición
+select public.registrar_factura_externa('{"cliente_id":1,"numero_externo":"H-77","fecha":"2026-09-01","moneda":"USD","total":200}') as fx \gset
+select public.registrar_pago_cliente(jsonb_build_object('cliente_id', 1, 'moneda', 'USD', 'monto', 50,
+  'aplicaciones', jsonb_build_array(jsonb_build_object('factura_id', :fx, 'monto', 50))));
+select public.editar_factura_externa(jsonb_build_object('id', :fx, 'numero_externo', 'H-77B', 'total', 180, 'moneda', 'USD'));
+select pg_temp.check((select saldo from public.facturas where id = :fx) = 130, 'editar factura externa');
+do $$ begin
+  perform public.editar_factura_externa(jsonb_build_object('id', (select id from public.facturas where numero_externo = 'H-77B'), 'total', 10));
+  raise exception 'PRUEBA FALLIDA: total menor a lo pagado';
+exception when raise_exception then
+  if sqlerrm like 'PRUEBA FALLIDA%' then raise; end if;
+  raise notice 'ok: no permite total menor a lo pagado';
+end $$;
+
 -- Numeración sin huecos aunque falle una emisión
 do $$ begin
   perform public.emitir_factura(jsonb_build_object('cliente_id', 1, 'moneda', 'USD', 'lineas', '[]'::jsonb));

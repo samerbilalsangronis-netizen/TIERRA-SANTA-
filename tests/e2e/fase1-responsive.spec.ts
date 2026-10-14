@@ -31,3 +31,18 @@ test("catálogos en pantalla pequeña: tarjetas y formulario", async ({ page, is
   expect(desborde).toBeLessThanOrEqual(1);
   await page.screenshot({ path: "test-results/productos-telefono.png" });
 });
+
+test("ficha de cliente en el teléfono: sin desbordes y con botones de pago", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "solo teléfono");
+  await entrarComoAdmin(page);
+  await page.goto("/clientes?estado=CR%C3%8DTICO");
+  const primero = page.locator("a[href^='/clientes/']").filter({ hasNotText: "Antigüedad" }).first();
+  test.skip((await primero.count()) === 0, "no hay clientes con deuda en la base de prueba");
+  await primero.click();
+  await expect(page).toHaveURL(/\/clientes\/\d+/);
+  await expect(page.getByRole("button", { name: "Pagar completa" }).first()).toBeVisible();
+  const desborde = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(desborde).toBeLessThanOrEqual(1);
+  const botones = await page.locator("a:has-text('Cuenta')").evaluateAll((els) => els.every((e) => e.scrollWidth <= e.clientWidth + 1));
+  expect(botones).toBe(true);
+});

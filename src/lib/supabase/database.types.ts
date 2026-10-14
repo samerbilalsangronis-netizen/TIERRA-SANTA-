@@ -2212,6 +2212,35 @@ export type Database = {
         };
         Returns: undefined;
       };
+      buscar_clientes: {
+        Args: { p_estado?: string; p_incluir_inactivos?: boolean; p_moneda?: string; p_q?: string };
+        Returns: {
+          activo: boolean | null;
+          cajas_devueltas: number | null;
+          cajas_pendientes: number | null;
+          cajas_retiradas: number | null;
+          documento: string | null;
+          estado: string | null;
+          facturas_pendientes: number | null;
+          id: number | null;
+          letra: string | null;
+          moneda: string | null;
+          nombre: string | null;
+          numero: number | null;
+          pendiente_desde: string | null;
+          saldo_cop: number | null;
+          saldo_usd: number | null;
+          saldo_ves: number | null;
+          search: string | null;
+          telefono: string | null;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "v_resumen_clientes";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       buscar_proveedores: {
         Args: {
           p_con_saldo?: boolean;
@@ -2267,6 +2296,7 @@ export type Database = {
         Returns: undefined;
       };
       editar_factura: { Args: { p: Json }; Returns: Json };
+      editar_factura_externa: { Args: { p: Json }; Returns: undefined };
       editar_pago_cliente: { Args: { p: Json; p_id: number }; Returns: Json };
       eliminar_pago_cliente: { Args: { p_id: number }; Returns: undefined };
       emitir_factura: { Args: { p: Json }; Returns: Json };
@@ -2279,6 +2309,19 @@ export type Database = {
       };
       es_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       es_usuario_activo: { Args: Record<PropertyKey, never>; Returns: boolean };
+      estado_cuenta_cliente: {
+        Args: { p_cliente_id: number; p_desde?: string; p_hasta?: string; p_moneda: string };
+        Returns: {
+          abono: number;
+          cargo: number;
+          detalle: string;
+          documento: string;
+          fecha: string;
+          ref_id: number;
+          saldo: number;
+          tipo: string;
+        }[];
+      };
       estado_cuenta_proveedor: {
         Args: { p_desde?: string; p_hasta?: string; p_moneda: string; p_proveedor_id: number };
         Returns: {
