@@ -99,14 +99,13 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - **Número de cliente:** consecutivo automático; solo el admin puede escribirlo o cambiarlo.
 - **Estado:** CRÍTICO si debe algo en cualquier moneda; AL DÍA si no. La etiqueta de moneda (USD, COP, USD/COP o "-") y los totales del panel salen de Postgres.
 - **Saldo por moneda** = pendiente de sus facturas − saldo a favor. Nunca se mezclan monedas.
-- **Pagos factura por factura:**
-  - Cada factura tiene **"Pagar completa"** y **"Abonar"**.
-  - Varias facturas se marcan con casillas (solo de la misma moneda) y se pagan con **un solo recibo**, indicando en cada una "Completa" o el monto a abonar.
-  - **"Repartir automáticamente":** aplica el monto recibido de la factura más vieja a la más nueva (si hay facturas marcadas, solo entre esas); se puede ajustar a mano antes de confirmar.
-  - Lo que sobra queda como **saldo a favor** en esa moneda y se aplica luego con "Aplicar saldo a favor" en la factura.
+- **Pagos (cambio pedido por Samer):** todo dinero recibido **se descuenta solo** de las facturas pendientes de esa moneda, de la más vieja a la más nueva. Ya no queda dinero "suelto" como saldo a favor: solo si el cliente pagó más de lo que debe en total, y en ese caso se descuenta solo de su **próxima** factura. Lo mismo pasa al anular una factura pagada o al bajar su total: lo pagado pasa a las otras facturas pendientes.
+  - Cada factura tiene **"Pagar completa"** y **"Abonar"**, que abren un formulario simple con **un solo campo de monto** y muestran cómo queda la factura.
+  - **Pago de varias facturas:** se marcan con casillas (misma moneda) y se indica en cada una "Completa" o el monto; o se escribe el monto recibido en "Registrar pago" y se reparte solo de la más vieja a la más nueva (ajustable antes de confirmar). Un solo recibo.
+  - En pantalla se habla de "Debe" y "Pagó de más", no de "saldo a favor".
 - Editar un pago permite cambiar fecha, método, referencia, nota, monto y reparto; la moneda no (se elimina y se registra de nuevo).
 - **Facturas históricas/externas:** número libre, fecha, moneda, monto y soporte (PDF/foto subido al bucket privado `facturas`, o una URL). No tocan inventario. Se editan mientras el nuevo monto no sea menor a lo pagado.
-- **Anular:** la factura queda visible como ANULADA, sale de la deuda y sus pagos pasan a saldo a favor.
+- **Anular:** la factura queda visible como ANULADA y sale de la deuda; lo que tenía pagado se descuenta de las otras facturas pendientes.
 - **Antigüedad de saldos:** 0–15, 16–30, 31–60 y +60 días desde la fecha de la factura; en la ficha (por moneda) y en un reporte general con Excel.
 - **Recibo de pago** imprimible / PDF con logo, detalle de facturas abonadas y saldo a favor generado.
 - Las facturas del sistema (con líneas de productos) se emiten desde Facturación (Fase 5) y aparecerán solas en la ficha.

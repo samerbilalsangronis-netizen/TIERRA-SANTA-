@@ -3,7 +3,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ArrowLeft, Ban, Banknote, CheckCheck, Coins, Eye, FilePlus2, FileText, HandCoins, MoreHorizontal, Package, Paperclip,
+  ArrowLeft, Ban, Banknote, CheckCheck, Eye, FilePlus2, FileText, HandCoins, MoreHorizontal, Package, Paperclip,
   Pencil, Power, Printer, Receipt, Trash2, Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -25,9 +25,10 @@ import { Decimal, dec, formatearMonto } from "@/lib/dinero";
 import { formatearFecha } from "@/lib/fechas";
 import { ESTADOS_PAGO, numeroFactura } from "@/lib/facturas";
 import { cn } from "@/lib/utils";
-import { anularFactura, aplicarSaldoAFavor, cambiarActivoCliente, eliminarCliente, eliminarEmpaque, eliminarPago } from "./acciones";
+import { anularFactura, cambiarActivoCliente, eliminarCliente, eliminarEmpaque, eliminarPago } from "./acciones";
 import { DialogoCliente, type ClienteEditable } from "./dialogo-cliente";
 import { DialogoPago, type FacturaPagable, type PagoEditable, type SeleccionInicial } from "./dialogo-pago";
+import { DialogoPagoFactura } from "./dialogo-pago-factura";
 import { DialogoEmpaque, DialogoFacturaExterna, type EmpaqueEditable, type FacturaExternaEditable } from "./dialogos-cliente";
 import { BadgeEstadoCliente } from "./lista";
 
@@ -46,6 +47,7 @@ type Pendiente = { id: number; origen: string; numero: number | null; numero_ext
 
 type Dialogo =
   | { tipo: "pago"; moneda: string; seleccion?: SeleccionInicial[]; pago?: PagoEditable }
+  | { tipo: "pagoFactura"; factura: FacturaPagable; completa: boolean }
   | { tipo: "externa"; factura?: FacturaExternaEditable } | { tipo: "empaque"; registro?: EmpaqueEditable }
   | { tipo: "cliente" } | { tipo: "detalle"; factura: Factura } | { tipo: "anular"; factura: Factura }
   | { tipo: "eliminar"; texto: string; accion: () => Promise<{ ok: boolean; error?: string; mensaje?: string }> } | null;
@@ -83,7 +85,6 @@ export function FichaCliente(props: {
 
   const doc = (f: { origen: string; numero: number | null; numero_externo: string | null }) => numeroFactura(f, prefijo);
   const facturasPagables: FacturaPagable[] = pendientes.map((f) => ({ id: f.id, documento: doc(f), fecha: f.fecha, moneda: f.moneda, total: Number(f.total), saldo: Number(f.saldo) }));
-  const aFavor = Object.fromEntries(saldos.map((s) => [s.moneda, s.aFavor]));
   const monedasCliente = saldos.length ? saldos.map((s) => s.moneda) : ["USD"];
   const nombreFactura = useMemo(
     () => new Map<number, string>([...pendientes, ...facturas].map((f) => [f.id, numeroFactura(f, prefijo)])),
@@ -108,6 +109,7 @@ export function FichaCliente(props: {
     });
   }
   const abrirPago = (moneda: string, seleccion?: SeleccionInicial[]) => setDialogo({ tipo: "pago", moneda, seleccion });
+  const pagable = (f: Factura): FacturaPagable => ({ id: f.id, documento: doc(f), fecha: f.fecha, moneda: f.moneda, total: Number(f.total), saldo: Number(f.saldo) });
 
   const historialFactura = (facturaId: number) =>
     pagos.flatMap((p) => p.pago_aplicaciones.filter((a) => a.factura_id === facturaId).map((a) => ({ pago: p, monto: a.monto })));
@@ -118,9 +120,6 @@ export function FichaCliente(props: {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem onClick={() => setDialogo({ tipo: "detalle", factura: f })}><Eye className="size-4" /> Ver pagos de la factura</DropdownMenuItem>
         {f.soporte && <DropdownMenuItem render={<a href={f.soporte} target="_blank" rel="noreferrer" />}><Paperclip className="size-4" /> Ver soporte</DropdownMenuItem>}
-        {permisos.cobrar && f.estado === "emitida" && Number(f.saldo) > 0 && (aFavor[f.moneda] ?? 0) > 0 && (
-          <DropdownMenuItem onClick={() => ejecutar(() => aplicarSaldoAFavor(f.id))}><Coins className="size-4" /> Aplicar saldo a favor</DropdownMenuItem>
-        )}
         {permisos.facturar && f.origen === "externa" && f.estado === "emitida" && (
           <DropdownMenuItem onClick={() => setDialogo({ tipo: "externa", factura: { ...f } })}><Pencil className="size-4" /> Editar</DropdownMenuItem>
         )}
@@ -138,10 +137,10 @@ export function FichaCliente(props: {
     permisos.cobrar && f.estado === "emitida" && Number(f.saldo) > 0 ? (
       <div className={cn("flex gap-1.5", compacto && "w-full")}>
         <Button size="sm" variant="outline" className={cn("border-success/40 text-success", compacto && "flex-1")}
-          onClick={() => abrirPago(f.moneda, [{ id: f.id, completa: true }])}>
+          onClick={() => setDialogo({ tipo: "pagoFactura", factura: pagable(f), completa: true })}>
           <CheckCheck className="size-3.5" /> Pagar completa
         </Button>
-        <Button size="sm" variant="outline" className={cn(compacto && "flex-1")} onClick={() => abrirPago(f.moneda, [{ id: f.id, completa: false }])}>
+        <Button size="sm" variant="outline" className={cn(compacto && "flex-1")} onClick={() => setDialogo({ tipo: "pagoFactura", factura: pagable(f), completa: false })}>
           <HandCoins className="size-3.5" /> Abonar
         </Button>
       </div>
@@ -197,25 +196,18 @@ export function FichaCliente(props: {
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {monedasCliente.map((m) => {
             const s = saldos.find((x) => x.moneda === m) ?? { pendiente: 0, aFavor: 0, saldo: 0, facturas: 0 };
-            const tramos = antiguedad(pendientes, m, hoy);
+            const vencido = antiguedad(pendientes, m, hoy)[3];
             return (
               <div key={m} className={cn("rounded-xl border p-3", s.saldo > 0 ? "border-warning/40 bg-warning/5" : "border-success/30 bg-success/5")}>
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{s.saldo > 0 ? `Debe (${m})` : s.saldo < 0 ? `A favor del cliente (${m})` : `Saldo ${m}`}</p>
-                <p className={cn("tabular text-xl font-bold", s.saldo > 0 ? "text-warning" : "text-success")}>{formatearMonto(Math.abs(s.saldo), m)}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {s.facturas} factura{s.facturas === 1 ? "" : "s"} pendiente{s.facturas === 1 ? "" : "s"}
-                  {s.aFavor > 0 && ` · ${formatearMonto(s.aFavor, m)} a favor`}
-                </p>
-                {s.pendiente > 0 && (
-                  <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[10px]" title="Antigüedad del saldo pendiente">
-                    {["0–15 d", "16–30 d", "31–60 d", "+60 d"].map((t, i) => (
-                      <div key={t} className={cn("rounded-md bg-background/60 px-1 py-0.5", i === 3 && tramos[3] > 0 && "text-destructive")}>
-                        <p className="text-muted-foreground">{t}</p>
-                        <p className="tabular font-semibold">{tramos[i] ? formatearMonto(tramos[i], m, { sinCodigo: true }) : "—"}</p>
-                      </div>
-                    ))}
-                  </div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{s.saldo > 0 ? `Debe ${m}` : s.saldo < 0 ? `Pagó de más ${m}` : `${m} al día`}</p>
+                <p className={cn("tabular text-2xl font-bold", s.saldo > 0 ? "text-warning" : "text-success")}>{formatearMonto(Math.abs(s.saldo), m)}</p>
+                {s.facturas > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {s.facturas} factura{s.facturas === 1 ? "" : "s"} pendiente{s.facturas === 1 ? "" : "s"}
+                    {vencido > 0 && <span className="text-destructive"> · {formatearMonto(vencido, m, { sinCodigo: true })} con más de 60 días</span>}
+                  </p>
                 )}
+                {s.saldo < 0 && <p className="text-xs text-muted-foreground">Se descontará de su próxima factura.</p>}
               </div>
             );
           })}
@@ -356,7 +348,7 @@ export function FichaCliente(props: {
                         </p>
                       )}
                       {!conversion && Number(p.monto) - aplicado > 0.004 && (
-                        <p className="text-xs text-success">Saldo a favor: {formatearMonto(Number(p.monto) - aplicado, p.moneda)}</p>
+                        <p className="text-xs text-muted-foreground">Pendiente por descontar: {formatearMonto(Number(p.monto) - aplicado, p.moneda)}</p>
                       )}
                     </div>
                     <p className={cn("tabular whitespace-nowrap font-semibold", Number(p.monto) < 0 ? "text-destructive" : "text-success")}>{formatearMonto(p.monto, p.moneda)}</p>
@@ -419,9 +411,12 @@ export function FichaCliente(props: {
 
       {/* ------------------------------------------------ Diálogos */}
       {dialogo?.tipo === "pago" && (
-        <DialogoPago clienteId={cliente.id} facturas={facturasPagables} monedas={monedas} saldoAFavor={aFavor} metodos={metodos} hoy={hoy}
+        <DialogoPago clienteId={cliente.id} facturas={facturasPagables} monedas={monedas} metodos={metodos} hoy={hoy}
           monedaInicial={dialogo.moneda} seleccion={dialogo.seleccion} pago={dialogo.pago}
           onCerrar={() => { cerrar(); setMarcadas(new Set()); }} />
+      )}
+      {dialogo?.tipo === "pagoFactura" && (
+        <DialogoPagoFactura clienteId={cliente.id} factura={dialogo.factura} completa={dialogo.completa} metodos={metodos} hoy={hoy} onCerrar={cerrar} />
       )}
       {dialogo?.tipo === "externa" && <DialogoFacturaExterna clienteId={cliente.id} monedas={monedas} hoy={hoy} factura={dialogo.factura} onCerrar={cerrar} />}
       {dialogo?.tipo === "empaque" && <DialogoEmpaque clienteId={cliente.id} hoy={hoy} registro={dialogo.registro} onCerrar={cerrar} />}

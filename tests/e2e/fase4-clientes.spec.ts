@@ -45,29 +45,29 @@ test("cliente: facturas, pago múltiple con reparto automático, saldo a favor, 
   await expect(page.getByRole("row", { name: new RegExp(`103-${s}`) })).toContainText("Abonada");
   await expect(page.getByText("USD $ 600,00").first()).toBeVisible();
 
-  // Pagar completa la 103 con 700 → sobran 100 como saldo a favor
+  // Pagar completa la 103 con 700: formulario simple de un solo monto; sobran 100
   await page.getByRole("row", { name: new RegExp(`103-${s}`) }).getByRole("button", { name: "Pagar completa" }).click();
-  await dialogo.locator("#monto-recibido").fill("700");
-  await expect(dialogo.getByText("Queda como saldo a favor", { exact: true })).toBeVisible();
+  await expect(dialogo.getByLabel(/Monto a pagar/)).toHaveValue("600");
+  await dialogo.getByLabel(/Monto a pagar/).fill("700");
+  await expect(dialogo.getByText(/El excedente .* se descuenta de las otras facturas/)).toBeVisible();
   await dialogo.getByRole("button", { name: "Registrar pago" }).click();
-  await expect(page.getByText(/El excedente quedó como saldo a favor/)).toBeVisible();
-  await expect(page.getByText("A favor del cliente (USD)")).toBeVisible();
+  await expect(page.getByText(/no tiene más facturas pendientes/)).toBeVisible();
+  await expect(page.getByText("Pagó de más USD")).toBeVisible();
 
-  // Nueva factura y aplicar el saldo a favor
+  // Nueva factura: lo pagado de más se descuenta solo
   await facturaHistorica(page, `104-${s}`, "2026-10-10", "250");
-  await page.getByRole("button", { name: `Acciones de la factura 104-${s}` }).first().click();
-  await page.getByRole("menuitem", { name: "Aplicar saldo a favor" }).click();
-  await expect(page.getByText(/Se aplicaron 100 de saldo a favor/)).toBeVisible();
+  await expect(page.getByRole("row", { name: new RegExp(`104-${s}`) })).toContainText("Abonada");
   await expect(page.getByText("USD $ 150,00").first()).toBeVisible();
 
-  // Abonar 50 a la 104
+  // Abonar 50 a la 104 con el formulario simple
   await page.getByRole("row", { name: new RegExp(`104-${s}`) }).getByRole("button", { name: "Abonar" }).click();
-  await dialogo.getByLabel(`Monto a abonar a 104-${s}`).fill("50");
-  await dialogo.getByRole("button", { name: "Registrar pago" }).click();
+  await dialogo.getByLabel(/Monto a abonar/).fill("50");
+  await expect(dialogo.getByText("USD $ 100,00")).toBeVisible();
+  await dialogo.getByRole("button", { name: "Registrar abono" }).click();
   await expect(page.getByText(/Pago registrado/).first()).toBeVisible();
   await expect(page.getByText("USD $ 100,00").first()).toBeVisible();
 
-  // Recibo imprimible
+  // Recibo imprimible (el del pago múltiple, el más antiguo)
   await page.getByRole("tab", { name: /Pagos/ }).click();
   await page.getByRole("button", { name: /Acciones del recibo/ }).last().click();
   await page.getByRole("menuitem", { name: /Ver \/ imprimir recibo/ }).click();
@@ -75,7 +75,7 @@ test("cliente: facturas, pago múltiple con reparto automático, saldo a favor, 
   await expect(page.locator("article")).toContainText("USD $ 3.210,00");
   await page.goBack();
 
-  // Anular la 104: el pago de 150 queda a favor
+  // Anular la 104: lo pagado (150) queda para la próxima factura
   await page.getByRole("tab", { name: /Facturas/ }).click();
   await page.getByRole("button", { name: `Acciones de la factura 104-${s}` }).first().click();
   await page.getByRole("menuitem", { name: "Anular" }).click();
@@ -90,10 +90,10 @@ test("cliente: facturas, pago múltiple con reparto automático, saldo a favor, 
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Movimiento de cajas registrado.")).toBeVisible();
 
-  // Estado de cuenta USD: cuadra con el saldo (−150 a favor)
+  // Estado de cuenta USD: cuadra con el saldo (150 pagados de más)
   await page.getByRole("link", { name: /Estado de cuenta USD/ }).click();
   await expect(page.getByText("ESTADO DE CUENTA", { exact: true })).toBeVisible();
-  await expect(page.locator("article")).toContainText("Saldo a favor del cliente");
+  await expect(page.locator("article")).toContainText("Pagado de más");
   await expect(page.locator("article")).toContainText("USD $ 150,00");
   const excel = await page.request.get(page.url().replace("/estado-cuenta?", "/estado-cuenta/excel?"));
   expect(excel.status()).toBe(200);

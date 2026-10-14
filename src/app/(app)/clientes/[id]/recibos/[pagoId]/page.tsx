@@ -82,7 +82,7 @@ export default async function PaginaRecibo({ params }: PageProps<"/clientes/[id]
               <td className="tabular py-1.5 pr-2 text-right">{formatearMonto(aplicado, pago.moneda, { sinCodigo: true })}</td><td />
             </tr>
             {aFavor > 0.004 && (
-              <tr><td colSpan={3} className="py-1">Queda como saldo a favor del cliente</td>
+              <tr><td colSpan={3} className="py-1">Pendiente por descontar (próximas facturas)</td>
                 <td className="tabular py-1 pr-2 text-right">{formatearMonto(aFavor, pago.moneda, { sinCodigo: true })}</td><td /></tr>
             )}
           </tfoot>

@@ -56,8 +56,10 @@ select public.registrar_pago_cliente(jsonb_build_object('cliente_id', 1, 'moneda
     jsonb_build_object('factura_id', (select id from public.facturas where numero = 3), 'monto', 900))));
 select pg_temp.check((select estado_pago from public.facturas where numero = 1) = 'pagada', 'factura 1 pagada');
 select pg_temp.check((select estado_pago from public.facturas where numero = 3) = 'abonada', 'factura 3 abonada');
-select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = 500, 'saldo = 600 pendiente - 100 a favor');
-select pg_temp.check(public.saldo_a_favor(1, 'USD') = 100, 'saldo a favor 100');
+select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = 500, 'saldo USD 500');
+-- Los 100 sobrantes se aplicaron solos a la factura 3 (la pendiente más vieja)
+select pg_temp.check(public.saldo_a_favor(1, 'USD') = 0, 'el sobrante no queda suelto');
+select pg_temp.check((select pagado from public.facturas where numero = 3) = 1000, 'sobrante aplicado a la factura 3');
 
 -- Editar factura 1: 450 guanábanas → descuenta 50 más
 select public.editar_factura(jsonb_build_object('id', (select id from public.facturas where numero = 1), 'motivo', 'más fruta',
@@ -72,24 +74,23 @@ select pg_temp.check((select count(*) from public.factura_versiones where factur
 select public.editar_factura(jsonb_build_object('id', (select id from public.facturas where numero = 2),
   'lineas', '[{"producto_id":2,"cantidad":5,"precio_unitario":100}]'::jsonb)) as r2 \gset
 select pg_temp.check((:'r2'::jsonb->>'saldo_a_favor_generado')::numeric = 500, 'exceso liberado 500');
-select pg_temp.check(public.saldo_a_favor(1, 'USD') = 600, 'saldo a favor 600');
-
--- Aplicar saldo a favor a la factura 3 (le faltan 600)
-select public.aplicar_saldo_a_favor((select id from public.facturas where numero = 3), null);
-select pg_temp.check((select estado_pago from public.facturas where numero = 3) = 'pagada', 'factura 3 pagada con saldo a favor');
+-- Los 500 liberados se aplican solos: 145 a la factura 1 y 355 a la 3
+select pg_temp.check(public.saldo_a_favor(1, 'USD') = 0, 'exceso aplicado solo');
+select pg_temp.check((select estado_pago from public.facturas where numero = 1) = 'pagada', 'factura 1 pagada con el exceso');
+select pg_temp.check((select saldo from public.facturas where numero = 3) = 145, 'factura 3 recibe el resto');
 
 -- Cambio de moneda USD → COP con pagos (tasa 4000)
 select public.editar_factura(jsonb_build_object('id', (select id from public.facturas where numero = 3),
   'moneda', 'COP', 'tasa_conversion', 4000,
   'lineas', '[{"producto_id":2,"cantidad":10,"precio_unitario":600000}]'::jsonb));
-select pg_temp.check((select pagado from public.facturas where numero = 3) = 6000000, 'pagos convertidos a COP');
-select pg_temp.check((select saldo_cop from public.v_resumen_clientes where numero = 1) = 0, 'saldo COP 0');
-select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = 145, 'saldo USD = 145 pendiente fact 1 - 0 a favor');
+select pg_temp.check((select pagado from public.facturas where numero = 3) = 5420000, 'pagos convertidos a COP (1.355 × 4.000)');
+select pg_temp.check((select saldo_cop from public.v_resumen_clientes where numero = 1) = 580000, 'saldo COP 580.000');
+select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = 0, 'saldo USD 0');
 
 -- Anular factura 1 → devuelve inventario y deja pagos como saldo a favor
 select public.anular_factura((select id from public.facturas where numero = 1), 'Prueba');
 select pg_temp.check(public.stock_disponible(1) = 500, 'anulación devuelve inventario');
-select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = -1310, 'pagos quedan a favor');
+select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = -1455, 'sin facturas pendientes en USD, el pago queda a favor');
 
 -- Estado de cuenta del cliente: saldo final = saldo del resumen (USD)
 select pg_temp.check(
@@ -101,9 +102,15 @@ select pg_temp.check(
 select pg_temp.check((select count(*) from public.buscar_clientes('carlos')) = 1, 'buscar cliente por nombre');
 select pg_temp.check((select count(*) from public.buscar_clientes('1')) = 1, 'buscar cliente por número');
 
--- Factura externa/histórica y su edición
-select public.registrar_factura_externa('{"cliente_id":1,"numero_externo":"H-77","fecha":"2026-09-01","moneda":"USD","total":200}') as fx \gset
-select public.registrar_pago_cliente(jsonb_build_object('cliente_id', 1, 'moneda', 'USD', 'monto', 50,
+-- Factura nueva: el saldo a favor se le aplica solo
+select public.registrar_factura_externa('{"cliente_id":1,"numero_externo":"H-1","fecha":"2026-10-20","moneda":"USD","total":1000}');
+select pg_temp.check((select estado_pago from public.facturas where numero_externo = 'H-1') = 'pagada', 'saldo a favor aplicado a factura nueva');
+select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = -455, 'queda a favor el resto');
+
+-- Factura externa/histórica y su edición (otro cliente)
+insert into public.clientes (nombre) values ('Ana Pérez');
+select public.registrar_factura_externa('{"cliente_id":2,"numero_externo":"H-77","fecha":"2026-09-01","moneda":"USD","total":200}') as fx \gset
+select public.registrar_pago_cliente(jsonb_build_object('cliente_id', 2, 'moneda', 'USD', 'monto', 50,
   'aplicaciones', jsonb_build_array(jsonb_build_object('factura_id', :fx, 'monto', 50))));
 select public.editar_factura_externa(jsonb_build_object('id', :fx, 'numero_externo', 'H-77B', 'total', 180, 'moneda', 'USD'));
 select pg_temp.check((select saldo from public.facturas where id = :fx) = 130, 'editar factura externa');
@@ -167,7 +174,7 @@ do $$ begin
   raise exception 'PRUEBA FALLIDA: solo_lectura emitió';
 exception when insufficient_privilege then raise notice 'ok: solo_lectura no emite'; end $$;
 select pg_temp.check((select count(*) from public.empleados) = 0, 'solo_lectura no ve nómina');
-select pg_temp.check((select count(*) from public.clientes) = 1, 'solo_lectura ve clientes');
+select pg_temp.check((select count(*) from public.clientes) = 2, 'solo_lectura ve clientes');
 do $$ begin
   insert into public.clientes (nombre) values ('x');
   raise exception 'PRUEBA FALLIDA: solo_lectura insertó';

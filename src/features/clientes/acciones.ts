@@ -81,7 +81,7 @@ export async function anularFactura(id: number, motivo: string): Promise<Resulta
   if (error) return fallo(mensajeErrorBD(error));
   refrescar(f?.cliente_id);
   const liberado = Number((data as { saldo_a_favor_generado?: number } | null)?.saldo_a_favor_generado ?? 0);
-  return exito(undefined, liberado > 0 ? "Factura anulada. Los pagos que tenía quedaron como saldo a favor del cliente." : "Factura anulada.");
+  return exito(undefined, liberado > 0 ? "Factura anulada. Lo que tenía pagado se descontó de otras facturas pendientes del cliente (o queda para su próxima factura)." : "Factura anulada.");
 }
 
 // ---------------------------------------------------------------- Pagos
@@ -103,12 +103,12 @@ export async function registrarPago(entrada: DatosPago): Promise<Resultado<{ id:
   }
   const { data, error } = await supabase.rpc("registrar_pago_cliente", { p: d });
   if (error) return fallo(mensajeErrorBD(error));
-  const r = data as { id: number; numero: number; saldo_a_favor: number };
+  const r = data as { id: number; numero: number; saldo_a_favor: number; aplicado_automatico: number };
   refrescar(d.cliente_id);
-  return exito(
-    { id: r.id, numero: r.numero },
-    Number(r.saldo_a_favor) > 0 ? `Pago registrado (recibo nº ${r.numero}). El excedente quedó como saldo a favor.` : `Pago registrado (recibo nº ${r.numero}).`,
-  );
+  const extra = Number(r.aplicado_automatico) > 0
+    ? " Lo que sobraba se descontó de otras facturas pendientes."
+    : Number(r.saldo_a_favor) > 0 ? " El cliente no tiene más facturas pendientes: lo que sobra se descontará de su próxima factura." : "";
+  return exito({ id: r.id, numero: r.numero }, `Pago registrado (recibo nº ${r.numero}).${extra}`);
 }
 
 export async function eliminarPago(id: number): Promise<Resultado> {

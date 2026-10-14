@@ -76,7 +76,7 @@ export default async function PaginaEstadoCuentaCliente({ params, searchParams }
         </div>
         <div className="mt-4 flex justify-end">
           <div className="rounded-lg border-2 border-neutral-800 px-4 py-2 text-right">
-            <p className="text-[11px] uppercase tracking-wide text-neutral-600">{totales.saldoFinal > 0 ? "Saldo pendiente" : totales.saldoFinal < 0 ? "Saldo a favor del cliente" : "Al día"}</p>
+            <p className="text-[11px] uppercase tracking-wide text-neutral-600">{totales.saldoFinal > 0 ? "Saldo pendiente" : totales.saldoFinal < 0 ? "Pagado de más (se descuenta de la próxima factura)" : "Al día"}</p>
             <p className="tabular text-xl font-bold">{formatearMonto(Math.abs(totales.saldoFinal), moneda)}</p>
           </div>
         </div>

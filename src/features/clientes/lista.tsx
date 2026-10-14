@@ -57,9 +57,15 @@ export function ListaClientes({ clientes, hayFiltros }: { clientes: Fila[]; hayF
                       </div>
                       <p className="truncate text-xs text-muted-foreground">{[c.documento, c.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}{!c.activo && " · inactivo"}</p>
                       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-sm font-semibold">
-                        {Number(c.saldo_usd) !== 0 && <span className={cn("tabular", Number(c.saldo_usd) > 0 ? "text-warning" : "text-success")}>{formatearMonto(c.saldo_usd, "USD")}</span>}
-                        {Number(c.saldo_cop) !== 0 && <span className={cn("tabular", Number(c.saldo_cop) > 0 ? "text-warning" : "text-success")}>{formatearMonto(c.saldo_cop, "COP")}</span>}
-                        {Number(c.saldo_ves) !== 0 && <span className={cn("tabular", Number(c.saldo_ves) > 0 ? "text-warning" : "text-success")}>{formatearMonto(c.saldo_ves, "VES")}</span>}
+                        {(["USD", "COP", "VES"] as const).map((m) => {
+                          const v = Number(c[`saldo_${m.toLowerCase()}` as "saldo_usd"]);
+                          if (v === 0) return null;
+                          return (
+                            <span key={m} className={cn("tabular", v > 0 ? "text-warning" : "text-success")}>
+                              {v < 0 && <span className="text-xs font-normal">Pagó de más </span>}{formatearMonto(Math.abs(v), m)}
+                            </span>
+                          );
+                        })}
                         {Number(c.saldo_usd) === 0 && Number(c.saldo_cop) === 0 && Number(c.saldo_ves) === 0 && <span className="text-success">Sin deuda</span>}
                       </div>
                       <p className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">

@@ -24,9 +24,9 @@ export type SeleccionInicial = { id: number; completa: boolean };
 type Fila = { sel: boolean; completa: boolean; monto: string };
 
 export function DialogoPago({
-  clienteId, facturas, monedas, saldoAFavor, metodos, hoy, monedaInicial, seleccion = [], pago, onCerrar, alGuardar,
+  clienteId, facturas, monedas, metodos, hoy, monedaInicial, seleccion = [], pago, onCerrar, alGuardar,
 }: {
-  clienteId: number; facturas: FacturaPagable[]; monedas: string[]; saldoAFavor: Record<string, number>;
+  clienteId: number; facturas: FacturaPagable[]; monedas: string[];
   metodos: { id: number; nombre: string }[]; hoy: string; monedaInicial: string; seleccion?: SeleccionInicial[];
   pago?: PagoEditable; onCerrar: () => void; alGuardar?: (id: number) => void;
 }) {
@@ -39,6 +39,8 @@ export function DialogoPago({
   const [nota, setNota] = useState(pago?.nota ?? "");
   const [recibido, setRecibido] = useState(pago ? String(pago.monto) : "");
   const [error, setError] = useState<string | null>(null);
+  // Mientras no se toquen las filas a mano, el monto recibido se reparte solo
+  const [manual, setManual] = useState(Boolean(pago) || seleccion.length > 0);
 
   // Facturas de la moneda; al editar, lo ya aplicado por este pago vuelve a estar disponible
   const previo = useMemo(() => new Map((pago?.aplicaciones ?? []).map((a) => [a.factura_id, Number(a.monto)])), [pago]);
@@ -70,14 +72,16 @@ export function DialogoPago({
   const excedidas = lista.filter((f) => montoDe(f).gt(f.maximo));
 
   const VACIA: Fila = { sel: false, completa: false, monto: "" };
-  const cambiarFila = (id: number, cambio: Partial<Fila>) =>
+  const cambiarFila = (id: number, cambio: Partial<Fila>) => {
+    setManual(true);
     setFilas((p) => ({ ...p, [id]: { ...VACIA, ...p[id], ...cambio } }));
+  };
 
-  function repartir() {
-    const monto = parsearMonto(recibido);
-    if (!monto || monto.lte(0)) { setError("Escribe primero el monto recibido."); return; }
+  function repartir(texto = recibido, soloMarcadas = true) {
+    const monto = parsearMonto(texto);
+    if (!monto || monto.lte(0)) { if (texto === recibido) setError("Escribe primero el monto recibido."); return; }
     setError(null);
-    const base = seleccionadas.length ? seleccionadas : lista;
+    const base = soloMarcadas && seleccionadas.length ? seleccionadas : lista;
     const { reparto } = repartirPago(monto, base.map((f) => ({ id: f.id, fecha: f.fecha, saldo: f.maximo })));
     const nuevo: Record<number, Fila> = {};
     for (const r of reparto) nuevo[r.facturaId] = { sel: true, completa: r.completa, monto: r.completa ? "" : r.monto.toString() };
@@ -106,12 +110,11 @@ export function DialogoPago({
     });
   }
 
-  const favor = saldoAFavor[moneda] ?? 0;
 
   return (
     <DialogoFormulario abierto onCerrar={onCerrar} pendiente={pendiente} onEnviar={enviar}
       titulo={pago ? "Editar pago" : "Registrar pago"} textoGuardar={pago ? "Guardar" : "Registrar pago"}
-      descripcion="Un pago se aplica solo a facturas de su misma moneda. Lo que sobre queda como saldo a favor."
+      descripcion="El pago se descuenta de las facturas pendientes de la moneda elegida."
       resumenPie={
         <div className="flex items-baseline justify-between gap-3 text-sm sm:justify-start">
           <span className="text-muted-foreground">Recibir</span>
@@ -132,14 +135,17 @@ export function DialogoPago({
       <div className="space-y-1.5 sm:col-span-2">
         <label htmlFor="monto-recibido" className="text-sm font-medium">Monto recibido ({moneda})</label>
         <div className="flex gap-2">
-          <Input id="monto-recibido" name="monto" inputMode="decimal" value={recibido} onChange={(e) => setRecibido(e.target.value)}
+          <Input id="monto-recibido" name="monto" inputMode="decimal" value={recibido}
+            onChange={(e) => { setRecibido(e.target.value); if (!manual) repartir(e.target.value, false); }}
             placeholder={aplicado.gt(0) ? aplicado.toString() : "0"} className="text-base font-semibold" />
-          <Button type="button" variant="outline" onClick={repartir} title="Aplica el monto de la factura más vieja a la más nueva">
+          <Button type="button" variant="outline" onClick={() => repartir()} title="Aplica el monto de la factura más vieja a la más nueva">
             <Wand2 className="size-4" /> <span className="hidden sm:inline">Repartir automáticamente</span><span className="sm:hidden">Repartir</span>
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Si lo dejas vacío se usa la suma de lo marcado. {seleccionadas.length > 0 ? "El reparto usa solo las facturas marcadas." : "El reparto usa todas las pendientes."}
+          {manual
+            ? "Ajusta cada factura abajo o pulsa «Repartir» para distribuir el monto de la más vieja a la más nueva."
+            : "Al escribir el monto se descuenta solo de las facturas, de la más vieja a la más nueva. Puedes ajustarlo abajo."}
         </p>
       </div>
 
@@ -147,7 +153,7 @@ export function DialogoPago({
         <p className="text-sm font-medium">Facturas pendientes en {moneda}</p>
         {lista.length === 0 ? (
           <p className="rounded-xl border border-dashed p-3 text-center text-sm text-muted-foreground">
-            No hay facturas pendientes en {moneda}. Todo el pago quedará como saldo a favor.
+            No hay facturas pendientes en {moneda}. El pago quedará a favor del cliente para su próxima factura.
           </p>
         ) : (
           <ul className="divide-y overflow-hidden rounded-xl border">
@@ -197,13 +203,9 @@ export function DialogoPago({
         <dd className="tabular text-right">{formatearMonto(aplicado, moneda)}</dd>
         <dt className="text-muted-foreground">Monto recibido</dt>
         <dd className="tabular text-right">{recibidoDec ? formatearMonto(recibidoDec, moneda) : "—"}</dd>
-        {sobrante.gt(0) && (<><dt className="text-success">Queda como saldo a favor</dt><dd className="tabular text-right text-success">{formatearMonto(sobrante, moneda)}</dd></>)}
+        {sobrante.gt(0) && (<><dt className="text-success">Sobra</dt><dd className="tabular text-right text-success">{formatearMonto(sobrante, moneda)}</dd>
+          <dd className="col-span-2 text-xs text-muted-foreground">Lo que sobra se descuenta de otras facturas pendientes; si no hay, queda para la próxima factura.</dd></>)}
         {sobrante.lt(0) && <dd className="col-span-2 text-destructive">Lo aplicado supera lo recibido en {formatearMonto(sobrante.abs(), moneda)}.</dd>}
-        {favor > 0 && !pago && (
-          <dd className="col-span-2 text-xs text-muted-foreground">
-            El cliente ya tiene {formatearMonto(favor, moneda)} a favor; se puede aplicar desde cada factura con «Aplicar saldo a favor».
-          </dd>
-        )}
       </dl>
       <CampoTexto etiqueta="Nota" className="sm:col-span-2" value={nota} onChange={(e) => setNota(e.target.value)} />
       {error && <p role="alert" className="text-sm text-destructive sm:col-span-2">{error}</p>}

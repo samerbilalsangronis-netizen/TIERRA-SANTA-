@@ -2175,6 +2175,14 @@ export type Database = {
       };
     };
     Functions: {
+      _anular_factura_base: { Args: { p_id: number; p_motivo: string }; Returns: Json };
+      _editar_factura_base: { Args: { p: Json }; Returns: Json };
+      _editar_factura_externa_base: { Args: { p: Json }; Returns: undefined };
+      _editar_pago_cliente_base: { Args: { p: Json; p_id: number }; Returns: Json };
+      _eliminar_pago_cliente_base: { Args: { p_id: number }; Returns: undefined };
+      _emitir_factura_base: { Args: { p: Json }; Returns: Json };
+      _registrar_factura_externa_base: { Args: { p: Json }; Returns: number };
+      _registrar_pago_cliente_base: { Args: { p: Json }; Returns: Json };
       ajustar_inventario: {
         Args: {
           p_conteo: number;
@@ -2200,6 +2208,7 @@ export type Database = {
         }[];
       };
       anular_factura: { Args: { p_id: number; p_motivo: string }; Returns: Json };
+      aplicar_credito_cliente: { Args: { p_cliente_id: number }; Returns: number };
       aplicar_saldo_a_favor: { Args: { p_factura_id: number; p_monto: number }; Returns: number };
       auditar: {
         Args: {
