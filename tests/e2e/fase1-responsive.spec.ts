@@ -20,11 +20,11 @@ test("catálogos en pantalla pequeña: tarjetas y formulario", async ({ page, is
   test.skip(!isMobile, "solo teléfono");
   await entrarComoAdmin(page);
   await page.goto("/configuracion/catalogos/productos");
-  const tarjeta = page.getByRole("button", { name: /Guanábana.*kg/ });
+  const tarjeta = page.getByRole("button", { name: /Guanábana 800 g.*bolsa/ });
   await expect(tarjeta).toBeVisible();
   await tarjeta.click(); // tocar la tarjeta abre la edición
   const dialogo = page.getByRole("dialog");
-  await expect(dialogo.getByRole("heading", { name: /Editar 1 · Guanábana/ })).toBeVisible();
+  await expect(dialogo.getByRole("heading", { name: /Editar 1 · Guanábana 800 g/ })).toBeVisible();
   await expect(dialogo.getByRole("button", { name: "Guardar" })).toBeInViewport();
   await dialogo.getByRole("button", { name: "Cancelar" }).click();
   const desborde = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -80,7 +80,7 @@ test("inventario en el teléfono: stock en tarjetas y producción con botón fij
   await page.screenshot({ path: "test-results/inventario-telefono.png", fullPage: true });
   await page.goto("/inventario/produccion");
   await expect(page.getByRole("button", { name: "Guardar producción" })).toBeInViewport();
-  await page.getByLabel("Cantidad producida de Guanábana").fill("30");
+  await page.getByLabel("Cantidad producida de Guanábana 800 g").fill("30");
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   await page.screenshot({ path: "test-results/produccion-telefono.png" });
 });

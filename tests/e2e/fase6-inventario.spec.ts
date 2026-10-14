@@ -14,20 +14,20 @@ test("inventario: producción diaria, merma, traslado, ajuste, kardex, Excel y e
 
   // Id de la guanábana (código 1) desde el stock
   await page.goto("/inventario");
-  const enlace = page.getByRole("link", { name: /Guanábana/ }).first();
+  const enlace = page.getByRole("link", { name: /Guanábana 800 g/ }).first();
   const productoId = (await enlace.getAttribute("href"))!.split("/").pop()!;
   const inicial = await totalKardex(page, productoId);
 
   // Producción del día con Enter entre productos
   await page.goto("/inventario/produccion");
-  await page.getByLabel("Cantidad producida de Guanábana").fill("50");
-  await page.getByLabel("Cantidad producida de Guanábana").press("Enter");
-  await expect(page.getByLabel("Cantidad producida de Parchita")).toBeFocused();
+  await page.getByLabel("Cantidad producida de Guanábana 800 g").fill("50");
+  await page.getByLabel("Cantidad producida de Guanábana 800 g").press("Enter");
+  await expect(page.getByLabel("Cantidad producida de Parchita 800 g")).toBeFocused();
   await page.keyboard.type("12,5");
   await page.getByRole("button", { name: "Guardar producción" }).click();
   await expect(page).toHaveURL(/vista=produccion/);
   await expect(page.getByText(/Producción registrada: 2 productos/)).toBeVisible();
-  await expect(page.getByText(/Guanábana 50 kg/).first()).toBeVisible();
+  await expect(page.getByText(/Guanábana 800 g 50 bolsa/).first()).toBeVisible();
   expect(await totalKardex(page, productoId)).toBeCloseTo(inicial + 50, 3);
 
   // Merma desde el kardex (producto ya elegido)
@@ -95,5 +95,5 @@ test("inventario: agregar un producto nuevo desde Inventario y producirlo", asyn
   await page.goto("/inventario/produccion");
   await page.getByLabel(`Cantidad producida de ${nombre}`).fill("15");
   await page.getByRole("button", { name: "Guardar producción" }).click();
-  await expect(page.getByText(new RegExp(`${nombre} 15 kg`)).first()).toBeVisible();
+  await expect(page.getByText(new RegExp(`${nombre} 15 bolsa`)).first()).toBeVisible();
 });

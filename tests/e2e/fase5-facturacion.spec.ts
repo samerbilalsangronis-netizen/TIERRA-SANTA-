@@ -4,7 +4,7 @@ import { entrarComoAdmin, sufijo } from "./utilidades";
 /** Lee "Disponible N kg" de la primera línea de la factura que se está escribiendo. */
 async function disponibleEnPantalla(page: Page): Promise<number> {
   const texto = (await page.getByTestId("linea-factura").first().getByText(/Disponible|Solo hay/).textContent()) ?? "";
-  const m = /(-?[\d.]+(?:,\d+)?)\s*kg/.exec(texto);
+  const m = /(-?[\d.]+(?:,\d+)?)\s*(?:kg|bolsa)/.exec(texto);
   return m ? Number(m[1].replace(/\./g, "").replace(",", ".")) : NaN;
 }
 
@@ -23,7 +23,7 @@ test("facturación: emitir con teclado → inventario → cuenta por cobrar, edi
   // Línea 1 por código con Enter: 1 → Guanábana, 12,5 kg a 4
   const codigo = page.getByLabel("Código o nombre del producto");
   await codigo.first().fill("1");
-  await expect(page.getByTestId("linea-factura").first()).toContainText("Guanábana");
+  await expect(page.getByTestId("linea-factura").first()).toContainText("Guanábana 800 g");
   const antes = await disponibleEnPantalla(page);
   await codigo.first().press("Enter");
   await expect(page.getByLabel("Cantidad línea 1")).toBeFocused();

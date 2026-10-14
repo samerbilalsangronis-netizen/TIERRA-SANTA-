@@ -20,7 +20,7 @@ export type Producto = {
 };
 type Unidad = { codigo: string; nombre: string };
 
-const NOMBRE_TIPO = Object.fromEntries(TIPOS_PRODUCTO) as Record<Producto["tipo"], string>;
+const NOMBRE_TIPO: Record<Producto["tipo"], string> = { terminado: "Se vende", materia_prima: "Se compra", ambos: "Se compra y se vende" };
 
 export function textoCompra(p: { modo_pesaje: string; kg_por_cesta: number | null }) {
   const modo = p.modo_pesaje as ModoCompra;
@@ -99,8 +99,9 @@ function FormProducto({ producto, categoriaNueva, siguienteCodigo, unidades, onC
           kg_por_cesta: producto.kg_por_cesta ?? "", emoji: producto.emoji ?? "", notas: producto.notas ?? "",
         }
       : {
-          codigo: siguienteCodigo, nombre: "", emoji: "", unidad: categoriaNueva === "insumo" ? "und" : "kg",
-          tipo: categoriaNueva === "insumo" ? "materia_prima" : "ambos", categoria: categoriaNueva,
+          codigo: siguienteCodigo, nombre: "", emoji: "",
+          unidad: categoriaNueva === "insumo" ? "und" : unidades.some((u) => u.codigo === "bolsa") ? "bolsa" : "kg",
+          tipo: categoriaNueva === "insumo" ? "materia_prima" : "terminado", categoria: categoriaNueva,
           modo_pesaje: categoriaNueva === "insumo" ? "UNIDAD" : "KG", kg_por_cesta: "", stock_minimo: 0, activo: true, notas: "",
         },
     guardarProducto,
@@ -109,11 +110,14 @@ function FormProducto({ producto, categoriaNueva, siguienteCodigo, unidades, onC
   const categoria = form.watch("categoria");
   const modo = form.watch("modo_pesaje");
   const esInsumo = categoria === "insumo";
+  const tipo = form.watch("tipo");
+  const seCompra = esInsumo || tipo !== "terminado";
+  const seVende = !esInsumo && tipo !== "materia_prima";
   return (
     <DialogoFormulario
       abierto onCerrar={onCerrar} pendiente={pendiente} onEnviar={enviar}
       titulo={producto ? `Editar ${producto.codigo} · ${producto.nombre}` : esInsumo ? "Nuevo insumo" : "Nuevo producto"}
-      descripcion={esInsumo ? "Bolsas, etiquetas, envases… Se compran a proveedores; no se facturan." : "El código es el número que se teclea en la factura (1 = Guanábana, 2 = Parchita…)."}
+      descripcion={esInsumo ? "Bolsas, etiquetas, envases… Se compran a proveedores; no se facturan." : "Lo que se vende (ej. Guanábana 800 g, código 1) va separado de la fruta que se compra al proveedor (ej. Guanábana, código 901)."}
     >
       <CampoSelect etiqueta="Categoría" className="sm:col-span-2" {...form.register("categoria")}>
         <option value="fruta">Fruta / pulpa</option>
@@ -124,15 +128,16 @@ function FormProducto({ producto, categoriaNueva, siguienteCodigo, unidades, onC
         <CampoTexto etiqueta="Nombre" requerido error={err.nombre?.message} {...form.register("nombre")} />
         <CampoTexto etiqueta="Ícono" placeholder={esInsumo ? "🛍️" : "🍓"} error={err.emoji?.message} {...form.register("emoji")} />
       </div>
-      <CampoSelect etiqueta={esInsumo ? "Unidad" : "Unidad de venta / stock"} {...form.register("unidad")}>
+      <CampoSelect etiqueta={esInsumo || tipo === "materia_prima" ? "Unidad" : "Unidad de venta / stock"} {...form.register("unidad")}>
         {unidades.map((u) => <option key={u.codigo} value={u.codigo}>{u.nombre} ({u.codigo})</option>)}
       </CampoSelect>
       {!esInsumo ? (
-        <CampoSelect etiqueta="Tipo" {...form.register("tipo")}>
+        <CampoSelect etiqueta="Uso" {...form.register("tipo")}>
           {TIPOS_PRODUCTO.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
         </CampoSelect>
       ) : <div className="hidden sm:block" />}
 
+      {seCompra && (<>
       <p className="rounded-lg bg-muted/50 p-2.5 text-xs text-muted-foreground sm:col-span-2">
         Cómo se le compra al proveedor (se puede cambiar en cada entrega). Lo que trae el proveedor <b>no suma al inventario</b>.
       </p>
@@ -146,8 +151,9 @@ function FormProducto({ producto, categoriaNueva, siguienteCodigo, unidades, onC
       {modo === "FIJO" ? (
         <CampoTexto etiqueta="Kg por cesta" inputMode="decimal" requerido error={err.kg_por_cesta?.message} {...form.register("kg_por_cesta")} />
       ) : <div className="hidden sm:block" />}
+      </>)}
 
-      {!esInsumo && (
+      {seVende && (
         <CampoTexto etiqueta="Stock mínimo (alerta)" inputMode="decimal" error={err.stock_minimo?.message} {...form.register("stock_minimo")} />
       )}
       <Controller control={form.control} name="activo" render={({ field }) => (

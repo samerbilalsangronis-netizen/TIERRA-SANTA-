@@ -14,9 +14,9 @@ const numero = (msg = "Número no válido") =>
 const idOpcional = z.union([z.number(), z.string()]).optional().transform((v) => (v === undefined || v === "" ? undefined : Number(v)));
 
 export const TIPOS_PRODUCTO = [
-  ["terminado", "Producto terminado (pulpa)"],
-  ["materia_prima", "Materia prima (fruta)"],
-  ["ambos", "Ambos"],
+  ["terminado", "Se vende (bolsa de pulpa) · facturas e inventario"],
+  ["materia_prima", "Se compra (fruta) · entregas de proveedores"],
+  ["ambos", "Se compra y se vende igual"],
 ] as const;
 
 export const esquemaProducto = z

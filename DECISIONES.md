@@ -132,3 +132,11 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - **Estado del stock:** Agotado (≤ 0), Bajo (menor al mínimo del producto), Normal. Las alertas del Dashboard ignoran los insumos.
 - **Kardex** por producto con saldo después de cada movimiento, filtro por fechas y ubicación, y descarga a Excel. También hay Excel del stock actual.
 - Las cantidades pueden quedar negativas si se factura sin stock con la opción "advertir" (se ve como Agotado).
+
+## Fruta comprada vs. producto vendido (pedido de Samer)
+- Se vende pulpa en **bolsas de 800 g y de 1 kg**. Por eso cada fruta se separó en tres productos:
+  - **Guanábana** (código 901…909): la fruta que se compra; solo aparece en las **entregas de proveedores** (uso "Se compra").
+  - **Guanábana 800 g** (conserva el código de siempre: **1** = Guanábana 800 g): se factura, se produce y lleva inventario en **bolsas**.
+  - **Guanábana 1 kg** (código 101…109): igual, en bolsas.
+- Las facturas, la producción y el inventario que ya existían con la fruta pasaron a la presentación de 800 g. Las entregas de proveedores siguen en la fruta.
+- En Catálogos, el campo **Uso** decide dónde aparece cada producto: "Se vende" (facturas, inventario, producción), "Se compra" (entregas de proveedores) o "Se compra y se vende igual". Un producto nuevo de fruta nace como "Se vende" en bolsas.

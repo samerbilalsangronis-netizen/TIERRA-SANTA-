@@ -24,30 +24,36 @@ select pg_temp.check((select rol = 'solo_lectura' and estado = 'INACTIVO' from p
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
 
+-- Presentaciones: la fruta se compra (código 901…) y se venden bolsas de 800 g (código 1) y 1 kg (101)
+select pg_temp.check((select nombre || '|' || unidad || '|' || tipo from public.productos where codigo = 1) = 'Guanábana 800 g|bolsa|terminado', 'código 1 = Guanábana 800 g');
+select pg_temp.check((select nombre || '|' || tipo from public.productos where codigo = 101) = 'Guanábana 1 kg|terminado', 'código 101 = Guanábana 1 kg');
+select pg_temp.check((select nombre || '|' || tipo from public.productos where id = 1) = 'Guanábana|materia_prima' and (select codigo from public.productos where id = 1) = 901, 'la fruta comprada conserva su registro');
+select pg_temp.check((select id from public.productos where codigo = 1) = 10 and (select id from public.productos where codigo = 2) = 12 and (select id from public.productos where codigo = 3) = 14, 'ids de las bolsas de 800 g');
+
 -- Cliente y producción
 insert into public.clientes (nombre, documento) values ('Carlos Roa', 'V-12345678');
 select pg_temp.check((select numero from public.clientes where nombre = 'Carlos Roa') = 1, 'cliente numerado automáticamente');
 select public.registrar_produccion(public.hoy(), public.ubicacion_predeterminada(),
-  '[{"producto_id":1,"cantidad":500},{"producto_id":2,"cantidad":100}]'::jsonb, 'Samer', 'Prueba');
-select pg_temp.check(public.stock_disponible(1) = 500, 'producción suma stock');
+  '[{"producto_id":10,"cantidad":500},{"producto_id":12,"cantidad":100}]'::jsonb, 'Samer', 'Prueba');
+select pg_temp.check(public.stock_disponible(10) = 500, 'producción suma stock');
 
 -- Emitir factura 1: 400 guanábana a 2,50 con IVA + 50 parchita a 3 sin IVA
 select public.emitir_factura(jsonb_build_object(
   'cliente_id', (select id from public.clientes where numero = 1), 'moneda', 'USD',
-  'lineas', '[{"producto_id":1,"cantidad":400,"precio_unitario":2.5,"aplica_iva":true},
-              {"producto_id":2,"cantidad":50,"precio_unitario":3,"aplica_iva":false}]'::jsonb,
+  'lineas', '[{"producto_id":10,"cantidad":400,"precio_unitario":2.5,"aplica_iva":true},
+              {"producto_id":12,"cantidad":50,"precio_unitario":3,"aplica_iva":false}]'::jsonb,
   'empaques', '{"retiradas":10}'::jsonb)) as r1 \gset
 select pg_temp.check((select numero from public.facturas where id = (:'r1'::jsonb->>'id')::bigint) = 1, 'número 1 asignado');
 select pg_temp.check((select total from public.facturas where numero = 1) = 1310.00, 'total con IVA 16% = 1000+160+150');
-select pg_temp.check(public.stock_disponible(1) = 100, 'inventario descontado (500-400)');
+select pg_temp.check(public.stock_disponible(10) = 100, 'inventario descontado (500-400)');
 select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = 1310, 'saldo USD del cliente');
 select pg_temp.check((select cajas_pendientes from public.v_resumen_clientes where numero = 1) = 10, 'cajas pendientes');
 
 -- Factura 2 y 3
 select public.emitir_factura(jsonb_build_object('cliente_id', 1, 'moneda', 'USD',
-  'lineas', '[{"producto_id":2,"cantidad":10,"precio_unitario":100}]'::jsonb));
+  'lineas', '[{"producto_id":12,"cantidad":10,"precio_unitario":100}]'::jsonb));
 select public.emitir_factura(jsonb_build_object('cliente_id', 1, 'moneda', 'USD',
-  'lineas', '[{"producto_id":2,"cantidad":10,"precio_unitario":150}]'::jsonb));
+  'lineas', '[{"producto_id":12,"cantidad":10,"precio_unitario":150}]'::jsonb));
 -- Pago múltiple: 1 completa, 2 completa, 3 solo 900 de 1500
 select public.registrar_pago_cliente(jsonb_build_object('cliente_id', 1, 'moneda', 'USD', 'monto', 3310,
   'aplicaciones', jsonb_build_array(
@@ -63,16 +69,16 @@ select pg_temp.check((select pagado from public.facturas where numero = 3) = 100
 
 -- Editar factura 1: 450 guanábanas → descuenta 50 más
 select public.editar_factura(jsonb_build_object('id', (select id from public.facturas where numero = 1), 'motivo', 'más fruta',
-  'lineas', '[{"producto_id":1,"cantidad":450,"precio_unitario":2.5,"aplica_iva":true},
-              {"producto_id":2,"cantidad":50,"precio_unitario":3,"aplica_iva":false}]'::jsonb));
-select pg_temp.check(public.stock_disponible(1) = 50, 'edición descuenta la diferencia');
+  'lineas', '[{"producto_id":10,"cantidad":450,"precio_unitario":2.5,"aplica_iva":true},
+              {"producto_id":12,"cantidad":50,"precio_unitario":3,"aplica_iva":false}]'::jsonb));
+select pg_temp.check(public.stock_disponible(10) = 50, 'edición descuenta la diferencia');
 select pg_temp.check((select total from public.facturas where numero = 1) = 1455.00, 'nuevo total 1125+180+150');
 select pg_temp.check((select estado_pago from public.facturas where numero = 1) = 'abonada', 'factura 1 vuelve a abonada');
 select pg_temp.check((select count(*) from public.factura_versiones where factura_id = (select id from public.facturas where numero = 1)) = 2, 'versión registrada');
 
 -- Editar bajando total por debajo de lo pagado → exceso a saldo a favor
 select public.editar_factura(jsonb_build_object('id', (select id from public.facturas where numero = 2),
-  'lineas', '[{"producto_id":2,"cantidad":5,"precio_unitario":100}]'::jsonb)) as r2 \gset
+  'lineas', '[{"producto_id":12,"cantidad":5,"precio_unitario":100}]'::jsonb)) as r2 \gset
 select pg_temp.check((:'r2'::jsonb->>'saldo_a_favor_generado')::numeric = 500, 'exceso liberado 500');
 -- Los 500 liberados se aplican solos: 145 a la factura 1 y 355 a la 3
 select pg_temp.check(public.saldo_a_favor(1, 'USD') = 0, 'exceso aplicado solo');
@@ -82,14 +88,14 @@ select pg_temp.check((select saldo from public.facturas where numero = 3) = 145,
 -- Cambio de moneda USD → COP con pagos (tasa 4000)
 select public.editar_factura(jsonb_build_object('id', (select id from public.facturas where numero = 3),
   'moneda', 'COP', 'tasa_conversion', 4000,
-  'lineas', '[{"producto_id":2,"cantidad":10,"precio_unitario":600000}]'::jsonb));
+  'lineas', '[{"producto_id":12,"cantidad":10,"precio_unitario":600000}]'::jsonb));
 select pg_temp.check((select pagado from public.facturas where numero = 3) = 5420000, 'pagos convertidos a COP (1.355 × 4.000)');
 select pg_temp.check((select saldo_cop from public.v_resumen_clientes where numero = 1) = 580000, 'saldo COP 580.000');
 select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = 0, 'saldo USD 0');
 
 -- Anular factura 1 → devuelve inventario y deja pagos como saldo a favor
 select public.anular_factura((select id from public.facturas where numero = 1), 'Prueba');
-select pg_temp.check(public.stock_disponible(1) = 500, 'anulación devuelve inventario');
+select pg_temp.check(public.stock_disponible(10) = 500, 'anulación devuelve inventario');
 select pg_temp.check((select saldo_usd from public.v_resumen_clientes where numero = 1) = -1455, 'sin facturas pendientes en USD, el pago queda a favor');
 
 -- Estado de cuenta del cliente: saldo final = saldo del resumen (USD)
@@ -127,7 +133,7 @@ do $$ begin
   perform public.emitir_factura(jsonb_build_object('cliente_id', 1, 'moneda', 'USD', 'lineas', '[]'::jsonb));
 exception when others then null; end $$;
 select public.emitir_factura(jsonb_build_object('cliente_id', 1, 'moneda', 'USD',
-  'lineas', '[{"producto_id":1,"cantidad":1,"precio_unitario":1}]'::jsonb));
+  'lineas', '[{"producto_id":10,"cantidad":1,"precio_unitario":1}]'::jsonb));
 select pg_temp.check((select max(numero) from public.facturas) = 4, 'sin huecos tras error');
 
 -- Listado de facturas (Fase 5): búsqueda, filtros y totales del filtro
@@ -137,36 +143,36 @@ select pg_temp.check((select count(*) from public.buscar_facturas('ana perez')) 
 select pg_temp.check((select count(*) from public.buscar_facturas(null, 'anulada')) = 1, 'filtro anuladas');
 select pg_temp.check((select cantidad from public.totales_facturas(null, null, 'COP')) = 1, 'totales por moneda');
 select pg_temp.check((select saldo from public.totales_facturas(p_cliente_id => 2)) = 130, 'saldo del filtro por cliente');
-select pg_temp.check((select precio from public.ultimos_precios_cliente(1, 'USD') where producto_id = 1) = 1, 'último precio por producto');
-select public.guardar_borrador_factura('{"cliente_id":2,"moneda":"USD","lineas":[{"producto_id":1,"cantidad":2,"precio_unitario":5}]}') as bor \gset
+select pg_temp.check((select precio from public.ultimos_precios_cliente(1, 'USD') where producto_id = 10) = 1, 'último precio por producto');
+select public.guardar_borrador_factura('{"cliente_id":2,"moneda":"USD","lineas":[{"producto_id":10,"cantidad":2,"precio_unitario":5}]}') as bor \gset
 select pg_temp.check((select count(*) from public.buscar_facturas(null, 'borrador')) = 1, 'borrador solo con su filtro');
-select pg_temp.check(public.stock_disponible(1) = 499, 'el borrador no toca inventario');
+select pg_temp.check(public.stock_disponible(10) = 499, 'el borrador no toca inventario');
 select public.emitir_factura(jsonb_build_object('id', :bor));
-select pg_temp.check((select numero from public.facturas where id = :bor) = 5 and public.stock_disponible(1) = 497, 'borrador emitido con número e inventario');
+select pg_temp.check((select numero from public.facturas where id = :bor) = 5 and public.stock_disponible(10) = 497, 'borrador emitido con número e inventario');
 
 -- Inventario (Fase 6): producción, merma, traslado, ajuste, kardex y eliminar producción
 select public.registrar_produccion('2026-10-10', public.ubicacion_predeterminada(),
-  '[{"producto_id":1,"cantidad":100},{"producto_id":3,"cantidad":40}]'::jsonb, 'Samer', 'Lote prueba') as prod \gset
-select pg_temp.check(public.stock_disponible(1) = 597, 'producción suma 100');
-select pg_temp.check((select cantidad from public.produccion_resumen('2026-10-10', '2026-10-10') where producto_id = 3) = 40, 'resumen de producción por día');
-select public.registrar_merma_inventario(1, public.ubicacion_predeterminada(), 'PT', 7, 'Se descongeló');
-select pg_temp.check(public.stock_disponible(1) = 590, 'merma descuenta');
+  '[{"producto_id":10,"cantidad":100},{"producto_id":14,"cantidad":40}]'::jsonb, 'Samer', 'Lote prueba') as prod \gset
+select pg_temp.check(public.stock_disponible(10) = 597, 'producción suma 100');
+select pg_temp.check((select cantidad from public.produccion_resumen('2026-10-10', '2026-10-10') where producto_id = 14) = 40, 'resumen de producción por día');
+select public.registrar_merma_inventario(10, public.ubicacion_predeterminada(), 'PT', 7, 'Se descongeló');
+select pg_temp.check(public.stock_disponible(10) = 590, 'merma descuenta');
 do $$ begin
-  perform public.registrar_merma_inventario(1, public.ubicacion_predeterminada(), 'PT', 1, ' ');
+  perform public.registrar_merma_inventario(10, public.ubicacion_predeterminada(), 'PT', 1, ' ');
   raise exception 'PRUEBA FALLIDA: merma sin motivo';
 exception when raise_exception then
   if sqlerrm like 'PRUEBA FALLIDA%' then raise; end if;
   raise notice 'ok: merma exige motivo';
 end $$;
-select public.trasladar_inventario(1, 'PT', public.ubicacion_predeterminada(), (select id from public.ubicaciones where nombre = 'Cuarto frío planta'), 90, 'A congelar');
-select pg_temp.check(public.stock_disponible(1, (select id from public.ubicaciones where nombre = 'Cuarto frío planta')) = 90
-  and public.stock_disponible(1) = 590, 'traslado mueve sin cambiar el total');
-select public.ajustar_inventario(1, (select id from public.ubicaciones where nombre = 'Cuarto frío planta'), 'PT', 88, 'Conteo físico');
-select pg_temp.check(public.stock_disponible(1) = 588, 'ajuste por conteo');
-select pg_temp.check((select saldo from public.kardex(1) order by fecha desc, id desc limit 1) = 588, 'kardex: saldo final = stock');
+select public.trasladar_inventario(10, 'PT', public.ubicacion_predeterminada(), (select id from public.ubicaciones where nombre = 'Cuarto frío planta'), 90, 'A congelar');
+select pg_temp.check(public.stock_disponible(10, (select id from public.ubicaciones where nombre = 'Cuarto frío planta')) = 90
+  and public.stock_disponible(10) = 590, 'traslado mueve sin cambiar el total');
+select public.ajustar_inventario(10, (select id from public.ubicaciones where nombre = 'Cuarto frío planta'), 'PT', 88, 'Conteo físico');
+select pg_temp.check(public.stock_disponible(10) = 588, 'ajuste por conteo');
+select pg_temp.check((select saldo from public.kardex(10) order by fecha desc, id desc limit 1) = 588, 'kardex: saldo final = stock');
 select public.eliminar_produccion(:prod, 'Registrada dos veces');
-select pg_temp.check(public.stock_disponible(3) = 0 and public.stock_disponible(1) = 488, 'eliminar producción devuelve el stock');
-select pg_temp.check((select categoria from public.v_stock_total where producto_id = 1) = 'fruta', 'stock total con categoría');
+select pg_temp.check(public.stock_disponible(14) = 0 and public.stock_disponible(10) = 488, 'eliminar producción devuelve el stock');
+select pg_temp.check((select categoria from public.v_stock_total where producto_id = 10) = 'fruta', 'stock total con categoría');
 
 -- Proveedores: FIJO y VARIABLE
 insert into public.proveedores (nombre) values ('Finca El Topo');

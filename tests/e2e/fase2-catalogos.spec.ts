@@ -11,6 +11,7 @@ test("productos: crear con código, validar FIJO, código duplicado, desactivar 
   await page.getByRole("button", { name: "Nuevo producto" }).click();
   await page.fill("input[name=codigo]", codigo);
   await page.fill("input[name=nombre]", nombre);
+  await page.selectOption("select[name=tipo]", "ambos");
   await page.selectOption("select[name=modo_pesaje]", "FIJO");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("La compra por cesta necesita los kg por cesta")).toBeVisible();
