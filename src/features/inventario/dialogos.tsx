@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeftRight, ClipboardCheck, Factory, Loader2, PackageMinus, Trash2 } from "lucide-react";
+import { ArrowLeftRight, ClipboardCheck, Factory, Loader2, PackageMinus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,9 @@ const TITULOS: Record<Tipo, { titulo: string; descripcion: string; boton: string
 };
 
 /** Botones de acciones del inventario (producción, merma, traslado, ajuste). */
-export function AccionesInventario({ productos, ubicaciones, puedeOperar, puedeAjustar, productoInicial }: {
+export function AccionesInventario({ productos, ubicaciones, puedeOperar, puedeAjustar, productoInicial, puedeCrearProducto = false }: {
   productos: Producto[]; ubicaciones: Ubicacion[]; puedeOperar: boolean; puedeAjustar: boolean; productoInicial?: number;
+  /** Admin: atajo para crear un producto nuevo en Catálogos. */ puedeCrearProducto?: boolean;
 }) {
   const [tipo, setTipo] = useState<Tipo | null>(null);
   if (!puedeOperar) return null;
@@ -39,6 +40,9 @@ export function AccionesInventario({ productos, ubicaciones, puedeOperar, puedeA
       <Button size="lg" variant="outline" onClick={() => setTipo("merma")}><PackageMinus className="size-4" /> Merma</Button>
       {ubicaciones.length > 1 && <Button size="lg" variant="outline" onClick={() => setTipo("traslado")}><ArrowLeftRight className="size-4" /> Traslado</Button>}
       {puedeAjustar && <Button size="lg" variant="outline" onClick={() => setTipo("ajuste")}><ClipboardCheck className="size-4" /> Ajuste</Button>}
+      {puedeCrearProducto && (
+        <Link href="/configuracion/catalogos/productos?nuevo=1" className={buttonVariants({ size: "lg", variant: "outline" })}><Plus className="size-4" /> Nuevo producto</Link>
+      )}
       {tipo && <DialogoMovimiento tipo={tipo} productos={productos} ubicaciones={ubicaciones} productoInicial={productoInicial} onCerrar={() => setTipo(null)} />}
     </>
   );

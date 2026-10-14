@@ -36,7 +36,7 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
   return (
     <>
       <EncabezadoPagina icono={Boxes} titulo="Inventario" descripcion="Producto terminado: sube con la producción y baja con facturas, merma y ajustes."
-        acciones={<AccionesInventario productos={filas.filter((f) => f.activo)} ubicaciones={ubicaciones} puedeOperar={operar} puedeAjustar={ajustar} />} />
+        acciones={<AccionesInventario productos={filas.filter((f) => f.activo)} ubicaciones={ubicaciones} puedeOperar={operar} puedeAjustar={ajustar} puedeCrearProducto={puede(perfil.rol, "configuracion")} />} />
 
       <section className="mb-4 grid grid-cols-3 gap-3">
         <TarjetaKpi titulo="Productos" icono={Boxes} valor={filas.filter((f) => f.total > 0).length} detalle="con existencia" />
@@ -115,7 +115,7 @@ function VistaStock({ filas, ubicaciones }: { filas: FilaStock[]; ubicaciones: {
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-xs text-muted-foreground">Toca un producto para ver su kardex (todos sus movimientos). El mínimo se define en Configuración → Catálogos → Productos.</p>
+      <p className="mt-2 text-xs text-muted-foreground">Toca un producto para ver su kardex (todos sus movimientos). Los productos nuevos y el stock mínimo se definen en Configuración → Catálogos → Productos (aparecen aquí si son de categoría Fruta).</p>
     </>
   );
 }

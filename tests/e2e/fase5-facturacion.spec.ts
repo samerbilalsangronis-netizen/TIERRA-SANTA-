@@ -73,7 +73,9 @@ test("facturación: emitir con teclado → inventario → cuenta por cobrar, edi
   await page.goto("/facturacion");
   await page.getByLabel("Buscar factura").fill(nombre);
   await expect(page.getByRole("row", { name: new RegExp(numero) })).toBeVisible();
+  await expect(page).toHaveURL(/\?q=/);
   await page.getByRole("row", { name: new RegExp(numero) }).getByRole("link", { name: nombre }).click();
+  await expect(page).toHaveURL(/\/clientes\/\d+/);
   await expect(page.getByText("Debe USD")).toBeVisible();
   await expect(page.getByText("USD $ 84,80").first()).toBeVisible();
 

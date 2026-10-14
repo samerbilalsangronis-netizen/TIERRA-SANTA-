@@ -80,3 +80,20 @@ test("inventario: producción diaria, merma, traslado, ajuste, kardex, Excel y e
   await expect(page.getByText(/Producción eliminada/)).toBeVisible();
   expect(await totalKardex(page, productoId)).toBeCloseTo(inicial - 5, 3);
 });
+
+test("inventario: agregar un producto nuevo desde Inventario y producirlo", async ({ page }) => {
+  await entrarComoAdmin(page);
+  const nombre = `Pulpa de Lulo ${Date.now().toString(36).slice(-4)}`;
+  await page.goto("/inventario");
+  await page.getByRole("link", { name: "Nuevo producto" }).click();
+  await expect(page).toHaveURL(/catalogos\/productos\?nuevo=1/);
+  await page.fill("input[name=nombre]", nombre);
+  await page.getByRole("dialog").getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await page.goto("/inventario");
+  await expect(page.getByRole("link", { name: new RegExp(nombre) }).first()).toBeVisible();
+  await page.goto("/inventario/produccion");
+  await page.getByLabel(`Cantidad producida de ${nombre}`).fill("15");
+  await page.getByRole("button", { name: "Guardar producción" }).click();
+  await expect(page.getByText(new RegExp(`${nombre} 15 kg`)).first()).toBeVisible();
+});

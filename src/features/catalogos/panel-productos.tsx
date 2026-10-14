@@ -27,8 +27,8 @@ export function textoCompra(p: { modo_pesaje: string; kg_por_cesta: number | nul
   return modo === "FIJO" && p.kg_por_cesta ? `Por cesta · ${formatearCantidad(p.kg_por_cesta)} kg/cesta` : NOMBRE_MODO[modo] ?? modo;
 }
 
-export function PanelProductos({ productos, unidades }: { productos: Producto[]; unidades: Unidad[] }) {
-  const [editando, setEditando] = useState<Producto | "nuevo" | null>(null);
+export function PanelProductos({ productos, unidades, abrirNuevo = false }: { productos: Producto[]; unidades: Unidad[]; abrirNuevo?: boolean }) {
+  const [editando, setEditando] = useState<Producto | "nuevo" | null>(abrirNuevo ? "nuevo" : null);
   const [categoria, setCategoria] = useState<"todas" | "fruta" | "insumo">("todas");
   const siguienteCodigo = Math.max(0, ...productos.map((p) => p.codigo)) + 1;
   const filas = categoria === "todas" ? productos : productos.filter((p) => p.categoria === categoria);
