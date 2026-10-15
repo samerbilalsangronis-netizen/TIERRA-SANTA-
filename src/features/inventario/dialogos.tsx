@@ -94,10 +94,10 @@ function DialogoMovimiento({ tipo, productos, ubicaciones, productoInicial, onCe
         <option value="">Elige…</option>
         {productos.map((x) => <option key={x.id} value={x.id}>{x.codigo} · {x.nombre}</option>)}
       </CampoSelect>
-      <CampoSelect etiqueta={tipo === "traslado" ? "Desde" : "Ubicación"} value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)} error={errores.ubicacion_id}
+      {ubicaciones.length > 1 && <CampoSelect etiqueta={tipo === "traslado" ? "Desde" : "Ubicación"} value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)} error={errores.ubicacion_id}
         className={tipo === "traslado" ? "" : "sm:col-span-2"}>
         {ubicaciones.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-      </CampoSelect>
+      </CampoSelect>}
       {tipo === "traslado" && (
         <CampoSelect etiqueta="Hacia" value={destinoId} onChange={(e) => setDestinoId(e.target.value)} error={errores.destino_id}>
           {ubicaciones.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}

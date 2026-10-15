@@ -49,26 +49,21 @@ test("inventario: producción diaria, merma, traslado, ajuste, kardex, Excel y e
   await expect(page.getByRole("cell", { name: "Merma" }).first()).toBeVisible();
   expect(await totalKardex(page, productoId)).toBeCloseTo(inicial + 46, 3);
 
-  // Traslado al cuarto frío: el total no cambia
-  await page.getByRole("button", { name: "Traslado" }).click();
-  await dialogo.locator("select").nth(2).selectOption({ label: "Cuarto frío planta" });
-  await dialogo.getByLabel(/Cantidad/).fill("10");
-  await dialogo.getByRole("button", { name: "Trasladar" }).click();
-  await expect(page.getByText("Traslado registrado.")).toBeVisible();
-  expect(await totalKardex(page, productoId)).toBeCloseTo(inicial + 46, 3);
-  const cabecera = (await page.locator("section h1 + p").first().textContent()) ?? "";
-  const enFrio = numero(/Cuarto frío planta: ([\d.,-]+)/.exec(cabecera)?.[1] ?? "0");
-  expect(enFrio).toBeGreaterThanOrEqual(10);
+  // Con una sola ubicación no hay traslados ni se elige ubicación
+  await expect(page.getByRole("button", { name: "Traslado" })).toHaveCount(0);
 
-  // Ajuste por conteo en el cuarto frío: se cuenta 1 menos de lo que hay
+  // Ajuste por conteo: se cuenta 1 menos de lo que hay
+  const hay = await totalKardex(page, productoId);
   await page.getByRole("button", { name: "Ajuste" }).click();
-  await dialogo.locator("select").nth(1).selectOption({ label: "Cuarto frío planta" });
-  await dialogo.getByLabel(/Cantidad contada/).fill(String(enFrio - 1).replace(".", ","));
+  await expect(dialogo.locator("select")).toHaveCount(1); // solo el producto
+  // (si en la base de prueba quedó negativo, se cuentan 5 más)
+  const conteo = hay >= 1 ? hay - 1 : 5;
+  await dialogo.getByLabel(/Cantidad contada/).fill(String(conteo).replace(".", ","));
   await dialogo.getByLabel(/Motivo/).fill("Conteo del viernes");
-  await expect(dialogo.getByText(/· diferencia/)).toContainText("-1");
+  await expect(dialogo.getByText(/· diferencia/)).toContainText(hay >= 1 ? "-1" : "diferencia");
   await dialogo.getByRole("button", { name: "Guardar conteo" }).click();
   await expect(page.getByText(/Ajuste registrado/)).toBeVisible();
-  expect(await totalKardex(page, productoId)).toBeCloseTo(inicial + 45, 3);
+  expect(await totalKardex(page, productoId)).toBeCloseTo(conteo, 3);
 
   // Excel del kardex y del stock
   for (const url of [`/inventario/${productoId}/excel`, "/inventario/excel"]) {
@@ -87,7 +82,7 @@ test("inventario: producción diaria, merma, traslado, ajuste, kardex, Excel y e
   await page.getByLabel("Motivo").fill("Registrada por error");
   await page.getByRole("button", { name: "Eliminar", exact: true }).click();
   await expect(page.getByText(/Producción eliminada/)).toBeVisible();
-  expect(await totalKardex(page, productoId)).toBeCloseTo(inicial - 5, 3);
+  expect(await totalKardex(page, productoId)).toBeCloseTo(conteo - 50, 3);
 });
 
 test("inventario: agregar un producto nuevo desde Inventario y producirlo", async ({ page }) => {
@@ -107,31 +102,10 @@ test("inventario: agregar un producto nuevo desde Inventario y producirlo", asyn
   await expect(page.getByText(new RegExp(`${nombre} 15 bolsa`)).first()).toBeVisible();
 });
 
-test("factura: si no hay stock en 'Sale de' avisa dónde sí hay y permite cambiarlo con un toque", async ({ page }) => {
+test("una sola ubicación: ni la factura ni la producción piden ubicación", async ({ page }) => {
   await entrarComoAdmin(page);
-  const nombre = `Pulpa Uva ${Date.now().toString(36).slice(-4)}`;
-  await page.goto("/configuracion/catalogos/productos?nuevo=1");
-  await page.fill("input[name=nombre]", nombre);
-  const codigo = await page.inputValue("input[name=codigo]");
-  await page.getByRole("dialog").getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByRole("dialog")).toBeHidden();
-
-  // Producción guardada en el cuarto frío
-  await page.goto("/inventario/produccion");
-  await page.locator("#ubicacion").selectOption({ label: "Cuarto frío planta" });
-  await page.getByLabel(`Cantidad producida de ${nombre}`).fill("7");
-  await page.getByRole("button", { name: "Guardar producción" }).click();
-  await expect(page).toHaveURL(/vista=produccion/);
-
-  // La factura sale de la planta principal: avisa que hay 7 en el cuarto frío
   await page.goto("/facturacion/nueva");
-  await page.getByLabel("Buscar cliente").fill("a");
-  await page.getByLabel("Buscar cliente").press("Enter");
-  await page.getByLabel("Código o nombre del producto").first().fill(codigo);
-  await page.getByLabel("Cantidad línea 1").fill("5");
-  const linea = page.getByTestId("linea-factura").first();
-  await expect(linea).toContainText("Solo hay 0");
-  await linea.getByRole("button", { name: /hay 7 en Cuarto frío planta/ }).click();
-  await expect(page.locator("#ubicacion")).toHaveValue(await page.locator("#ubicacion option", { hasText: "Cuarto frío planta" }).getAttribute("value") ?? "");
-  await expect(linea).toContainText("Disponible 7");
+  await expect(page.getByText("Sale de")).toHaveCount(0);
+  await page.goto("/inventario/produccion");
+  await expect(page.getByText("Se guarda en")).toHaveCount(0);
 });

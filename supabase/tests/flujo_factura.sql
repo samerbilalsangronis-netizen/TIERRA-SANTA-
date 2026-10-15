@@ -30,6 +30,9 @@ select pg_temp.check((select nombre || '|' || tipo from public.productos where c
 select pg_temp.check((select nombre || '|' || tipo from public.productos where id = 1) = 'Guanábana|materia_prima' and (select codigo from public.productos where id = 1) = 901, 'la fruta comprada conserva su registro');
 select pg_temp.check((select id from public.productos where codigo = 1) = 10 and (select id from public.productos where codigo = 2) = 12 and (select id from public.productos where codigo = 3) = 14, 'ids de las bolsas de 800 g');
 
+-- Una sola ubicación activa (la principal)
+select pg_temp.check((select count(*) from public.ubicaciones where activa) = 1 and (select predeterminada from public.ubicaciones where activa), 'una sola ubicación activa');
+
 -- Cliente y producción
 insert into public.clientes (nombre, documento) values ('Carlos Roa', 'V-12345678');
 select pg_temp.check((select numero from public.clientes where nombre = 'Carlos Roa') = 1, 'cliente numerado automáticamente');

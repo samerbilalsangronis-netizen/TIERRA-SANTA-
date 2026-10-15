@@ -167,3 +167,7 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - Columna de **alertas**: por cobrar USD/COP y los que deben desde hace más tiempo, stock bajo/agotado, cajas en clientes, cestas con proveedores y lo que se debe a proveedores.
 - **Reportes** (pantalla, imprimir/PDF y Excel): ventas por producto, ventas por cliente, libro de facturas (con anuladas en 0), compras por proveedor con merma, producción diaria, cajas y cestas. Enlaces a los que ya existían (antigüedad, estados de cuenta, kardex, nómina).
 - Ventas = facturas emitidas (anuladas y borradores no cuentan). Montos por producto sin IVA. Todas las sumas las hace Postgres.
+
+## Una sola ubicación (pedido de Samer)
+- "Por ahora la ubicación es innecesaria": queda activa solo la ubicación principal; el stock que había en otras pasó a ella (registrado como traslado en el kardex). Las pantallas ya no muestran ubicación (factura, producción, merma, ajuste, stock, kardex, movimientos) ni el botón Traslado.
+- Si en el futuro se necesitan, basta activar las ubicaciones en Configuración → Catálogos → Ubicaciones: todo vuelve a aparecer.

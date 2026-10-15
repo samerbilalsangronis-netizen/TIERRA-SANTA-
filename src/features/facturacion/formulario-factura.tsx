@@ -53,7 +53,12 @@ export function FormularioFactura({
   const [fecha, setFecha] = useState(inicial?.fecha ?? hoy);
   const [moneda, setMoneda] = useState(inicial?.moneda ?? (monedas.includes(empresa.moneda_defecto) ? empresa.moneda_defecto : monedas[0] ?? "USD"));
   const [condicion, setCondicion] = useState<"contado" | "credito">(inicial?.condicion ?? "credito");
-  const [ubicacionId, setUbicacionId] = useState<number | null>(inicial?.ubicacion_id ?? ubicaciones.find((u) => u.predeterminada)?.id ?? ubicaciones[0]?.id ?? null);
+  const ubicacionDefecto = ubicaciones.find((u) => u.predeterminada)?.id ?? ubicaciones[0]?.id ?? null;
+  // Si la ubicación guardada ya no está activa, se usa la principal
+  const [ubicacionId, setUbicacionId] = useState<number | null>(
+    inicial?.ubicacion_id && ubicaciones.some((u) => u.id === inicial.ubicacion_id) ? inicial.ubicacion_id : ubicacionDefecto);
+  /** Con una sola ubicación no se muestra nada de ubicaciones. */
+  const variasUbicaciones = ubicaciones.length > 1;
   const [observaciones, setObservaciones] = useState(inicial?.observaciones ?? "");
   const [ivaPct, setIvaPct] = useState(numeroTexto(inicial?.iva_pct ?? empresa.iva_pct));
   const [lineas, setLineas] = useState<Linea[]>(() => {
@@ -250,7 +255,7 @@ export function FormularioFactura({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 2xl:grid-cols-4">
+        <div className={cn("grid grid-cols-2 gap-3 lg:grid-cols-2", variasUbicaciones ? "sm:grid-cols-4 2xl:grid-cols-4" : "sm:grid-cols-3 2xl:grid-cols-3 [&>*:first-child]:col-span-2 sm:[&>*:first-child]:col-span-1 lg:[&>*:first-child]:col-span-2 2xl:[&>*:first-child]:col-span-1")}>
           <div className="space-y-1.5">
             <Label htmlFor="fecha">Fecha</Label>
             <Input id="fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
@@ -278,12 +283,12 @@ export function FormularioFactura({
               ))}
             </div>
           </div>
-          <div className="space-y-1.5">
+          {variasUbicaciones && <div className="space-y-1.5">
             <Label htmlFor="ubicacion">Sale de</Label>
             <SelectNativo id="ubicacion" value={ubicacionId ?? ""} onChange={(e) => setUbicacionId(e.target.value ? Number(e.target.value) : null)}>
               {ubicaciones.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
             </SelectNativo>
-          </div>
+          </div>}
         </div>
       </section>
 

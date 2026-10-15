@@ -48,7 +48,7 @@ export default async function PaginaKardex({ params, searchParams }: PageProps<"
           <div className="min-w-0 flex-1">
             <h1 className="font-heading text-xl font-bold sm:text-2xl"><span className="mr-2 font-mono text-base text-muted-foreground">{p.codigo}</span>{p.emoji} {p.nombre}</h1>
             <p className="text-sm text-muted-foreground">
-              {ubicaciones.filter((u) => p.porUbicacion[u.id]).map((u) => `${u.nombre}: ${formatearCantidad(p.porUbicacion[u.id])} ${p.unidad}`).join(" · ") || "Sin existencia"}
+              {ubicaciones.length > 1 ? ubicaciones.filter((u) => p.porUbicacion[u.id]).map((u) => `${u.nombre}: ${formatearCantidad(p.porUbicacion[u.id])} ${p.unidad}`).join(" · ") || "Sin existencia" : "Kardex: todos los movimientos de este producto"}
             </p>
           </div>
           <div className="text-right">
@@ -75,7 +75,7 @@ export default async function PaginaKardex({ params, searchParams }: PageProps<"
           <div className="hidden overflow-x-auto rounded-2xl border bg-card md:block">
             <table className="w-full text-sm">
               <thead className="border-b text-left text-xs text-muted-foreground">
-                <tr><th className="p-3">Fecha</th><th className="p-3">Movimiento</th><th className="p-3">Ubicación</th><th className="p-3">Detalle</th>
+                <tr><th className="p-3">Fecha</th><th className="p-3">Movimiento</th>{ubicaciones.length > 1 && <th className="p-3">Ubicación</th>}<th className="p-3">Detalle</th>
                   <th className="p-3 text-right">Entra</th><th className="p-3 text-right">Sale</th><th className="p-3 text-right">Saldo</th></tr>
               </thead>
               <tbody className="divide-y">
@@ -85,7 +85,7 @@ export default async function PaginaKardex({ params, searchParams }: PageProps<"
                     <tr key={k.id ?? "anterior"}>
                       <td className="whitespace-nowrap p-3 text-muted-foreground">{formatearFechaHora(k.fecha)}</td>
                       <td className={cn("p-3 font-medium", tipo.clase)}>{tipo.texto}</td>
-                      <td className="p-3">{k.ubicacion}</td>
+                      {ubicaciones.length > 1 && <td className="p-3">{k.ubicacion}</td>}
                       <td className="p-3 text-xs text-muted-foreground">{[k.referencia, k.nota].filter(Boolean).join(" · ")}</td>
                       <td className="tabular p-3 text-right text-success">{k.entrada ? formatearCantidad(k.entrada) : ""}</td>
                       <td className="tabular p-3 text-right text-destructive">{k.salida ? formatearCantidad(k.salida) : ""}</td>
@@ -103,7 +103,7 @@ export default async function PaginaKardex({ params, searchParams }: PageProps<"
                 <li key={k.id ?? "anterior"} className="flex items-start gap-3 px-3 py-2.5 text-sm">
                   <div className="min-w-0 flex-1">
                     <p className={cn("font-medium", tipo.clase)}>{tipo.texto}</p>
-                    <p className="text-xs text-muted-foreground">{[formatearFechaHora(k.fecha), k.ubicacion, k.referencia, k.nota].filter(Boolean).join(" · ")}</p>
+                    <p className="text-xs text-muted-foreground">{[formatearFechaHora(k.fecha), ubicaciones.length > 1 && k.ubicacion, k.referencia, k.nota].filter(Boolean).join(" · ")}</p>
                   </div>
                   <div className="text-right">
                     <p className={cn("tabular font-semibold", k.entrada ? "text-success" : "text-destructive")}>{k.entrada ? `+${formatearCantidad(k.entrada)}` : `−${formatearCantidad(k.salida)}`}</p>

@@ -63,22 +63,13 @@ test("tareas de nómina: cambiar el precio", async ({ page }) => {
   await expect(page.getByRole("row", { name: /Despulpar Mango/ })).toContainText("$ 2.500 / cesta");
 });
 
-test("ubicaciones: una sola predeterminada", async ({ page }) => {
+test("ubicaciones: por ahora solo la principal está activa", async ({ page }) => {
   await entrarComoAdmin(page);
   await page.goto("/configuracion/catalogos/ubicaciones");
-  await page.getByRole("button", { name: "Acciones de Galpón" }).first().click();
-  await page.getByRole("menuitem", { name: "Editar" }).click();
-  await page.getByText("Ubicación predeterminada").click();
-  await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Ubicación guardada.")).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: "Predeterminada" })).toHaveCount(1);
-  await expect(page.getByRole("row", { name: /Galpón/ })).toContainText("Predeterminada");
-  // Restaurar
-  await page.getByRole("button", { name: "Acciones de Planta principal" }).first().click();
-  await page.getByRole("menuitem", { name: "Editar" }).click();
-  await page.getByText("Ubicación predeterminada").click();
-  await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Ubicación guardada.")).toBeVisible();
+  await expect(page.getByRole("row", { name: /Planta principal/ })).toContainText("Predeterminada");
+  await expect(page.getByRole("row", { name: /Galpón/ })).toHaveCount(0);
+  await page.getByText(/Ver inactivos/).click();
+  await expect(page.getByRole("row", { name: /Galpón/ })).toBeVisible();
 });
 
 test("monedas: activar VES y registrar tasa", async ({ page }) => {

@@ -44,6 +44,7 @@ Todas, en orden:
 20261021000100_presentaciones_800g_1kg.sql  ← separa fruta comprada (901…) de bolsas 800 g (código 1…) y 1 kg (101…): PENDIENTE
 20261022000100_pulpa_por_fruta.sql          ← productos.fruta_id/peso_kg + pulpa_por_fruta() (gráfico de dona): PENDIENTE
 20261023000100_nomina_fase7.sql             ← Fase 7: bloqueo de borrado en periodos cerrados + nomina_resumen(): PENDIENTE
+20261025000100_una_sola_ubicacion.sql       ← deja activa solo la ubicación principal y le pasa todo el stock: PENDIENTE
 20261024000100_dashboard_reportes.sql       ← Fase 8: resumen_periodo, ventas_por_dia/producto/cliente, ventas_semanales, compras_por_proveedor, cajas_cestas: PENDIENTE
 ```
 **Regla:** nunca editar una migración ya aplicada en producción; crear una nueva con fecha posterior (`2026MMDD000100_descripcion.sql`). Después de agregar una, correr `scripts/generar-instalar.sh` (regenera `supabase/instalar.sql` para instalaciones nuevas) y verificar que aplica limpio **en una sola transacción** (el SQL Editor de Supabase corre todo como una transacción: por eso no se usa `ALTER TYPE … ADD VALUE` seguido de uso del valor; se prefirió `text` + `check`).
@@ -172,6 +173,7 @@ npx tsc --noEmit && npx eslint src tests && npx vitest run
 npx next build && npx next start -p 3000      # arrancar con setsid; matar con: ps -eo pid,args | grep next-server
 PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test     # 17 pruebas (pc + telefono)
 ```
+Si el contenedor se recicló (pasa seguido): borrar `/var/tmp/pgts/data/postmaster.pid`, `/var/run/docker.pid` y `/var/run/docker.sock`, arrancar `dockerd`, `docker start $(docker ps -aq)` y esperar a que `http://127.0.0.1:54321/auth/v1/health` responda 200.
 Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E crean datos con sufijos aleatorios y son repetibles. Para capturas de pantalla, script de Playwright con `executablePath: "/opt/pw-browsers/chromium"`, y mirar la imagen.
 
 **Antes de entregar cada fase:** tsc + eslint + vitest + prueba SQL + build + Playwright completo (27 pruebas) + capturas PC y teléfono + regenerar `instalar.sql` + actualizar README/DECISIONES/HANDOFF + commit en español con las líneas de atribución + push a la rama asignada + darle a Samer el enlace raw del SQL nuevo (con el nombre de esa rama en la URL).
@@ -180,6 +182,7 @@ Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-15 | Factura avisa stock en otras ubicaciones; luego Samer pidió quitar las ubicaciones: una sola activa (migración 20261025) y la UI las oculta si hay una sola. Script local de arranque: ver §8. |
 | 2026-10-14 (2ª sesión, cont. 5) | Fijo sin tareas en nómina. Fase 8 Dashboard y reportes (migración 20261024) con métrica de productos vendidos y rendimiento semanal pedidas por Samer. |
 | 2026-10-14 (2ª sesión, cont. 4) | Fase 7 Nómina completa (migración 20261023). |
 | 2026-10-14 (2ª sesión, cont. 3) | Catálogo en pestañas (Se vende con código / Fruta de proveedores y Insumos sin código). Dona "Porcentaje de pulpa por rubro" en Inventario (migración 20261022). Colores de gráficos en `globals.css` (`--viz-*`, validados con la skill dataviz). |

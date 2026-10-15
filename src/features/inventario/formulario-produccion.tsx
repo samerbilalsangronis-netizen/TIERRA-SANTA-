@@ -53,17 +53,17 @@ export function FormularioProduccion({ productos, ubicaciones, hoy, responsable 
       <h1 className="mb-1 font-heading text-xl font-bold sm:text-2xl">Registrar producción</h1>
       <p className="mb-4 text-sm text-muted-foreground">Escribe solo lo que se produjo. Se suma al inventario de producto terminado.</p>
 
-      <section className="mb-4 grid grid-cols-2 gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-4">
+      <section className={cn("mb-4 grid grid-cols-2 gap-3 rounded-2xl border bg-card p-4", ubicaciones.length > 1 ? "sm:grid-cols-4" : "sm:grid-cols-3")}>
         <div className="space-y-1.5">
           <Label htmlFor="fecha">Fecha</Label>
           <Input id="fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
         </div>
-        <div className="space-y-1.5">
+        {ubicaciones.length > 1 && <div className="space-y-1.5">
           <Label htmlFor="ubicacion">Se guarda en</Label>
           <SelectNativo id="ubicacion" value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)}>
             {ubicaciones.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
           </SelectNativo>
-        </div>
+        </div>}
         <div className="space-y-1.5">
           <Label htmlFor="responsable">Responsable</Label>
           <Input id="responsable" value={quien} onChange={(e) => setQuien(e.target.value)} />

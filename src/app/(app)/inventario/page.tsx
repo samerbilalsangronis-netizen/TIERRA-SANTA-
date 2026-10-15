@@ -55,7 +55,7 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
       </nav>
 
       {vista === "stock" && <><GraficoPulpa semana={t(sp.pulpa) === "semana"} /><VistaStock filas={filas} ubicaciones={ubicaciones} /></>}
-      {vista === "produccion" && <VistaProduccion sp={sp} esAdmin={ajustar} />}
+      {vista === "produccion" && <VistaProduccion sp={sp} esAdmin={ajustar} variasUbicaciones={ubicaciones.length > 1} />}
       {vista === "movimientos" && <VistaMovimientos sp={sp} filas={filas} ubicaciones={ubicaciones} />}
     </>
   );
@@ -80,7 +80,8 @@ async function GraficoPulpa({ semana }: { semana: boolean }) {
 function VistaStock({ filas, ubicaciones }: { filas: FilaStock[]; ubicaciones: { id: number; nombre: string }[] }) {
   if (filas.length === 0) return <EstadoVacio icono={Boxes} titulo="Sin productos" descripcion="Crea los productos en Configuración → Catálogos." />;
   // Solo las ubicaciones que tienen algo (y la principal)
-  const cols = ubicaciones.filter((u, i) => i === 0 || filas.some((f) => (f.porUbicacion[u.id] ?? 0) !== 0));
+  // Columnas por ubicación solo si hay más de una ubicación activa
+  const cols = ubicaciones.length > 1 ? ubicaciones.filter((u, i) => i === 0 || filas.some((f) => (f.porUbicacion[u.id] ?? 0) !== 0)) : [];
   return (
     <>
       <div className="mb-2 flex justify-end">
@@ -119,9 +120,11 @@ function VistaStock({ filas, ubicaciones }: { filas: FilaStock[]; ubicaciones: {
               <span className="w-7 text-center font-mono text-xs text-muted-foreground">{f.codigo}</span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{f.emoji} {f.nombre}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {cols.filter((u) => f.porUbicacion[u.id]).map((u) => `${u.nombre}: ${formatearCantidad(f.porUbicacion[u.id])}`).join(" · ") || "Sin existencia"}
-                </p>
+                {cols.length > 0 ? (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {cols.filter((u) => f.porUbicacion[u.id]).map((u) => `${u.nombre}: ${formatearCantidad(f.porUbicacion[u.id])}`).join(" · ") || "Sin existencia"}
+                  </p>
+                ) : f.total === 0 && <p className="text-xs text-muted-foreground">Sin existencia</p>}
               </div>
               <div className="text-right">
                 <p className="tabular font-semibold">{formatearCantidad(f.total)} <span className="text-xs font-normal text-muted-foreground">{f.unidad}</span></p>
@@ -137,7 +140,7 @@ function VistaStock({ filas, ubicaciones }: { filas: FilaStock[]; ubicaciones: {
 }
 
 // ------------------------------------------------------------------ Producción
-async function VistaProduccion({ sp, esAdmin }: { sp: Record<string, string | string[] | undefined>; esAdmin: boolean }) {
+async function VistaProduccion({ sp, esAdmin, variasUbicaciones }: { sp: Record<string, string | string[] | undefined>; esAdmin: boolean; variasUbicaciones: boolean }) {
   const hoy = hoyISO();
   const hasta = fecha(t(sp.hasta)) || hoy;
   const desde = fecha(t(sp.desde)) || sumarDias(hasta, -6);
@@ -184,7 +187,7 @@ async function VistaProduccion({ sp, esAdmin }: { sp: Record<string, string | st
                 <div className="min-w-0 flex-1 text-sm">
                   <p className="font-medium">{items.map((m) => `${m.productos?.emoji ?? ""} ${m.productos?.nombre} ${formatearCantidad(m.cantidad)} ${m.productos?.unidad}`).join(" · ")}</p>
                   <p className="text-xs text-muted-foreground">
-                    {[r.ubicaciones?.nombre, r.responsable && `Responsable: ${r.responsable}`, r.nota].filter(Boolean).join(" · ")}
+                    {[variasUbicaciones && r.ubicaciones?.nombre, r.responsable && `Responsable: ${r.responsable}`, r.nota].filter(Boolean).join(" · ")}
                   </p>
                 </div>
                 {esAdmin && <BotonEliminarProduccion id={r.id} texto={`del ${formatearFecha(r.fecha)}`} />}
@@ -240,7 +243,7 @@ async function VistaMovimientos({ sp, filas, ubicaciones }: {
                       <span className={tipo.clase}>{tipo.texto}</span> · <Link href={`/inventario/${m.producto_id}`} className="hover:text-primary">{m.productos?.emoji} {m.productos?.nombre}</Link>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {[formatearFechaHora(m.fecha), m.ubicaciones?.nombre, autor].filter(Boolean).join(" · ")}
+                      {[formatearFechaHora(m.fecha), ubicaciones.length > 1 && m.ubicaciones?.nombre, autor].filter(Boolean).join(" · ")}
                       {m.factura_id && m.facturas && <> · <Link href={`/facturacion/${m.factura_id}`} className="text-primary hover:underline">Factura {numeroFactura(m.facturas, empresa?.factura_prefijo ?? "")}</Link></>}
                       {m.nota && !m.factura_id && <> · {m.nota}</>}
                     </p>
