@@ -106,3 +106,32 @@ test("inventario: agregar un producto nuevo desde Inventario y producirlo", asyn
   await page.getByRole("button", { name: "Guardar producción" }).click();
   await expect(page.getByText(new RegExp(`${nombre} 15 bolsa`)).first()).toBeVisible();
 });
+
+test("factura: si no hay stock en 'Sale de' avisa dónde sí hay y permite cambiarlo con un toque", async ({ page }) => {
+  await entrarComoAdmin(page);
+  const nombre = `Pulpa Uva ${Date.now().toString(36).slice(-4)}`;
+  await page.goto("/configuracion/catalogos/productos?nuevo=1");
+  await page.fill("input[name=nombre]", nombre);
+  const codigo = await page.inputValue("input[name=codigo]");
+  await page.getByRole("dialog").getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+
+  // Producción guardada en el cuarto frío
+  await page.goto("/inventario/produccion");
+  await page.locator("#ubicacion").selectOption({ label: "Cuarto frío planta" });
+  await page.getByLabel(`Cantidad producida de ${nombre}`).fill("7");
+  await page.getByRole("button", { name: "Guardar producción" }).click();
+  await expect(page).toHaveURL(/vista=produccion/);
+
+  // La factura sale de la planta principal: avisa que hay 7 en el cuarto frío
+  await page.goto("/facturacion/nueva");
+  await page.getByLabel("Buscar cliente").fill("a");
+  await page.getByLabel("Buscar cliente").press("Enter");
+  await page.getByLabel("Código o nombre del producto").first().fill(codigo);
+  await page.getByLabel("Cantidad línea 1").fill("5");
+  const linea = page.getByTestId("linea-factura").first();
+  await expect(linea).toContainText("Solo hay 0");
+  await linea.getByRole("button", { name: /hay 7 en Cuarto frío planta/ }).click();
+  await expect(page.locator("#ubicacion")).toHaveValue(await page.locator("#ubicacion option", { hasText: "Cuarto frío planta" }).getAttribute("value") ?? "");
+  await expect(linea).toContainText("Disponible 7");
+});

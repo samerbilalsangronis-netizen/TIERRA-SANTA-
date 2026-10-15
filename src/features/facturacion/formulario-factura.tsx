@@ -117,6 +117,10 @@ export function FormularioFactura({
 
   const disponible = (productoId: number) =>
     (ubicacionId ? datos.stock[ubicacionId]?.[productoId] ?? 0 : 0) + (devolver[productoId] ?? 0);
+  /** Stock del producto en las OTRAS ubicaciones (para avisar si está en otro lado). */
+  const enOtras = (productoId: number) =>
+    ubicaciones.filter((u) => u.id !== ubicacionId && (datos.stock[u.id]?.[productoId] ?? 0) > 0)
+      .map((u) => ({ id: u.id, nombre: u.nombre, cantidad: datos.stock[u.id][productoId] }));
   const requerido = new Map<number, Decimal>();
   lineas.forEach((l, i) => {
     if (l.productoId && valores[i].cantidad) requerido.set(l.productoId, (requerido.get(l.productoId) ?? new Decimal(0)).plus(valores[i].cantidad!));
@@ -327,6 +331,12 @@ export function FormularioFactura({
                       <p className="truncate text-sm font-medium">{p.emoji ? `${p.emoji} ` : ""}{p.nombre}</p>
                       <p className={cn("text-[11px]", falta ? "font-medium text-warning" : "text-muted-foreground")}>
                         {falta ? <><AlertTriangle className="mr-0.5 inline size-3" />Solo hay {formatearCantidad(disp)} {p.unidad}</> : `Disponible ${formatearCantidad(disp)} ${p.unidad}`}
+                        {falta && enOtras(p.id).map((o) => (
+                          <button key={o.id} type="button" onClick={() => setUbicacionId(o.id)} className="ml-1 font-medium text-primary underline-offset-2 hover:underline"
+                            title={`Cambiar "Sale de" a ${o.nombre}`}>
+                            · hay {formatearCantidad(o.cantidad)} en {o.nombre}
+                          </button>
+                        ))}
                         {sugerido !== undefined && <> · último precio {formatearNumero(sugerido, 2)}</>}
                       </p>
                     </>
