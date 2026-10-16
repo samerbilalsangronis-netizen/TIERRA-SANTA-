@@ -130,7 +130,7 @@ test("proveedor de insumos: bolsas por unidad", async ({ page }) => {
   await expect(page.getByRole("link", { name: new RegExp(nombre) })).toContainText("Insumos");
 });
 
-test("proveedor en el teléfono: entrega con foto desde la cámara", async ({ browser }) => {
+test("proveedor en el teléfono: entrega sin nota ni foto", async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
   await entrarComoAdmin(page);
@@ -140,12 +140,11 @@ test("proveedor en el teléfono: entrega con foto desde la cámara", async ({ br
   await elegirOpcion(page, "producto_id", "Fresa");
   await page.fill("input[name=kg_total]", "30");
   await page.fill("input[name=precio]", "2.500");
-  await page.setInputFiles("input[type=file][capture]", "public/logo-tierra-santa-negro.png");
-  await expect(page.getByText("Foto subida.")).toBeVisible({ timeout: 15_000 });
+  // El formulario de entrega ya no pide nota ni foto
+  await expect(page.getByRole("dialog").getByLabel("Nota", { exact: true })).toHaveCount(0);
+  await expect(page.locator("input[type=file]")).toHaveCount(0);
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Entrega registrada.").first()).toBeVisible();
-  await page.getByRole("button", { name: "Ver foto" }).click();
-  await expect(page.getByRole("img", { name: "Foto de la entrega" })).toBeVisible();
   const desborde = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(desborde).toBeLessThanOrEqual(1);
   await page.keyboard.press("Escape");

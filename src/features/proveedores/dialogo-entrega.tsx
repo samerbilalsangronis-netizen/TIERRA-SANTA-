@@ -11,7 +11,6 @@ import { formatearCantidad, formatearMonto, parsearMonto } from "@/lib/dinero";
 import { cn } from "@/lib/utils";
 import { guardarEntrega } from "./acciones";
 import { esquemaEntrega } from "./esquemas";
-import { SubirFoto } from "./subir-foto";
 
 export type Rubro = {
   id: number; codigo: number; nombre: string; emoji: string | null; categoria: string;
@@ -167,14 +166,6 @@ export function DialogoEntrega({
         </>
       )}
 
-      <SubirFoto
-        proveedorId={proveedorId}
-        ruta={form.getValues("foto_path") || null}
-        url={form.getValues("foto_url") || null}
-        vistaPrevia={entrega?.foto_firmada ?? null}
-        onCambio={({ ruta, url }) => { form.setValue("foto_path", ruta ?? ""); form.setValue("foto_url", url ?? ""); }}
-      />
-      <CampoTexto etiqueta="Nota" className="sm:col-span-2" {...form.register("nota")} />
       {!esInsumo && (
         <Controller control={form.control} name="anotar_cestas" render={({ field }) => (
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
