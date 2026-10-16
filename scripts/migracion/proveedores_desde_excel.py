@@ -10,7 +10,9 @@ script SQL para pegar en Supabase → SQL Editor. El script:
     muestra la hoja: si alguno no cuadra (más de 1 en la moneda), deshace todo.
 
 Uso:
-  python3 -I scripts/migracion/proveedores_desde_excel.py LIBRO.xlsx COP salida.sql
+  python3 -I scripts/migracion/proveedores_desde_excel.py LIBRO.xlsx COP salida.sql [--omitir="NOMBRE" ...]
+
+--omitir deja fuera un proveedor (por el nombre del panel; se puede repetir).
 
 Necesita openpyxl. El SQL generado tiene datos reales: no se sube al repositorio.
 
@@ -96,7 +98,7 @@ def miles(v, dec=0):
     return s
 
 
-def leer(ruta):
+def leer(ruta, omitir=()):
     wb = openpyxl.load_workbook(ruta, data_only=True)
     # "Panel de Control" (COP) o "Panel de Control USD"
     panel = next(ws for ws in wb.worksheets if ws.title.startswith("Panel de Control"))
@@ -111,6 +113,9 @@ def leer(ruta):
             avisos.append(f"El panel nombra la hoja «{hoja}» pero no existe")
             continue
         nombre = " ".join(str(panel.cell(r, 2).value or hoja).split())
+        if clave(nombre) in omitir:
+            avisos.append(f"{nombre}: omitido a pedido")
+            continue
         p = {"nombre": nombre, "saldo": num(panel.cell(r, 3).value) or 0,
              "cestas_pend": num(panel.cell(r, 4).value) or 0, "entregas": [], "abonos": [], "cestas": []}
         for f in range(10, ws.max_row + 1):
@@ -309,11 +314,20 @@ def generar(proveedores, moneda, origen):
     return "\n".join(L) + "\n"
 
 
+def omitidos(avisos):
+    return [a.rsplit(": omitido", 1)[0] for a in avisos if a.endswith(": omitido a pedido")]
+
+
 def main():
-    if len(sys.argv) != 4 or sys.argv[2] not in ("COP", "USD", "VES"):
+    args = [a for a in sys.argv[1:] if not a.startswith("--omitir=")]
+    omitir = {clave(a.split("=", 1)[1]) for a in sys.argv[1:] if a.startswith("--omitir=")}
+    if len(args) != 3 or args[1] not in ("COP", "USD", "VES"):
         raise SystemExit(__doc__)
-    ruta, moneda, salida = sys.argv[1:]
-    proveedores, avisos = leer(ruta)
+    ruta, moneda, salida = args
+    proveedores, avisos = leer(ruta, omitir)
+    faltan = omitir - {clave(n) for n in omitidos(avisos)}
+    if faltan:
+        raise SystemExit(f"--omitir: no hay proveedor con ese nombre: {', '.join(sorted(faltan))}")
     with open(salida, "w", encoding="utf-8") as f:
         f.write(generar(proveedores, moneda, ruta.rsplit("/", 1)[-1]))
     total = sum(p["saldo"] for p in proveedores)
