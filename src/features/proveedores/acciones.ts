@@ -71,7 +71,7 @@ export async function guardarEntrega(entrada: DatosEntrega): Promise<Resultado> 
   // Solo se guarda la cantidad que corresponde al modo
   const fila = {
     ...d, precio: d.precio as number, kg_por_cesta: prod.kg_por_cesta,
-    kg_total: d.modo_pesaje === "KG" || d.modo_pesaje === "VARIABLE" ? d.kg_total : 0,
+    kg_total: d.modo_pesaje === "UNIDAD" ? 0 : d.kg_total,
     unidades: d.modo_pesaje === "UNIDAD" ? d.unidades : 0,
   };
 
@@ -91,7 +91,7 @@ export async function guardarEntrega(entrada: DatosEntrega): Promise<Resultado> 
 
   // Cestas entregadas enlazadas a la entrega
   const { data: enlazada } = await supabase.from("cestas_proveedor").select("id").eq("entrega_id", entregaId!).maybeSingle();
-  const cestas = Math.trunc(d.cestas);
+  const cestas = Math.round(d.cestas);
   if (anotar_cestas && cestas > 0) {
     const mov = { proveedor_id: d.proveedor_id, fecha: d.fecha, entregadas: cestas, devueltas: 0, entrega_id: entregaId!, nota: "Con la entrega" };
     const { error } = enlazada

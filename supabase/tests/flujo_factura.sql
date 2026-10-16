@@ -195,6 +195,14 @@ select pg_temp.check((select modo_pesaje from public.entregas_proveedor where id
 insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, unidades, precio, merma)
   values (1, 6, 'COP', 80, 2500, 2);
 select pg_temp.check((select total from public.entregas_proveedor where id = 4) = 195000, 'entrega POR UNIDAD total');
+-- Por cesta escribiendo los kilos: 11 kg con 20 kg/cesta a 60.000/cesta → 0,55 cestas, 33.000
+insert into public.entregas_proveedor (proveedor_id, producto_id, moneda, modo_pesaje, kg_total, precio, nota)
+  values (1, 1, 'COP', 'FIJO', 11, 60000, 'prueba kilos');
+select pg_temp.check((select (cestas, total) = (0.55, 33000.00) from public.entregas_proveedor where nota = 'prueba kilos'), 'FIJO por kilos: cestas y total');
+-- Al editar solo las cestas, los kilos se recalculan: 2 cestas → 40 kg, 120.000
+update public.entregas_proveedor set cestas = 2 where nota = 'prueba kilos';
+select pg_temp.check((select (kg_total, total) = (40.000, 120000.00) from public.entregas_proveedor where nota = 'prueba kilos'), 'FIJO editar cestas recalcula kilos');
+delete from public.entregas_proveedor where nota = 'prueba kilos';
 -- Insumo: 1.000 bolsas a 150
 insert into public.productos (codigo, nombre, unidad, tipo, categoria, modo_pesaje) values (100, 'Bolsa 1 kg', 'und', 'materia_prima', 'insumo', 'UNIDAD');
 insert into public.proveedores (nombre, tipo) values ('Plásticos del Táchira', 'insumos');

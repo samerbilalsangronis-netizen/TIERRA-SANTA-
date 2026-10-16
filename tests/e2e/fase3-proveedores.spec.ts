@@ -151,3 +151,28 @@ test("proveedor en el teléfono: entrega sin nota ni foto", async ({ browser }) 
   await page.screenshot({ path: "test-results/proveedor-telefono.png", fullPage: true });
   await ctx.close();
 });
+
+test("compra por cesta: se escribe en cestas o en kilos y el otro se calcula", async ({ page }) => {
+  await entrarComoAdmin(page);
+  await crearProveedor(page, `Finca Cestas ${sufijo()}`);
+  await page.getByRole("button", { name: "Entrega", exact: true }).click();
+  await elegirOpcion(page, "producto_id", "Mora");
+  await page.getByRole("radio", { name: "Por cesta" }).click();
+  const dialogo = page.getByRole("dialog");
+  const kgc = Number((await dialogo.getByText(/kg por cesta/).textContent())!.replace(/[^\d,]/g, "").replace(",", "."));
+
+  // Kilos → cestas
+  await page.fill("input[name=kg_total]", String(kgc * 3));
+  await expect(page.locator("input[name=cestas]")).toHaveValue("3");
+  // Cestas → kilos
+  await page.fill("input[name=cestas]", "2");
+  await expect(page.locator("input[name=kg_total]")).toHaveValue(String(kgc * 2));
+  // Kilos que no llenan cestas completas: el total es proporcional a los kilos
+  await page.fill("input[name=kg_total]", String(kgc / 2));
+  await expect(page.locator("input[name=cestas]")).toHaveValue("0,5");
+  await page.fill("input[name=precio]", "40.000");
+  await expect(dialogo.locator("[aria-live=polite]")).toContainText("COP $ 20.000");
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Entrega registrada.").first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: "0,5", exact: true }).first()).toBeVisible();
+});

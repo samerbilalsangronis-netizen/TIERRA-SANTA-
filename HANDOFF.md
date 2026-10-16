@@ -46,8 +46,9 @@ Todas, en orden:
 20261023000100_nomina_fase7.sql             ← Fase 7: bloqueo de borrado en periodos cerrados + nomina_resumen(): PENDIENTE
 20261025000100_una_sola_ubicacion.sql       ← deja activa solo la ubicación principal y le pasa todo el stock: PENDIENTE
 20261024000100_dashboard_reportes.sql       ← Fase 8: resumen_periodo, ventas_por_dia/producto/cliente, ventas_semanales, compras_por_proveedor, cajas_cestas: PENDIENTE
+20261026000100_cestas_o_kilos.sql          ← compra por cesta: se escribe en cestas O en kilos (cestas numeric(12,4); en FIJO manda el kg): PENDIENTE
 ```
-**Regla:** nunca editar una migración ya aplicada en producción; crear una nueva con fecha posterior (`2026MMDD000100_descripcion.sql`). Después de agregar una, correr `scripts/generar-instalar.sh` (regenera `supabase/instalar.sql` para instalaciones nuevas) y verificar que aplica limpio **en una sola transacción** (el SQL Editor de Supabase corre todo como una transacción: por eso no se usa `ALTER TYPE … ADD VALUE` seguido de uso del valor; se prefirió `text` + `check`).
+**Regla:** nunca editar una migración ya aplicada en producción; crear una nueva con fecha posterior (`2026MMDD000100_descripcion.sql`). Después de agregar una, correr `scripts/generar-instalar.sh` (regenera `supabase/instalar.sql` para instalaciones nuevas) y verificar que aplica limpio **en una sola transacción** (el SQL Editor de Supabase confirma cada sentencia por separado —una tabla temporal `on commit drop` desaparece entre sentencias—, así que lo que deba ser todo-o-nada va en un bloque `do`; además: por eso no se usa `ALTER TYPE … ADD VALUE` seguido de uso del valor; se prefirió `text` + `check`).
 
 ## 3. Stack y particularidades (¡leer!)
 
@@ -183,6 +184,7 @@ Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-16 (cont. 2) | Ficha de proveedor: Precio por kilo + Cestas solo cuando aplica; piña por unidad (utilidad `corregir_pina_por_unidad.sql`); entrega sin nota ni foto; compra por cesta en cestas o kilos (migración 20261026). Samer ya importó los proveedores COP en producción (19–25 aplicadas, confirmar). |
 | 2026-10-16 (cont.) | Fase 9: migración de proveedores COP desde la hoja (script generador + SQL con verificación de saldos). |
 | 2026-10-16 | Blanco y negro (sin morado), logo de inicio más chico, marca de agua de frutas en la factura (HTML y PDF), script para borrar los datos de prueba (`supabase/utilidades/`). Samer va a borrar sus pruebas y empezar la Fase 9. |
 | 2026-10-15 | Factura avisa stock en otras ubicaciones; luego Samer pidió quitar las ubicaciones: una sola activa (migración 20261025) y la UI las oculta si hay una sola. Script local de arranque: ver §8. |

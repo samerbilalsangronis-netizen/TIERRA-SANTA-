@@ -7,7 +7,7 @@ import { CampoSelect, CampoTexto } from "@/components/comunes/campos";
 import { DialogoFormulario } from "@/components/comunes/dialogo-formulario";
 import { useFormulario } from "@/components/comunes/use-formulario";
 import { calcularEntrega, MODOS_COMPRA, NOMBRE_MODO, type ModoCompra } from "@/lib/calculos/entregas";
-import { formatearCantidad, formatearMonto, parsearMonto } from "@/lib/dinero";
+import { dec, formatearCantidad, formatearMonto, parsearMonto, type Decimal } from "@/lib/dinero";
 import { cn } from "@/lib/utils";
 import { guardarEntrega } from "./acciones";
 import { esquemaEntrega } from "./esquemas";
@@ -75,6 +75,19 @@ export function DialogoEntrega({
   const modosDisponibles = MODOS_COMPRA.filter((m) => !(esInsumo && m.valor === "FIJO"));
   const etiquetaPrecio = { KG: "Precio por kilo", UNIDAD: `Precio por ${unidadTxt === "und" ? "unidad" : unidadTxt}`, FIJO: "Precio por cesta", VARIABLE: "Precio total" }[modo];
   const registroProducto = form.register("producto_id");
+  const registroCestas = form.register("cestas");
+  const registroKilos = form.register("kg_total");
+
+  // Por cesta: cestas → kilos y kilos → cestas
+  const texto = (n: Decimal, decimales: number) => (n.gt(0) ? n.toDecimalPlaces(decimales).toString().replace(".", ",") : "");
+  function desdeCestas(valor: string) {
+    if (modo !== "FIJO" || !kgPorCesta) return;
+    form.setValue("kg_total", texto(dec(parsearMonto(valor) ?? 0).times(kgPorCesta), 3));
+  }
+  function desdeKilos(valor: string) {
+    if (modo !== "FIJO" || !kgPorCesta) return;
+    form.setValue("cestas", texto(dec(parsearMonto(valor) ?? 0).div(kgPorCesta), 2));
+  }
 
   return (
     <DialogoFormulario abierto onCerrar={onCerrar} pendiente={pendiente} onEnviar={enviar}
@@ -126,8 +139,14 @@ export function DialogoEntrega({
           ) : modo === "UNIDAD" ? (
             <CampoTexto etiqueta={`Cantidad (${unidadTxt})`} requerido inputMode="decimal" placeholder="80" error={err.unidades?.message} {...form.register("unidades")} />
           ) : (
-            <CampoTexto etiqueta="Cestas" requerido inputMode="decimal" error={err.cestas?.message}
-              ayuda={kgPorCesta ? `× ${formatearCantidad(kgPorCesta)} kg por cesta` : undefined} {...form.register("cestas")} />
+            // Por cesta: se escribe en cestas o en kilos y el otro se calcula solo
+            <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+              <CampoTexto etiqueta="Cestas" inputMode="decimal" error={err.cestas?.message}
+                ayuda={kgPorCesta ? `${formatearCantidad(kgPorCesta)} kg por cesta` : undefined}
+                {...registroCestas} onChange={(e) => { registroCestas.onChange(e); desdeCestas(e.target.value); }} />
+              <CampoTexto etiqueta="Kilos" inputMode="decimal" error={err.kg_total?.message} ayuda="O escribe los kilos"
+                {...registroKilos} onChange={(e) => { registroKilos.onChange(e); desdeKilos(e.target.value); }} />
+            </div>
           )}
           <CampoTexto etiqueta={`${etiquetaPrecio} (${moneda})`} requerido inputMode="decimal" error={err.precio?.message} {...form.register("precio")} />
           {!esInsumo && (

@@ -33,10 +33,10 @@ export const esquemaEntrega = z
     anotar_cestas: z.boolean(),
   })
   .superRefine((d, ctx) => {
-    if (d.modo_pesaje === "FIJO" && d.cestas <= 0) ctx.addIssue({ code: "custom", path: ["cestas"], message: "Indica las cestas" });
+    if (d.modo_pesaje === "FIJO" && d.cestas <= 0 && d.kg_total <= 0) ctx.addIssue({ code: "custom", path: ["cestas"], message: "Indica las cestas o los kilos" });
     if ((d.modo_pesaje === "KG" || d.modo_pesaje === "VARIABLE") && d.kg_total <= 0) ctx.addIssue({ code: "custom", path: ["kg_total"], message: "Indica los kilos" });
     if (d.modo_pesaje === "UNIDAD" && d.unidades <= 0) ctx.addIssue({ code: "custom", path: ["unidades"], message: "Indica las unidades" });
-    const bruto = d.modo_pesaje === "UNIDAD" ? d.unidades : d.modo_pesaje === "FIJO" ? Infinity : d.kg_total;
+    const bruto = d.modo_pesaje === "UNIDAD" ? d.unidades : d.modo_pesaje === "FIJO" && d.kg_total <= 0 ? Infinity : d.kg_total;
     if (d.merma > bruto) ctx.addIssue({ code: "custom", path: ["merma"], message: d.modo_pesaje === "UNIDAD" ? "No puede superar las unidades" : "No puede superar los kilos" });
   });
 export type DatosEntrega = z.input<typeof esquemaEntrega>;

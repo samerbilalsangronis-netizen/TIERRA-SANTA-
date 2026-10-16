@@ -32,7 +32,8 @@ export type ResultadoEntrega = {
  * Cálculo de una entrega (idéntico a public.calcular_entrega en la BD):
  *  KG:       total = round(kg × precio) − round(merma × precio)
  *  UNIDAD:   total = round(unidades × precio) − round(dañadas × precio)
- *  FIJO:     kg = cestas × kg_por_cesta; total = round(cestas × precio_cesta) − round(merma × precio_cesta / kg_por_cesta)
+ *  FIJO:     kg = kilos escritos, o cestas × kg_por_cesta; total = round(kg × precio_cesta / kg_por_cesta) − round(merma × precio_cesta / kg_por_cesta)
+ *            (con cestas enteras es cestas × precio_cesta)
  *  VARIABLE: total = precio − round(merma × precio / kg_total)   (solo datos del sistema anterior)
  */
 export function calcularEntrega(e: EntradaEntrega): ResultadoEntrega {
@@ -56,11 +57,12 @@ export function calcularEntrega(e: EntradaEntrega): ResultadoEntrega {
     case "FIJO": {
       const kgc = dec(e.kgPorCesta);
       if (kgc.lte(0)) throw new Error("La compra por cesta requiere kg por cesta mayor a 0.");
-      const cestas = dec(e.cestas);
-      const kgTotal = cestas.times(kgc).toDecimalPlaces(3);
+      const kgEscrito = dec(e.kgTotal);
+      const kgTotal = kgEscrito.gt(0) ? kgEscrito : dec(e.cestas).times(kgc).toDecimalPlaces(3);
+      if (kgTotal.lte(0)) throw new Error("Indica las cestas o los kilos.");
       if (merma.gt(kgTotal)) throw new Error("La merma no puede superar el peso total.");
       const desc = r2(merma.times(precio).div(kgc));
-      return { kgTotal, precioKg: precio.div(kgc).toDecimalPlaces(4), descMerma: desc, total: r2(cestas.times(precio)).minus(desc), pesoNeto: kgTotal.minus(merma) };
+      return { kgTotal, precioKg: precio.div(kgc).toDecimalPlaces(4), descMerma: desc, total: r2(kgTotal.times(precio).div(kgc)).minus(desc), pesoNeto: kgTotal.minus(merma) };
     }
     case "VARIABLE": {
       const kgTotal = dec(e.kgTotal);
