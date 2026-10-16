@@ -14,7 +14,8 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/repor
   const sp = request.nextUrl.searchParams;
   const hasta = fecha(sp.get("hasta")) ?? hoyISO();
   const desde = fecha(sp.get("desde")) ?? `${hasta.slice(0, 8)}01`;
-  const r = await generarReporte(tipo, { desde, hasta, moneda: sp.get("moneda") || "USD" });
+  const proveedorId = Number(sp.get("proveedor")) || null;
+  const r = await generarReporte(tipo, { desde, hasta, moneda: sp.get("moneda") || "USD", proveedorId });
   const hoja = XLSX.utils.aoa_to_sheet([
     [`${r.titulo} · ${desde} a ${hasta}${r.moneda ? ` · ${r.moneda}` : ""}`], [],
     r.columnas.map((c) => c.titulo),

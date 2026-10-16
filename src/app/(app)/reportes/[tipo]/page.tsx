@@ -34,8 +34,13 @@ export default async function PaginaReporte({ params, searchParams }: PageProps<
   const lista = (monedas ?? []).map((m) => m.codigo);
   const moneda = lista.includes(t(sp.moneda)) ? t(sp.moneda) : empresa?.moneda_defecto ?? "USD";
   const def = REPORTES[tipo];
-  const r = await generarReporte(tipo, { ...actual, moneda });
-  const qs = new URLSearchParams({ desde: actual.desde, hasta: actual.hasta, ...(def.moneda ? { moneda } : {}) });
+  // Filtro por proveedor (solo en los reportes que lo usan)
+  const { data: proveedores } = def.proveedor
+    ? await supabase.from("proveedores").select("id, nombre").order("nombre")
+    : { data: null };
+  const prov = (proveedores ?? []).find((p) => String(p.id) === t(sp.proveedor));
+  const r = await generarReporte(tipo, { ...actual, moneda, proveedorId: prov?.id ?? null });
+  const qs = new URLSearchParams({ desde: actual.desde, hasta: actual.hasta, ...(def.moneda ? { moneda } : {}), ...(prov ? { proveedor: String(prov.id) } : {}) });
 
   return (
     <>
@@ -44,10 +49,11 @@ export default async function PaginaReporte({ params, searchParams }: PageProps<
         <a href={`/reportes/${tipo}/excel?${qs}`} className={buttonVariants({ variant: "outline" })}><Download className="size-4" /> Excel</a>
         <BotonImprimir />
       </div>
-      <div className="no-print"><FiltrosDashboard periodo={clave} desde={actual.desde} hasta={actual.hasta} moneda={moneda} monedas={lista} conMoneda={def.moneda} /></div>
+      <div className="no-print"><FiltrosDashboard periodo={clave} desde={actual.desde} hasta={actual.hasta} moneda={moneda} monedas={lista} conMoneda={def.moneda}
+        proveedores={proveedores ?? undefined} proveedor={prov ? String(prov.id) : ""} /></div>
       <Hoja>
         <EncabezadoHoja empresa={empresa} titulo={r.titulo.toUpperCase()}
-          lineas={[`Del ${formatearFecha(actual.desde)} al ${formatearFecha(actual.hasta)}`, r.moneda ? `Moneda: ${r.moneda}` : ""]} />
+          lineas={[`Del ${formatearFecha(actual.desde)} al ${formatearFecha(actual.hasta)}`, r.moneda ? `Moneda: ${r.moneda}` : "", prov ? `Proveedor: ${prov.nombre}` : ""]} />
         <div className="mt-4">
           <TablaReporte columnas={r.columnas} filas={r.filas} totales={r.totales} moneda={r.moneda} />
         </div>

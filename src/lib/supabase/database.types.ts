@@ -2505,6 +2505,21 @@ export type Database = {
         Args: { p_producto_id: number };
         Returns: Database["public"]["Enums"]["forma_inventario"];
       };
+      fruta_recibida: {
+        Args: { p_desde: string; p_hasta: string; p_proveedor_id?: number };
+        Returns: {
+          cestas: number;
+          emoji: string;
+          entregas: number;
+          kg: number;
+          kg_neto: number;
+          merma: number;
+          producto_id: number;
+          proveedores: number;
+          rubro: string;
+          unidades: number;
+        }[];
+      };
       guardar_borrador_factura: { Args: { p: Json }; Returns: number };
       guardar_jornada: { Args: { p: Json }; Returns: number };
       hoy: { Args: Record<PropertyKey, never>; Returns: string };

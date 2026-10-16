@@ -32,7 +32,7 @@ test("reportes: cada reporte en pantalla y en Excel", async ({ page }) => {
   await page.goto("/reportes");
   for (const [ruta, titulo] of [
     ["ventas-producto", "VENTAS POR PRODUCTO"], ["ventas-cliente", "VENTAS POR CLIENTE"], ["libro-facturas", "LIBRO DE FACTURAS"],
-    ["compras-proveedor", "COMPRAS POR PROVEEDOR"], ["produccion", "PRODUCCIÓN DIARIA"], ["cajas-cestas", "CAJAS Y CESTAS"],
+    ["fruta-recibida", "FRUTA RECIBIDA"], ["compras-proveedor", "COMPRAS POR PROVEEDOR"], ["produccion", "PRODUCCIÓN DIARIA"], ["cajas-cestas", "CAJAS Y CESTAS"],
   ]) {
     await page.goto(`/reportes/${ruta}?p=rango&desde=2026-01-01&hasta=2026-12-31`);
     await expect(page.getByText(titulo)).toBeVisible();
@@ -44,4 +44,36 @@ test("reportes: cada reporte en pantalla y en Excel", async ({ page }) => {
   // Ventas por producto tiene filas y total
   await page.goto("/reportes/ventas-producto?p=rango&desde=2026-01-01&hasta=2026-12-31&moneda=USD");
   await expect(page.getByRole("columnheader", { name: "Producto" })).toBeVisible();
+});
+
+test("fruta recibida: se suma de las entregas y se filtra por proveedor", async ({ page }) => {
+  await entrarComoAdmin(page);
+  const nombre = `Finca Reporte ${Date.now().toString(36).slice(-5)}`;
+  await page.goto("/proveedores");
+  await page.getByRole("button", { name: "Nuevo proveedor" }).click();
+  await page.fill("input[name=nombre]", nombre);
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page).toHaveURL(/\/proveedores\/\d+/);
+  const id = page.url().split("/").pop()!.split("?")[0];
+  // Entrega por kilo: 120 kg de mora con 4 kg de merma
+  await page.getByRole("button", { name: "Entrega", exact: true }).click();
+  const opcion = page.locator("select[name=producto_id] option", { hasText: "Mora" }).first();
+  await page.selectOption("select[name=producto_id]", (await opcion.getAttribute("value"))!);
+  await page.getByRole("radio", { name: "Por kilo" }).click();
+  await page.fill("input[name=kg_total]", "120");
+  await page.fill("input[name=precio]", "3.000");
+  await page.fill("input[name=merma]", "4");
+  await page.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Entrega registrada.").first()).toBeVisible();
+
+  await page.goto("/reportes/fruta-recibida?p=hoy");
+  await page.getByLabel("Proveedor").selectOption(id);
+  await expect(page).toHaveURL(new RegExp(`proveedor=${id}`));
+  await expect(page.getByText(`Proveedor: ${nombre}`)).toBeVisible();
+  const fila = page.getByRole("row", { name: /Mora/ });
+  await expect(fila).toContainText("120");
+  await expect(fila).toContainText("116");
+  await expect(fila).toContainText("100,0 %");
+  const r = await page.request.get(`/reportes/fruta-recibida/excel?desde=2026-01-01&hasta=2026-12-31&proveedor=${id}`);
+  expect(r.status()).toBe(200);
 });

@@ -47,6 +47,7 @@ Todas, en orden:
 20261025000100_una_sola_ubicacion.sql       ← deja activa solo la ubicación principal y le pasa todo el stock: PENDIENTE
 20261024000100_dashboard_reportes.sql       ← Fase 8: resumen_periodo, ventas_por_dia/producto/cliente, ventas_semanales, compras_por_proveedor, cajas_cestas: PENDIENTE
 20261026000100_cestas_o_kilos.sql          ← compra por cesta: se escribe en cestas O en kilos (cestas numeric(12,4); en FIJO manda el kg): PENDIENTE
+20261027000100_fruta_recibida.sql          ← reporte Fruta recibida: fruta_recibida(desde, hasta, proveedor opcional): PENDIENTE
 ```
 **Regla:** nunca editar una migración ya aplicada en producción; crear una nueva con fecha posterior (`2026MMDD000100_descripcion.sql`). Después de agregar una, correr `scripts/generar-instalar.sh` (regenera `supabase/instalar.sql` para instalaciones nuevas) y verificar que aplica limpio **en una sola transacción** (el SQL Editor de Supabase confirma cada sentencia por separado —una tabla temporal `on commit drop` desaparece entre sentencias—, así que lo que deba ser todo-o-nada va en un bloque `do`; además: por eso no se usa `ALTER TYPE … ADD VALUE` seguido de uso del valor; se prefirió `text` + `check`).
 
@@ -184,6 +185,7 @@ Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-16 (cont. 4) | Reporte "Fruta recibida" (kg, merma, kg netos, % y cestas por fruta; filtro por proveedor; migración 20261027). Tarjeta de compras/cobrado del dashboard en filas por moneda. Próximo: ERP Clientes leyendo cada imagen de postimages para replicar las líneas de las facturas (Samer lo pidió; probar primero con ~10). |
 | 2026-10-16 (cont. 3) | Migración de proveedores USD (fusiona con COP por nombre). |
 | 2026-10-16 (cont. 2) | Ficha de proveedor: Precio por kilo + Cestas solo cuando aplica; piña por unidad (utilidad `corregir_pina_por_unidad.sql`); entrega sin nota ni foto; compra por cesta en cestas o kilos (migración 20261026). Samer ya importó los proveedores COP en producción (19–25 aplicadas, confirmar). |
 | 2026-10-16 (cont.) | Fase 9: migración de proveedores COP desde la hoja (script generador + SQL con verificación de saldos). |

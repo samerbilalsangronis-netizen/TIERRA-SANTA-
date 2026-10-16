@@ -6,19 +6,21 @@ import { Input } from "@/components/ui/input";
 import { PERIODOS, type ClavePeriodo } from "@/lib/periodos";
 import { cn } from "@/lib/utils";
 
-/** Fila única de filtros: periodo (con rango libre) y moneda de los gráficos. */
-export function FiltrosDashboard({ periodo, desde, hasta, moneda, monedas, conMoneda = true }: {
+/** Fila única de filtros: periodo (con rango libre), moneda de los gráficos y, si se pide, proveedor. */
+export function FiltrosDashboard({ periodo, desde, hasta, moneda, monedas, conMoneda = true, proveedores, proveedor = "" }: {
   periodo: ClavePeriodo; desde: string; hasta: string; moneda: string; monedas: string[]; conMoneda?: boolean;
+  proveedores?: { id: number; nombre: string }[]; proveedor?: string;
 }) {
   const router = useRouter();
   const ruta = usePathname();
   const [pendiente, iniciar] = useTransition();
   const ir = (c: Record<string, string>) => {
-    const v = { p: periodo, desde, hasta, moneda, ...c };
+    const v = { p: periodo, desde, hasta, moneda, proveedor, ...c };
     const qs = new URLSearchParams();
     if (v.p !== "mes") qs.set("p", v.p);
     if (v.p === "rango") { qs.set("desde", v.desde); qs.set("hasta", v.hasta); }
     if (conMoneda && v.moneda) qs.set("moneda", v.moneda);
+    if (proveedores && v.proveedor) qs.set("proveedor", v.proveedor);
     iniciar(() => router.replace(`${ruta}${qs.size ? `?${qs}` : ""}`, { scroll: false }));
   };
   return (
@@ -34,6 +36,13 @@ export function FiltrosDashboard({ periodo, desde, hasta, moneda, monedas, conMo
           <Input type="date" aria-label="Desde" value={desde} onChange={(e) => e.target.value && ir({ desde: e.target.value })} className="h-8 w-[9.5rem] text-xs" />
           <Input type="date" aria-label="Hasta" value={hasta} onChange={(e) => e.target.value && ir({ hasta: e.target.value })} className="h-8 w-[9.5rem] text-xs" />
         </span>
+      )}
+      {proveedores && (
+        <select aria-label="Proveedor" value={proveedor} onChange={(e) => ir({ proveedor: e.target.value })}
+          className="h-8 max-w-[16rem] rounded-lg border bg-background px-2 text-xs">
+          <option value="">Todos los proveedores</option>
+          {proveedores.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+        </select>
       )}
       {conMoneda && monedas.length > 1 && (
         <div className="ml-auto flex rounded-lg border p-0.5 text-xs" role="radiogroup" aria-label="Moneda de los gráficos">
