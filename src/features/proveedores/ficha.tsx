@@ -35,7 +35,6 @@ const PRECIO_POR: Record<ModoCompra, string> = { KG: "por kilo", UNIDAD: "por un
 
 function cantidadTexto(e: { modo_pesaje: string; kg_total: number; unidades: number; cestas: number; productos: { unidad: string; categoria: string } | null }) {
   if (e.modo_pesaje === "UNIDAD") return `${formatearCantidad(e.unidades)} ${e.productos?.categoria === "insumo" ? e.productos.unidad : "und"}`;
-  if (e.modo_pesaje === "FIJO") return `${formatearCantidad(e.cestas)} cestas`;
   return `${formatearCantidad(e.kg_total)} kg`;
 }
 
@@ -74,6 +73,10 @@ export function FichaProveedor(props: {
   const [pendiente, iniciar] = useTransition();
   const cerrar = () => setDialogo(null);
   const usaCestas = proveedor.tipo !== "insumos";
+  // La columna de cestas solo aparece si alguna entrega fue por cesta
+  const hayCestas = entregas.some((e) => Number(e.cestas) > 0);
+  // Precio por kilo solo si hay compras por peso (por unidad ya lo dice "Precio")
+  const hayKilos = entregas.some((e) => e.modo_pesaje !== "UNIDAD");
 
   const saldoPor = useMemo(() => Object.fromEntries(saldos.map((s) => [s.moneda ?? "", Number(s.saldo ?? 0)])), [saldos]);
   const monedasConMovimiento = saldos.map((s) => s.moneda!).filter(Boolean);
@@ -94,12 +97,12 @@ export function FichaProveedor(props: {
   }
 
   const totalesEntregas = useMemo(() => {
-    const m = new Map<string, { total: number; kg: number; merma: number; neto: number; n: number }>();
+    const m = new Map<string, { total: number; kg: number; merma: number; neto: number; cestas: number; n: number }>();
     for (const e of entregas) {
-      const t = m.get(e.moneda) ?? { total: 0, kg: 0, merma: 0, neto: 0, n: 0 };
+      const t = m.get(e.moneda) ?? { total: 0, kg: 0, merma: 0, neto: 0, cestas: 0, n: 0 };
       m.set(e.moneda, {
         total: sumar([t.total, e.total]).toNumber(), kg: sumar([t.kg, e.kg_total]).toNumber(), merma: sumar([t.merma, e.merma]).toNumber(),
-        neto: sumar([t.neto, e.peso_neto]).toNumber(), n: t.n + 1,
+        neto: sumar([t.neto, e.peso_neto]).toNumber(), cestas: sumar([t.cestas, e.cestas]).toNumber(), n: t.n + 1,
       });
     }
     return [...m.entries()];
@@ -241,9 +244,9 @@ export function FichaProveedor(props: {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Fecha</TableHead><TableHead>Rubro</TableHead>
+                      <TableHead>Fecha</TableHead><TableHead>Rubro</TableHead>{hayCestas && <TableHead className="text-right">Cestas</TableHead>}
                       <TableHead className="text-right">Cantidad</TableHead><TableHead className="text-right">Merma</TableHead><TableHead className="text-right">Neto (kg)</TableHead>
-                      <TableHead className="text-right">Precio por kilo</TableHead><TableHead className="text-right">Precio</TableHead><TableHead className="text-right">Desc. merma</TableHead><TableHead className="text-right">Total</TableHead>
+                      {hayKilos && <TableHead className="text-right">Precio por kilo</TableHead>}<TableHead className="text-right">Precio</TableHead><TableHead className="text-right">Desc. merma</TableHead><TableHead className="text-right">Total</TableHead>
                       <TableHead className="w-10" />
                     </TableRow>
                   </TableHeader>
@@ -255,10 +258,11 @@ export function FichaProveedor(props: {
                           <span className="font-medium">{e.productos?.emoji} {e.productos?.nombre}</span>
                           <span className="block text-[11px] text-muted-foreground">{NOMBRE_MODO[e.modo_pesaje as ModoCompra]}{e.modo_pesaje === "FIJO" ? ` · ${formatearCantidad(e.kg_por_cesta)} kg/c` : ""}{e.nota ? ` · ${e.nota}` : ""}</span>
                         </TableCell>
+                        {hayCestas && <TableCell className="tabular text-right">{Number(e.cestas) ? formatearCantidad(e.cestas) : "—"}</TableCell>}
                         <TableCell className="tabular whitespace-nowrap text-right">{cantidadTexto(e)}</TableCell>
                         <TableCell className="tabular text-right">{Number(e.merma) ? `${formatearCantidad(e.merma)} ${e.modo_pesaje === "UNIDAD" ? "und" : "kg"}` : "—"}</TableCell>
                         <TableCell className="tabular text-right">{Number(e.peso_neto) ? formatearCantidad(e.peso_neto) : "—"}</TableCell>
-                        <TableCell className="tabular whitespace-nowrap text-right">{precioUnitario(e)}</TableCell>
+                        {hayKilos && <TableCell className="tabular whitespace-nowrap text-right">{e.modo_pesaje === "UNIDAD" ? "—" : precioUnitario(e)}</TableCell>}
                         <TableCell className="tabular text-right">
                           {formatearMonto(e.precio, e.moneda, { sinCodigo: true })}
                           <span className="block text-[11px] text-muted-foreground">{PRECIO_POR[e.modo_pesaje as ModoCompra]}</span>
@@ -276,10 +280,11 @@ export function FichaProveedor(props: {
                     {totalesEntregas.map(([m, t]) => (
                       <TableRow key={m}>
                         <TableCell colSpan={2} className="font-semibold">Total {m} ({t.n})</TableCell>
+                        {hayCestas && <TableCell className="tabular text-right">{t.cestas ? formatearCantidad(t.cestas) : ""}</TableCell>}
                         <TableCell className="tabular text-right">{t.kg ? `${formatearCantidad(t.kg)} kg` : ""}</TableCell>
                         <TableCell />
-                        <TableCell className="tabular text-right">{formatearCantidad(t.neto)}</TableCell>
-                        <TableCell colSpan={3} />
+                        <TableCell className="tabular text-right">{t.neto ? formatearCantidad(t.neto) : ""}</TableCell>
+                        <TableCell colSpan={hayKilos ? 3 : 2} />
                         <TableCell className="tabular whitespace-nowrap text-right font-bold">{formatearMonto(t.total, m)}</TableCell>
                         <TableCell />
                       </TableRow>
@@ -297,6 +302,7 @@ export function FichaProveedor(props: {
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {formatearFecha(e.fecha)} · {e.modo_pesaje === "UNIDAD" ? cantidadTexto(e) : `${formatearCantidad(e.kg_total)} kg`} × {precioUnitario(e)}
+                        {Number(e.cestas) > 0 && ` · ${formatearCantidad(e.cestas)} cestas`}
                         {Number(e.merma) > 0 && ` · ${e.modo_pesaje === "UNIDAD" ? "dañadas" : "merma"} ${formatearCantidad(e.merma)}`}
                       </p>
                       {(Number(e.peso_neto) > 0 || e.nota) && (

@@ -27,6 +27,7 @@ Cómo se guarda cada entrega (para que el total sea exactamente el de la hoja):
     del sistema anterior): kg = F, precio = M + L, merma = I. Si era por cesta,
     las cestas y el precio por cesta quedan en la columna cestas y en la nota.
   · Insumos (etiquetas…) → modo UNIDAD: unidades = E, precio = G.
+  · Fruta por unidad (piña) → modo UNIDAD: unidades = F ("KG TOTAL" en la hoja), precio = total / unidades.
   · Fila sin kilos → modo UNIDAD 1 × total, con nota para revisarla.
 """
 import datetime
@@ -147,7 +148,13 @@ def entrega(prov, f, c, avisos):
             raise SystemExit(f"{donde}: insumo sin unidades × precio que dé el total")
     else:
         kg = num(c("F")) or num(c("K")) or (cestas * kg_cesta if cestas and kg_cesta else None)
-        if not kg:
+        if kg and RUBROS[rubro][3] == "UNIDAD":
+            # Fruta que se compra por unidad (piña): la columna "KG TOTAL" de la hoja son unidades
+            precio = round((total + desc) / kg, 2)
+            if abs(kg * precio - (total + desc)) > 0.01:
+                raise SystemExit(f"{donde}: {c('C')} por unidad, pero {kg} × {precio} no da el total {total + desc}")
+            e.update(modo="UNIDAD", kg=0, unidades=kg, precio=precio, merma=round(merma, 3))
+        elif not kg:
             e.update(modo="UNIDAD", kg=0, unidades=1, precio=round(total, 2))
             notas.append("Sin kilos en la hoja anterior" + (f" ({miles(cestas, 2)} cestas)" if cestas else "") + "; revisar")
             avisos.append(f"{donde}: {c('C')} sin kilos; se guarda solo el total {miles(total)}")
