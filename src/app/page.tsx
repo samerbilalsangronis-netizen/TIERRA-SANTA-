@@ -35,16 +35,16 @@ export default async function PaginaInicio({ searchParams }: PageProps<"/">) {
   const { razon, logo } = await datosEmpresa();
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#0a0a0f] px-5 py-10 text-[#ececf3]">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#0a0a0b] px-5 py-10 text-[#ececf3]">
       {/* Halo suave de marca detrás del logo */}
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-[30%] size-[min(110vw,720px)] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-40 blur-3xl"
-        style={{ background: "radial-gradient(circle, rgba(124,58,237,.55) 0%, rgba(124,58,237,0) 65%)" }}
+        style={{ background: "radial-gradient(circle, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 65%)" }}
       />
       <div className="relative z-10 flex w-full max-w-md flex-col items-center">
-        <div className="anim-logo relative aspect-[1775/1028] w-[min(88vw,460px)]">
-          <Image src={logo} alt={razon} fill priority sizes="(max-width: 640px) 88vw, 460px" className="object-contain drop-shadow-[0_8px_36px_rgba(157,92,246,.55)]" unoptimized={logo.startsWith("http")} />
+        <div className="anim-logo relative aspect-[1775/1028] w-[min(62vw,280px)]">
+          <Image src={logo} alt={razon} fill priority sizes="(max-width: 640px) 62vw, 280px" className="object-contain drop-shadow-[0_8px_36px_rgba(255,255,255,.18)]" unoptimized={logo.startsWith("http")} />
         </div>
 
         <div className="anim-form mt-8 w-full max-w-sm">

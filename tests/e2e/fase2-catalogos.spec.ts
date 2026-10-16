@@ -90,7 +90,7 @@ test("monedas: activar VES y registrar tasa", async ({ page }) => {
   await page.fill("input[name=tasa]", "4.150");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Tasa registrada.")).toBeVisible();
-  await expect(page.getByText(/1 USD.*4\.150.*COP/)).toBeVisible();
+  await expect(page.getByText(/1 USD.*4\.150.*COP/).first()).toBeVisible();
 });
 
 test("respaldo completo en Excel", async ({ page }) => {

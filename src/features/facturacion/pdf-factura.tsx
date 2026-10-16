@@ -1,10 +1,36 @@
 import "server-only";
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Circle, Document, Ellipse, G, Image, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import { formatearCantidad, formatearMonto, formatearNumero } from "@/lib/dinero";
 import { formatearFecha } from "@/lib/fechas";
 import { numeroFactura } from "@/lib/facturas";
 import { montoEnLetras } from "@/lib/numeros-a-letras";
 import type { EmpresaDocumento, FacturaCompleta } from "./datos";
+import { DISPOSICION, FRUTAS, OPACIDAD_MARCA } from "./frutas";
+
+// Carta: 612 × 792 puntos
+const ANCHO = 612, ALTO = 792;
+const trazo = { stroke: "#171717", strokeWidth: 1.4, fill: "none", strokeOpacity: OPACIDAD_MARCA } as const;
+
+/** Marca de agua de frutas, muy tenue, en todas las páginas. */
+function MarcaFrutasPdf() {
+  return (
+    <View fixed style={{ position: "absolute", top: 0, left: 0, width: ANCHO, height: ALTO }}>
+      {DISPOSICION.map((d, i) => {
+        const lado = (d.tam / 100) * ANCHO;
+        return (
+          <Svg key={i} viewBox="0 0 100 100" style={{ position: "absolute", left: (d.x / 100) * ANCHO, top: (d.y / 100) * ALTO, width: lado, height: lado }}>
+            <G transform={`rotate(${d.giro} 50 50)`}>
+              {FRUTAS[d.fruta].map((f, j) =>
+                f.tipo === "path" ? <Path key={j} d={f.d} {...trazo} />
+                  : f.tipo === "circulo" ? <Circle key={j} cx={f.cx} cy={f.cy} r={f.r} {...trazo} />
+                  : <Ellipse key={j} cx={f.cx} cy={f.cy} rx={f.rx} ry={f.ry} {...trazo} />)}
+            </G>
+          </Svg>
+        );
+      })}
+    </View>
+  );
+}
 
 const gris = "#525252";
 const s = StyleSheet.create({
@@ -14,7 +40,7 @@ const s = StyleSheet.create({
   logo: { width: 80, height: 48, objectFit: "contain", marginRight: 10 },
   razon: { fontSize: 12, fontFamily: "Helvetica-Bold" },
   chico: { fontSize: 8, color: gris },
-  titulo: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#6d28d9", textAlign: "right" },
+  titulo: { fontSize: 14, fontFamily: "Helvetica-Bold", color: "#171717", textAlign: "right" },
   derecha: { textAlign: "right" },
   cliente: { flexDirection: "row", flexWrap: "wrap", borderBottomWidth: 1, borderBottomColor: "#d4d4d4", paddingVertical: 8 },
   campoCliente: { width: "50%", paddingVertical: 1 },
@@ -47,6 +73,7 @@ export function PdfFactura({ factura: f, empresa, logo }: {
   return (
     <Document title={`${empresa.titulo_documento} ${num}`} author={empresa.razon_social} language="es">
       <Page size="LETTER" style={s.pagina}>
+        <MarcaFrutasPdf />
         {f.estado === "anulada" && <Text style={s.anulada} fixed>ANULADA</Text>}
         <View style={s.encabezado}>
           <View style={[s.fila, { maxWidth: "58%" }]}>

@@ -80,7 +80,9 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - Cierre de periodo: congela lo ganado (no se pueden editar jornadas ni abonos de ese rango), calcula saldo anterior + ganado − abonos y, opcionalmente, registra la **liquidación** para dejar el saldo en cero. Se puede reabrir con motivo.
 - Las precargas de tareas usan los precios vistos en las capturas (Espicada de Fresa $5.000/cesta, Cortada de Durazno $10.000/cesta, etc.).
 
-## Logo
+## Logo y colores
+- **Blanco y negro** (pedido de Samer, sin morado): botones blancos en modo oscuro y negros en modo claro. El color queda solo para los datos (gráficos) y los estados (verde/ámbar/rojo). Logo de inicio más pequeño.
+- **Marca de agua de frutas** en la factura (pantalla, impresión y PDF): siluetas de guanábana, fresa, piña, mango, parchita y mora en línea fina al 7 % de opacidad (`src/features/facturacion/frutas.ts`).
 - Logo oficial (alas + monograma TS) convertido a PNG transparente: **blanco** para la app oscura (`/logo-tierra-santa.png`) y **negro** para papel y modo claro (`/logo-tierra-santa-negro.png`). El original queda en `public/marca/`. Desde Configuración se puede subir otro.
 
 ## Catálogos (Fase 2)
@@ -171,3 +173,6 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 ## Una sola ubicación (pedido de Samer)
 - "Por ahora la ubicación es innecesaria": queda activa solo la ubicación principal; el stock que había en otras pasó a ella (registrado como traslado en el kardex). Las pantallas ya no muestran ubicación (factura, producción, merma, ajuste, stock, kardex, movimientos) ni el botón Traslado.
 - Si en el futuro se necesitan, basta activar las ubicaciones en Configuración → Catálogos → Ubicaciones: todo vuelve a aparecer.
+
+## Borrar los datos de prueba
+- `supabase/utilidades/borrar_datos_de_prueba.sql` (no es migración): vacía clientes, facturas, pagos, cajas, proveedores, entregas, abonos, cestas, inventario, nómina y la bitácora, y reinicia los contadores. Conserva usuarios, empresa/logo y catálogos.

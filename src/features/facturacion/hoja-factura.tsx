@@ -4,6 +4,27 @@ import { formatearFecha } from "@/lib/fechas";
 import { numeroFactura } from "@/lib/facturas";
 import { montoEnLetras } from "@/lib/numeros-a-letras";
 import type { EmpresaDocumento, FacturaCompleta } from "./datos";
+import { DISPOSICION, FRUTAS, OPACIDAD_MARCA, type Figura } from "./frutas";
+
+function FiguraSvg({ f }: { f: Figura }) {
+  if (f.tipo === "path") return <path d={f.d} />;
+  if (f.tipo === "circulo") return <circle cx={f.cx} cy={f.cy} r={f.r} />;
+  return <ellipse cx={f.cx} cy={f.cy} rx={f.rx} ry={f.ry} />;
+}
+
+/** Marca de agua de frutas, muy tenue, detrás del contenido (sale también al imprimir). */
+function MarcaFrutas() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" style={{ opacity: OPACIDAD_MARCA }}>
+      {DISPOSICION.map((d, i) => (
+        <svg key={i} viewBox="0 0 100 100" className="absolute" fill="none" stroke="#171717" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round"
+          style={{ left: `${d.x}%`, top: `${d.y}%`, width: `${d.tam}%`, transform: `rotate(${d.giro}deg)` }}>
+          {FRUTAS[d.fruta].map((f, j) => <FiguraSvg key={j} f={f} />)}
+        </svg>
+      ))}
+    </div>
+  );
+}
 
 /** Documento de la factura en pantalla (igual al PDF). Se imprime con el botón "Imprimir". */
 export function HojaFactura({ factura: f, empresa }: { factura: FacturaCompleta; empresa: EmpresaDocumento }) {
@@ -12,6 +33,8 @@ export function HojaFactura({ factura: f, empresa }: { factura: FacturaCompleta;
   return (
     <Hoja>
       <div className="relative">
+        <MarcaFrutas />
+        <div className="relative">
         {f.estado === "anulada" && (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center" aria-hidden>
             <span className="-rotate-[20deg] rounded-xl border-8 border-red-600/60 px-8 py-2 text-6xl font-black tracking-widest text-red-600/60 sm:text-8xl">ANULADA</span>
@@ -84,6 +107,7 @@ export function HojaFactura({ factura: f, empresa }: { factura: FacturaCompleta;
         </div>
         {empresa.pie_factura && <p className="mt-6 text-center text-xs text-neutral-600">{empresa.pie_factura}</p>}
         {empresa.texto_legal && <p className="mt-2 text-center text-[10px] text-neutral-500">{empresa.texto_legal}</p>}
+        </div>
       </div>
     </Hoja>
   );

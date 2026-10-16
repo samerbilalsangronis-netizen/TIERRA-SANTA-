@@ -42,7 +42,7 @@ export function FormularioLogin({ siguiente, avisoInicial }: { siguiente?: strin
   const errores = form.formState.errors;
 
   return (
-    <form onSubmit={enviar} noValidate className="space-y-4 rounded-2xl border border-white/10 bg-[#111118]/80 p-5 shadow-2xl shadow-black/40 backdrop-blur">
+    <form onSubmit={enviar} noValidate className="space-y-4 rounded-2xl border border-white/10 bg-[#121214]/80 p-5 shadow-2xl shadow-black/40 backdrop-blur">
       <div className="space-y-1.5">
         <Label htmlFor="correo" className="text-[#c9c8d6]">Correo</Label>
         <Input
@@ -53,7 +53,7 @@ export function FormularioLogin({ siguiente, avisoInicial }: { siguiente?: strin
           autoCapitalize="none"
           spellCheck={false}
           placeholder="tu@correo.com"
-          className="h-11 border-white/10 bg-[#0a0a0f] text-base text-white placeholder:text-[#5f5e70]"
+          className="h-11 border-white/10 bg-[#0a0a0b] text-base text-white placeholder:text-[#5f5e70]"
           aria-invalid={!!errores.correo}
           {...form.register("correo")}
         />
@@ -68,7 +68,7 @@ export function FormularioLogin({ siguiente, avisoInicial }: { siguiente?: strin
             type={verClave ? "text" : "password"}
             autoComplete="current-password"
             placeholder="••••••••"
-            className="h-11 border-white/10 bg-[#0a0a0f] pr-11 text-base text-white placeholder:text-[#5f5e70]"
+            className="h-11 border-white/10 bg-[#0a0a0b] pr-11 text-base text-white placeholder:text-[#5f5e70]"
             aria-invalid={!!errores.clave}
             {...form.register("clave")}
           />
@@ -91,7 +91,7 @@ export function FormularioLogin({ siguiente, avisoInicial }: { siguiente?: strin
         </div>
       )}
 
-      <Button type="submit" disabled={pendiente} className="h-11 w-full bg-[#7c3aed] text-base font-semibold text-white hover:bg-[#6d28d9]">
+      <Button type="submit" disabled={pendiente} className="h-11 w-full bg-white text-base font-semibold text-black hover:bg-neutral-200">
         {pendiente ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />}
         {pendiente ? "Ingresando…" : "Iniciar sesión"}
       </Button>

@@ -54,7 +54,7 @@ export default async function PaginaEstadoCuenta({ params, searchParams }: PageP
             </div>
           </div>
           <div className="sm:text-right">
-            <p className="text-lg font-bold tracking-wide text-violet-700">ESTADO DE CUENTA</p>
+            <p className="text-lg font-bold tracking-wide text-neutral-900">ESTADO DE CUENTA</p>
             <p className="text-xs text-neutral-600">Proveedor · Moneda {moneda}</p>
             <p className="text-xs text-neutral-600">
               {desde || hasta ? `Del ${desde ? formatearFecha(desde) : "inicio"} al ${hasta ? formatearFecha(hasta) : "hoy"}` : "Todos los movimientos"}

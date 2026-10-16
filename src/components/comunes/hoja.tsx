@@ -27,7 +27,7 @@ export function EncabezadoHoja({ empresa, titulo, lineas }: { empresa: EmpresaHo
         </div>
       </div>
       <div className="sm:text-right">
-        <p className="text-lg font-bold tracking-wide text-violet-700">{titulo}</p>
+        <p className="text-lg font-bold tracking-wide text-neutral-900">{titulo}</p>
         {lineas.filter(Boolean).map((l, i) => <p key={i} className="text-xs text-neutral-600">{l}</p>)}
       </div>
     </header>

@@ -182,6 +182,7 @@ Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-16 | Blanco y negro (sin morado), logo de inicio más chico, marca de agua de frutas en la factura (HTML y PDF), script para borrar los datos de prueba (`supabase/utilidades/`). Samer va a borrar sus pruebas y empezar la Fase 9. |
 | 2026-10-15 | Factura avisa stock en otras ubicaciones; luego Samer pidió quitar las ubicaciones: una sola activa (migración 20261025) y la UI las oculta si hay una sola. Script local de arranque: ver §8. |
 | 2026-10-14 (2ª sesión, cont. 5) | Fijo sin tareas en nómina. Fase 8 Dashboard y reportes (migración 20261024) con métrica de productos vendidos y rendimiento semanal pedidas por Samer. |
 | 2026-10-14 (2ª sesión, cont. 4) | Fase 7 Nómina completa (migración 20261023). |
