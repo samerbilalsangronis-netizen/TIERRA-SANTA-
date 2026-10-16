@@ -80,6 +80,17 @@ def sql(v):
     return "'" + str(v).replace("'", "''") + "'"
 
 
+# Clave para reconocer al mismo proveedor en los dos archivos (sin espacios:
+# "HUMBERTO MOLINA(MORA)" = "HUMBERTO MOLINA (MORA)")
+CLAVE = "regexp_replace(public.normalizar({}), '\\s', '', 'g')"
+# Diferencia máxima aceptada por proveedor (redondeo de céntimos)
+TOLERANCIA = {"COP": 1, "USD": 0.05, "VES": 1}
+
+
+def clave(nombre):
+    return normalizar(nombre).replace(" ", "")
+
+
 def miles(v, dec=0):
     s = f"{v:,.{dec}f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return s
@@ -87,7 +98,8 @@ def miles(v, dec=0):
 
 def leer(ruta):
     wb = openpyxl.load_workbook(ruta, data_only=True)
-    panel = wb["Panel de Control"]
+    # "Panel de Control" (COP) o "Panel de Control USD"
+    panel = next(ws for ws in wb.worksheets if ws.title.startswith("Panel de Control"))
     hojas = {ws.title: ws for ws in wb.worksheets}
     proveedores, avisos = [], []
     for r in range(9, panel.max_row + 1):
@@ -154,6 +166,11 @@ def entrega(prov, f, c, avisos):
             if abs(kg * precio - (total + desc)) > 0.01:
                 raise SystemExit(f"{donde}: {c('C')} por unidad, pero {kg} × {precio} no da el total {total + desc}")
             e.update(modo="UNIDAD", kg=0, unidades=kg, precio=precio, merma=round(merma, 3))
+        elif not kg and cestas and precio_hoja and abs(cestas * precio_hoja - (total + desc)) <= 0.01:
+            # Sin kilos pero con cestas × precio (kg por cesta en 0): se guarda por unidad
+            e.update(modo="UNIDAD", kg=0, unidades=cestas, precio=precio_hoja)
+            notas.append("Sin kilos en la hoja anterior: cestas × precio")
+            avisos.append(f"{donde}: {c('C')} sin kilos; se guarda {miles(cestas, 2)} × {miles(precio_hoja, 2)} por unidad")
         elif not kg:
             e.update(modo="UNIDAD", kg=0, unidades=1, precio=round(total, 2))
             notas.append("Sin kilos en la hoja anterior" + (f" ({miles(cestas, 2)} cestas)" if cestas else "") + "; revisar")
@@ -176,7 +193,7 @@ def generar(proveedores, moneda, origen):
     n_abo = sum(len(p["abonos"]) for p in proveedores)
     n_ces = sum(len(p["cestas"]) for p in proveedores)
     col = {"COP": "saldo_cop", "USD": "saldo_usd", "VES": "saldo_ves"}[moneda]
-    nombres = ", ".join(sql(normalizar(p["nombre"])) for p in proveedores)
+    claves = ", ".join(sql(clave(p["nombre"])) for p in proveedores)
     usados = sorted({e["rubro"] for p in proveedores for e in p["entregas"]})
     # Producto de cada rubro (se busca por nombre al momento de insertar)
     rubros_values = ", ".join(f"({sql(r)}, {sql(RUBROS[r][0])})" for r in usados)
@@ -191,15 +208,20 @@ def generar(proveedores, moneda, origen):
     w(f"-- {len(proveedores)} proveedores · {n_ent} entregas · {n_abo} abonos · {n_ces} movimientos de cestas")
     w("--")
     w("-- Uso: Supabase → SQL Editor → New query → pegar todo → Run.")
-    w("-- Es un solo bloque: si un saldo no cuadra con la hoja, o los proveedores")
-    w("-- ya existen, da error y NO se guarda nada.")
+    w("-- Es un solo bloque: si un saldo no cuadra con la hoja, o ya se importó,")
+    w("-- da error y NO se guarda nada. Si un proveedor ya existe (p. ej. en la otra")
+    w("-- moneda) se le suman estos movimientos en vez de crearlo de nuevo.")
     w("-- =====================================================================")
     w("do $migracion$")
-    w("declare r record; v_id bigint; v text; n int;")
+    w("declare r record; v text; n int; v_cestas jsonb;")
     w("begin")
     w("  -- 0) No importar dos veces")
-    w(f"  select string_agg(nombre, ', ') into v from public.proveedores where public.normalizar(nombre) in ({nombres});")
-    w("  if v is not null then raise exception 'Estos proveedores ya existen (¿ya se importó?): %', v; end if;")
+    w(f"  select string_agg(p.nombre, ', ') into v from public.proveedores p where {CLAVE.format('p.nombre')} in ({claves})")
+    w(f"     and (exists (select 1 from public.entregas_proveedor e where e.proveedor_id = p.id and e.moneda = {sql(moneda)})")
+    w(f"       or exists (select 1 from public.abonos_proveedor a where a.proveedor_id = p.id and a.moneda = {sql(moneda)}));")
+    w(f"  if v is not null then raise exception 'Estos proveedores ya tienen movimientos en {moneda} (¿ya se importó?): %', v; end if;")
+    w("  -- Cestas pendientes de antes (para comprobar solo lo que se agrega)")
+    w(f"  select coalesce(jsonb_object_agg({CLAVE.format('nombre')}, cestas_pendientes), '{{}}') into v_cestas from public.v_resumen_proveedores;")
     w("")
     w("  -- 1) Rubros: se usan los productos existentes por nombre; los que falten se crean")
     w("  for r in select * from (values")
@@ -215,9 +237,15 @@ def generar(proveedores, moneda, origen):
     w("    end if;")
     w("  end loop;")
     w("")
-    w("  -- 2) Proveedores")
-    w("  insert into public.proveedores (nombre, moneda_habitual, tipo, notas) values")
-    w(",\n".join(f"    ({sql(p['nombre'])}, {sql(moneda)}, {sql(p['tipo'])}, 'Importado de la hoja anterior')" for p in proveedores) + ";")
+    w("  -- 2) Proveedores (los que ya existen se reutilizan)")
+    w("  select string_agg(p.nombre, ', ') into v from public.proveedores p")
+    w(f"   where {CLAVE.format('p.nombre')} in ({claves});")
+    w("  if v is not null then raise notice 'Ya existían (se les suman los movimientos): %', v; end if;")
+    w("  insert into public.proveedores (nombre, moneda_habitual, tipo, notas)")
+    w(f"  select v.nombre, {sql(moneda)}, v.tipo, 'Importado de la hoja anterior' from (values")
+    w(",\n".join(f"    ({sql(p['nombre'])}, {sql(p['tipo'])})" for p in proveedores))
+    w("  ) v(nombre, tipo)")
+    w(f"  where not exists (select 1 from public.proveedores p where {CLAVE.format('p.nombre')} = {CLAVE.format('v.nombre')});")
     w("")
     if n_ent:
         w("  -- 3) Entregas (el total lo calcula el sistema)")
@@ -229,7 +257,7 @@ def generar(proveedores, moneda, origen):
                      f"{sql(e['unidades'])}, {sql(e['precio'])}, {sql(e['merma'])}, {sql(e['foto'])}, {sql(e['nota'])}, {i})"
                      for i, (p, e) in enumerate((p, e) for p in proveedores for e in p["entregas"])))
         w("  ) v(proveedor, fecha, rubro, modo, cestas, kg, unidades, precio, merma, foto, nota, orden)")
-        w("  join public.proveedores p on public.normalizar(p.nombre) = public.normalizar(v.proveedor)")
+        w(f"  join public.proveedores p on {CLAVE.format('p.nombre')} = {CLAVE.format('v.proveedor')}")
         w(join_rubro)
         w("  order by v.fecha::date, v.orden;")
         w("  get diagnostics n = row_count;")
@@ -243,7 +271,7 @@ def generar(proveedores, moneda, origen):
         w(",\n".join(f"    ({sql(p['nombre'])}, {sql(a['fecha'])}, {sql(a['monto'])}, {i})"
                      for i, (p, a) in enumerate((p, a) for p in proveedores for a in p["abonos"])))
         w("  ) v(proveedor, fecha, monto, orden)")
-        w("  join public.proveedores p on public.normalizar(p.nombre) = public.normalizar(v.proveedor)")
+        w(f"  join public.proveedores p on {CLAVE.format('p.nombre')} = {CLAVE.format('v.proveedor')}")
         w("  order by v.fecha::date, v.orden;")
         w("")
     if n_ces:
@@ -253,21 +281,22 @@ def generar(proveedores, moneda, origen):
         w("  from (values")
         w(",\n".join(f"    ({sql(p['nombre'])}, {sql(c['fecha'])}, {c['ent']}, {c['dev']})" for p in proveedores for c in p["cestas"]))
         w("  ) v(proveedor, fecha, ent, dev)")
-        w("  join public.proveedores p on public.normalizar(p.nombre) = public.normalizar(v.proveedor);")
+        w(f"  join public.proveedores p on {CLAVE.format('p.nombre')} = {CLAVE.format('v.proveedor')};")
         w("")
     w("  -- 6) Comprobación contra la hoja: si algo no cuadra, se deshace todo")
     w("  select string_agg(format('%s: hoja %s / sistema %s (cestas %s / %s, entregas %s / %s, abonos %s / %s)',")
-    w(f"           x.proveedor, x.saldo, s.{col}, x.cestas, s.cestas_pendientes, x.entregas,")
-    w("           (select count(*) from public.entregas_proveedor e where e.proveedor_id = s.id),")
-    w("           x.abonos, (select count(*) from public.abonos_proveedor a where a.proveedor_id = s.id)), E'\\n')")
+    w(f"           x.proveedor, x.saldo, s.{col}, x.cestas, s.cestas_pendientes - coalesce((v_cestas->>{CLAVE.format('s.nombre')})::numeric, 0), x.entregas,")
+    w(f"           (select count(*) from public.entregas_proveedor e where e.proveedor_id = s.id and e.moneda = {sql(moneda)}),")
+    w(f"           x.abonos, (select count(*) from public.abonos_proveedor a where a.proveedor_id = s.id and a.moneda = {sql(moneda)})), E'\\n')")
     w("    into v")
     w("    from (values")
     w(",\n".join(f"      ({sql(p['nombre'])}, {sql(round(p['saldo'], 4))}, {p['cestas_pend']}, {len(p['entregas'])}, {len(p['abonos'])})" for p in proveedores))
     w("    ) x(proveedor, saldo, cestas, entregas, abonos)")
-    w("    left join public.v_resumen_proveedores s on public.normalizar(s.nombre) = public.normalizar(x.proveedor)")
-    w(f"   where s.id is null or abs(s.{col} - x.saldo) > 1 or s.cestas_pendientes <> x.cestas")
-    w("      or (select count(*) from public.entregas_proveedor e where e.proveedor_id = s.id) <> x.entregas")
-    w("      or (select count(*) from public.abonos_proveedor a where a.proveedor_id = s.id) <> x.abonos;")
+    w(f"    left join public.v_resumen_proveedores s on {CLAVE.format('s.nombre')} = {CLAVE.format('x.proveedor')}")
+    w(f"   where s.id is null or abs(s.{col} - x.saldo) > {TOLERANCIA[moneda]}")
+    w(f"      or s.cestas_pendientes - coalesce((v_cestas->>{CLAVE.format('s.nombre')})::numeric, 0) <> x.cestas")
+    w(f"      or (select count(*) from public.entregas_proveedor e where e.proveedor_id = s.id and e.moneda = {sql(moneda)}) <> x.entregas")
+    w(f"      or (select count(*) from public.abonos_proveedor a where a.proveedor_id = s.id and a.moneda = {sql(moneda)}) <> x.abonos;")
     w("  if v is not null then raise exception E'No cuadra con la hoja; no se guardó nada:\\n%', v; end if;")
     w("")
     w("  insert into public.audit_log (usuario, accion, tabla, nota)")
@@ -276,7 +305,7 @@ def generar(proveedores, moneda, origen):
     w("")
     w("-- Resultado: saldo de cada proveedor importado (igual al de la hoja)")
     w(f"select nombre, {col} saldo, cestas_pendientes from public.v_resumen_proveedores")
-    w(f" where public.normalizar(nombre) in ({nombres}) order by {col} desc;")
+    w(f" where {CLAVE.format('nombre')} in ({claves}) order by {col} desc;")
     return "\n".join(L) + "\n"
 
 
