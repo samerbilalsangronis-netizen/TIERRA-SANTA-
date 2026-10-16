@@ -9,7 +9,7 @@ import { formatearFecha, hoyISO } from "@/lib/fechas";
 import { PERIODOS, rangoPeriodo, variacion, type ClavePeriodo } from "@/lib/periodos";
 import { EncabezadoPagina } from "@/components/comunes/encabezado";
 import { FiltrosDashboard } from "@/features/dashboard/filtros";
-import { Barras, Cifra, Tarjeta } from "@/features/dashboard/componentes";
+import { Barras, Cifra, MontosPorMoneda, Tarjeta } from "@/features/dashboard/componentes";
 import { GraficoVentas } from "@/features/dashboard/grafico-ventas";
 import { GraficoRendimiento } from "@/features/dashboard/grafico-rendimiento";
 
@@ -88,11 +88,15 @@ export default async function PaginaDashboard({ searchParams }: PageProps<"/dash
         <Cifra titulo="Facturas" icono={FileText} valor={facturasA} delta={variacion(facturasA, facturasB)}
           detalle={a.ventas.length ? <>Promedio por factura: {a.ventas.map((v) => <span key={v.moneda} className="block">{formatearMonto(Number(v.total) / Math.max(Number(v.facturas), 1), v.moneda)}</span>)}</> : "—"} />
         <Cifra titulo="Cobrado" icono={Banknote}
-          valor={a.cobrado.length ? a.cobrado.map((x) => <span key={x.moneda} className="block">{formatearMonto(x.total, x.moneda)}</span>) : formatearMonto(0, moneda)}
+          valor={a.cobrado.length > 1
+            ? <MontosPorMoneda filas={a.cobrado.map((x) => ({ moneda: x.moneda, total: Number(x.total), delta: variacion(Number(x.total), de(b.cobrado, x.moneda, "total")) }))} />
+            : formatearMonto(a.cobrado[0]?.total ?? 0, a.cobrado[0]?.moneda ?? moneda)}
           delta={a.cobrado.length === 1 ? variacion(Number(a.cobrado[0].total), de(b.cobrado, a.cobrado[0].moneda, "total")) : null}
           detalle="pagos recibidos de clientes" />
         <Cifra titulo="Compras a proveedores" icono={Truck} subeEsBueno={false}
-          valor={a.compras.length ? a.compras.map((x) => <span key={x.moneda} className="block">{formatearMonto(x.total, x.moneda)}</span>) : formatearMonto(0, "COP")}
+          valor={a.compras.length > 1
+            ? <MontosPorMoneda subeEsBueno={false} filas={a.compras.map((x) => ({ moneda: x.moneda, total: Number(x.total), delta: variacion(Number(x.total), de(b.compras, x.moneda, "total")) }))} />
+            : formatearMonto(a.compras[0]?.total ?? 0, a.compras[0]?.moneda ?? "COP")}
           delta={a.compras.length === 1 ? variacion(Number(a.compras[0].total), de(b.compras, a.compras[0].moneda, "total")) : null}
           detalle={(() => { const kg = a.compras.reduce((s, x) => s + Number(x.kg), 0); const m = a.compras.reduce((s, x) => s + Number(x.merma ?? 0), 0);
             return kg ? `${formatearCantidad(kg, 0)} kg · merma ${formatearCantidad((m * 100) / kg, 1)} %` : "sin entregas"; })()} />

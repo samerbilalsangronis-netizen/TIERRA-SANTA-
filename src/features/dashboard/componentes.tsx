@@ -1,5 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, type LucideIcon } from "lucide-react";
-import { formatearNumero } from "@/lib/dinero";
+import { formatearMonto, formatearNumero } from "@/lib/dinero";
 import { cn } from "@/lib/utils";
 
 /** Cifra del periodo con su variación contra el periodo anterior. */
@@ -25,6 +25,38 @@ export function Cifra({ titulo, valor, detalle, delta, icono: Icono, subeEsBueno
         {detalle && <span>{detalle}</span>}
       </div>
     </div>
+  );
+}
+
+/** Variación contra el periodo anterior (flecha y %). */
+function Variacion({ delta, subeEsBueno }: { delta: number; subeEsBueno: boolean }) {
+  const bueno = delta === 0 ? null : (delta > 0) === subeEsBueno;
+  return (
+    <span className={cn("inline-flex items-center text-xs font-medium", bueno === true && "text-success", bueno === false && "text-destructive", bueno === null && "text-muted-foreground")}>
+      {delta >= 0 ? <ArrowUpRight className="size-3.5" aria-hidden /> : <ArrowDownRight className="size-3.5" aria-hidden />}
+      {delta >= 0 ? "+" : "−"}{formatearNumero(Math.abs(delta), 0)} %
+      <span className="sr-only"> contra el periodo anterior</span>
+    </span>
+  );
+}
+
+/**
+ * Montos en varias monedas dentro de una Cifra: una fila compacta por moneda
+ * (código, monto y su variación), para que no se partan en varias líneas.
+ */
+export function MontosPorMoneda({ filas, subeEsBueno = true }: {
+  filas: { moneda: string; total: number; delta?: number | null }[]; subeEsBueno?: boolean;
+}) {
+  return (
+    <span className="mt-0.5 block space-y-1">
+      {filas.map((f) => (
+        <span key={f.moneda} className="flex items-baseline gap-2">
+          <span className="w-8 shrink-0 text-[11px] font-semibold tracking-wide text-muted-foreground">{f.moneda}</span>
+          <span className="whitespace-nowrap text-lg leading-tight sm:text-xl">{formatearMonto(f.total, f.moneda, { sinCodigo: true })}</span>
+          {f.delta != null && <span className="ml-auto font-normal"><Variacion delta={f.delta} subeEsBueno={subeEsBueno} /></span>}
+        </span>
+      ))}
+    </span>
   );
 }
 
