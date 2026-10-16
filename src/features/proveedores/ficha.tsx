@@ -44,6 +44,11 @@ type Entrega = EntregaEditable & {
   productos: { codigo: number; nombre: string; emoji: string | null; unidad: string; categoria: string } | null;
 };
 type Abono = AbonoEditable & { numero: number; metodos_pago: { nombre: string } | null };
+/** Precio por kilo (o por unidad si se compró por unidades). */
+function precioUnitario(e: { modo_pesaje: string; precio_kg: number; moneda: string }) {
+  return `${formatearMonto(e.precio_kg, e.moneda, { sinCodigo: true })} ${e.modo_pesaje === "UNIDAD" ? "/und" : "/kg"}`;
+}
+
 type Cestas = CestasEditable & { entrega_id: number | null };
 type SaldoMonedaFila = { moneda: string | null; total_entregas: number | null; total_abonos: number | null; saldo: number | null; kg_total: number | null; merma: number | null };
 
@@ -89,12 +94,12 @@ export function FichaProveedor(props: {
   }
 
   const totalesEntregas = useMemo(() => {
-    const m = new Map<string, { total: number; kg: number; merma: number; neto: number; cestas: number; n: number }>();
+    const m = new Map<string, { total: number; kg: number; merma: number; neto: number; n: number }>();
     for (const e of entregas) {
-      const t = m.get(e.moneda) ?? { total: 0, kg: 0, merma: 0, neto: 0, cestas: 0, n: 0 };
+      const t = m.get(e.moneda) ?? { total: 0, kg: 0, merma: 0, neto: 0, n: 0 };
       m.set(e.moneda, {
         total: sumar([t.total, e.total]).toNumber(), kg: sumar([t.kg, e.kg_total]).toNumber(), merma: sumar([t.merma, e.merma]).toNumber(),
-        neto: sumar([t.neto, e.peso_neto]).toNumber(), cestas: sumar([t.cestas, e.cestas]).toNumber(), n: t.n + 1,
+        neto: sumar([t.neto, e.peso_neto]).toNumber(), n: t.n + 1,
       });
     }
     return [...m.entries()];
@@ -236,9 +241,9 @@ export function FichaProveedor(props: {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Fecha</TableHead><TableHead>Rubro</TableHead><TableHead className="text-right">Cestas</TableHead>
+                      <TableHead>Fecha</TableHead><TableHead>Rubro</TableHead>
                       <TableHead className="text-right">Cantidad</TableHead><TableHead className="text-right">Merma</TableHead><TableHead className="text-right">Neto (kg)</TableHead>
-                      <TableHead className="text-right">Precio</TableHead><TableHead className="text-right">Desc. merma</TableHead><TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Precio por kilo</TableHead><TableHead className="text-right">Precio</TableHead><TableHead className="text-right">Desc. merma</TableHead><TableHead className="text-right">Total</TableHead>
                       <TableHead className="w-10" />
                     </TableRow>
                   </TableHeader>
@@ -250,10 +255,10 @@ export function FichaProveedor(props: {
                           <span className="font-medium">{e.productos?.emoji} {e.productos?.nombre}</span>
                           <span className="block text-[11px] text-muted-foreground">{NOMBRE_MODO[e.modo_pesaje as ModoCompra]}{e.modo_pesaje === "FIJO" ? ` · ${formatearCantidad(e.kg_por_cesta)} kg/c` : ""}{e.nota ? ` · ${e.nota}` : ""}</span>
                         </TableCell>
-                        <TableCell className="tabular text-right">{Number(e.cestas) ? formatearCantidad(e.cestas) : "—"}</TableCell>
                         <TableCell className="tabular whitespace-nowrap text-right">{cantidadTexto(e)}</TableCell>
                         <TableCell className="tabular text-right">{Number(e.merma) ? `${formatearCantidad(e.merma)} ${e.modo_pesaje === "UNIDAD" ? "und" : "kg"}` : "—"}</TableCell>
                         <TableCell className="tabular text-right">{Number(e.peso_neto) ? formatearCantidad(e.peso_neto) : "—"}</TableCell>
+                        <TableCell className="tabular whitespace-nowrap text-right">{precioUnitario(e)}</TableCell>
                         <TableCell className="tabular text-right">
                           {formatearMonto(e.precio, e.moneda, { sinCodigo: true })}
                           <span className="block text-[11px] text-muted-foreground">{PRECIO_POR[e.modo_pesaje as ModoCompra]}</span>
@@ -271,11 +276,10 @@ export function FichaProveedor(props: {
                     {totalesEntregas.map(([m, t]) => (
                       <TableRow key={m}>
                         <TableCell colSpan={2} className="font-semibold">Total {m} ({t.n})</TableCell>
-                        <TableCell className="tabular text-right">{formatearCantidad(t.cestas)}</TableCell>
                         <TableCell className="tabular text-right">{t.kg ? `${formatearCantidad(t.kg)} kg` : ""}</TableCell>
                         <TableCell />
                         <TableCell className="tabular text-right">{formatearCantidad(t.neto)}</TableCell>
-                        <TableCell colSpan={2} />
+                        <TableCell colSpan={3} />
                         <TableCell className="tabular whitespace-nowrap text-right font-bold">{formatearMonto(t.total, m)}</TableCell>
                         <TableCell />
                       </TableRow>
@@ -292,7 +296,7 @@ export function FichaProveedor(props: {
                         <p className="tabular font-semibold">{formatearMonto(e.total, e.moneda)}</p>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {formatearFecha(e.fecha)} · {cantidadTexto(e)} × {formatearMonto(e.precio, e.moneda, { sinCodigo: true })}
+                        {formatearFecha(e.fecha)} · {e.modo_pesaje === "UNIDAD" ? cantidadTexto(e) : `${formatearCantidad(e.kg_total)} kg`} × {precioUnitario(e)}
                         {Number(e.merma) > 0 && ` · ${e.modo_pesaje === "UNIDAD" ? "dañadas" : "merma"} ${formatearCantidad(e.merma)}`}
                       </p>
                       {(Number(e.peso_neto) > 0 || e.nota) && (
