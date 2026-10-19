@@ -56,15 +56,15 @@ const s = StyleSheet.create({
   totales: { width: 190 },
   lineaTotal: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 1.5 },
   granTotal: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1.5, borderTopColor: "#262626", marginTop: 3, paddingTop: 4, fontSize: 11, fontFamily: "Helvetica-Bold" },
-  firmas: { flexDirection: "row", justifyContent: "space-between", marginTop: 48 },
-  firma: { width: "42%", borderTopWidth: 0.75, borderTopColor: "#737373", paddingTop: 3, textAlign: "center", fontSize: 8, color: gris },
+  sello: { width: 96, height: 96, objectFit: "contain", marginTop: 18, alignSelf: "flex-end", marginRight: 24, transform: "rotate(-6deg)" },
   anulada: { position: "absolute", top: 300, left: 90, fontSize: 80, color: "#dc2626", opacity: 0.35, transform: "rotate(-20deg)", fontFamily: "Helvetica-Bold", borderWidth: 6, borderColor: "#dc2626", paddingHorizontal: 16 },
   numeroPagina: { position: "absolute", bottom: 24, left: 40, right: 40, textAlign: "center", fontSize: 7.5, color: "#737373" },
 });
 
 /** Factura en PDF (carta). Mismo contenido que la hoja HTML. */
-export function PdfFactura({ factura: f, empresa, logo }: {
+export function PdfFactura({ factura: f, empresa, logo, sello = null }: {
   factura: FacturaCompleta; empresa: EmpresaDocumento; logo: { data: Buffer; format: "png" | "jpg" } | string | null;
+  sello?: { data: Buffer; format: "png" | "jpg" } | null;
 }) {
   const dec = f.moneda === "COP" ? 0 : 2;
   const hayIva = f.factura_lineas.some((l) => l.aplica_iva);
@@ -137,10 +137,8 @@ export function PdfFactura({ factura: f, empresa, logo }: {
           </View>
         </View>
 
-        <View style={s.firmas} wrap={false}>
-          <Text style={s.firma}>Despachado por</Text>
-          <Text style={s.firma}>Recibido conforme (cliente)</Text>
-        </View>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- el Image de react-pdf no admite alt */}
+        {sello && <Image src={sello} style={s.sello} />}
         {empresa.pie_factura ? <Text style={[s.chico, { textAlign: "center", marginTop: 18 }]}>{empresa.pie_factura}</Text> : null}
         {empresa.texto_legal ? <Text style={[s.chico, { textAlign: "center", marginTop: 4, fontSize: 7 }]}>{empresa.texto_legal}</Text> : null}
         <Text style={s.numeroPagina} fixed render={({ pageNumber, totalPages }) => `${empresa.titulo_documento} ${num} · página ${pageNumber} de ${totalPages}`} />

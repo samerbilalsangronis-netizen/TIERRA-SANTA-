@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
   },
   // El PDF de la factura lee el logo por defecto desde public/
   outputFileTracingIncludes: {
-    "/facturacion/[id]/pdf": ["./public/logo-tierra-santa-negro.png"],
+    "/facturacion/[id]/pdf": ["./public/logo-tierra-santa-negro.png", "./public/sello-tierra-santa.png"],
   },
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },

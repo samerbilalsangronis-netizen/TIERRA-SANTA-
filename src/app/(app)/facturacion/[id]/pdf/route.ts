@@ -19,6 +19,15 @@ async function logoPdf(logoPath: string | null) {
   }
 }
 
+/** Sello de la empresa (va en lugar de las firmas). */
+async function selloPdf() {
+  try {
+    return { data: await readFile(path.join(process.cwd(), "public", "sello-tierra-santa.png")), format: "png" as const };
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest, { params }: RouteContext<"/facturacion/[id]/pdf">) {
   const perfil = await obtenerPerfil();
   if (!perfil || !evaluarAcceso(perfil).ok) return NextResponse.json({ error: "No autorizado" }, { status: 403 });
@@ -26,7 +35,7 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/factu
   if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ error: "Factura no válida" }, { status: 400 });
   const [factura, empresa] = await Promise.all([cargarFactura(id), cargarEmpresaDocumento()]);
   if (!factura || !empresa) return NextResponse.json({ error: "Factura no encontrada" }, { status: 404 });
-  const documento = createElement(PdfFactura, { factura, empresa, logo: await logoPdf(empresa.logo_path) }) as unknown as ReactElement<DocumentProps>;
+  const documento = createElement(PdfFactura, { factura, empresa, logo: await logoPdf(empresa.logo_path), sello: await selloPdf() }) as unknown as ReactElement<DocumentProps>;
   const pdf = await renderToBuffer(documento);
   const nombre = `${empresa.titulo_documento}-${numeroFactura(factura, empresa.factura_prefijo)}`.replace(/[^\w.-]+/g, "_");
   const descargar = request.nextUrl.searchParams.get("descargar") === "1";
