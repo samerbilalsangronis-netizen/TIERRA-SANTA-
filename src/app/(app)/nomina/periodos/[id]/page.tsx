@@ -6,6 +6,7 @@ import { exigirPerfil } from "@/lib/auth/sesion";
 import { formatearMonto } from "@/lib/dinero";
 import { formatearFecha, formatearFechaHora } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
+import { separarPorTipo } from "@/features/nomina/tipos";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cargarPeriodo } from "@/features/nomina/datos-periodo";
@@ -58,7 +59,11 @@ export default async function PaginaPeriodo({ params }: PageProps<"/nomina/perio
               <th className="p-3 text-right">Ganado</th><th className="p-3 text-right">Abonos</th><th className="p-3 text-right">Saldo ant.</th><th className="p-3 text-right">A pagar</th></tr>
           </thead>
           <tbody className="divide-y">
-            {filas.map((f) => (
+            {separarPorTipo(filas).filter((g) => g.filas.length > 0).map((g) => [
+              <tr key={`t-${g.tipo}`} className="bg-muted/40">
+                <td colSpan={8} className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.titulo} ({g.filas.length})</td>
+              </tr>,
+              ...g.filas.map((f) => (
               <tr key={f.empleado_id}>
                 <td className="p-3"><Link href={`/nomina/${f.empleado_id}`} className="font-medium hover:text-primary">{f.nombre}</Link></td>
                 <td className="tabular p-3 text-center">{f.dias_asistidos}{f.medias ? ` + ${f.medias}½` : ""}{f.faltas ? <span className="text-destructive"> · {f.faltas} f</span> : ""}</td>
@@ -69,13 +74,26 @@ export default async function PaginaPeriodo({ params }: PageProps<"/nomina/perio
                 <td className="tabular p-3 text-right">{f.saldo_anterior ? cop(f.saldo_anterior) : "—"}</td>
                 <td className={cn("tabular p-3 text-right font-bold", f.neto > 0 && "text-warning")}>{cop(f.neto)}</td>
               </tr>
-            ))}
+              )),
+              <tr key={`s-${g.tipo}`} className="text-xs font-semibold">
+                <td className="p-3" colSpan={2}>Subtotal {g.corto.toLowerCase()}</td>
+                <td className="tabular p-3 text-right">{cop(g.filas.reduce((x, f) => x + f.total_dias, 0))}</td>
+                <td className="tabular p-3 text-right">{cop(g.filas.reduce((x, f) => x + f.total_tareas, 0))}</td>
+                <td className="tabular p-3 text-right">{cop(g.filas.reduce((x, f) => x + f.ganado, 0))}</td>
+                <td className="tabular p-3 text-right">{cop(g.filas.reduce((x, f) => x + f.abonos, 0))}</td>
+                <td className="tabular p-3 text-right">{cop(g.filas.reduce((x, f) => x + f.saldo_anterior, 0))}</td>
+                <td className="tabular p-3 text-right">{cop(g.filas.reduce((x, f) => x + f.neto, 0))}</td>
+              </tr>,
+            ])}
             {filas.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Sin jornadas ni abonos en este periodo.</td></tr>}
           </tbody>
         </table>
       </div>
-      <ul className="space-y-2 md:hidden">
-        {filas.map((f) => (
+      {separarPorTipo(filas).filter((g) => g.filas.length > 0).map((g) => (
+      <section key={g.tipo} className="mb-4 md:hidden">
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.titulo} ({g.filas.length})</h2>
+      <ul className="space-y-2">
+        {g.filas.map((f) => (
           <li key={f.empleado_id} className="rounded-2xl border bg-card p-3 text-sm">
             <div className="flex items-baseline justify-between gap-2">
               <Link href={`/nomina/${f.empleado_id}`} className="font-medium">{f.nombre}</Link>
@@ -85,6 +103,8 @@ export default async function PaginaPeriodo({ params }: PageProps<"/nomina/perio
           </li>
         ))}
       </ul>
+      </section>
+      ))}
     </>
   );
 }

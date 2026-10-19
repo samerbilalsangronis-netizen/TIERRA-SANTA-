@@ -78,7 +78,7 @@ export function FichaEmpleado(props: {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-heading text-lg font-bold sm:text-2xl">{empleado.nombre}</h1>
-              <Badge variant="outline">{empleado.tipo === "fijo" ? `Fijo · ${cop(empleado.tarifa_dia)}/día` : "Por tarea"}</Badge>
+              <Badge variant="outline">{empleado.tipo === "fijo" ? `Fijo · ${cop(empleado.tarifa_dia)}/día` : "Por destajo"}</Badge>
               {!empleado.activo && <Badge variant="outline">Inactivo</Badge>}
             </div>
             <p className="text-sm text-muted-foreground">{[empleado.cargo, empleado.cedula && `C.I. ${empleado.cedula}`, empleado.telefono].filter(Boolean).join(" · ") || "Sin datos de contacto"}</p>

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import type { EstadoJornada } from "@/lib/calculos/nomina";
 import { formatearMonto } from "@/lib/dinero";
 import { cn } from "@/lib/utils";
+import { nombreTipo, separarPorTipo } from "./tipos";
 import { guardarJornada } from "./acciones";
 import { DialogoJornada } from "./dialogos";
 import type { JornadaDia, Tarea } from "./datos";
@@ -60,8 +61,14 @@ export function Asistencia({ fecha, empleados, jornadas, tareas, cerrado }: {
       </div>
       {cerrado && <p className="mb-3 flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground"><Lock className="size-4" /> Esta fecha está en un periodo cerrado.</p>}
 
+      {separarPorTipo(empleados).filter((g) => g.filas.length > 0).map((g) => (
+      <section key={g.tipo} className="mb-5" aria-label={g.titulo}>
+      <h2 className="mb-2 flex items-baseline justify-between border-b pb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <span>{g.titulo} <span className="font-normal">({g.filas.length})</span></span>
+        <span className="text-xs font-normal normal-case">ganado del día <b className="tabular text-foreground">{formatearMonto(g.filas.reduce((a, e) => a + Number(porEmpleado.get(e.id)?.ganado ?? 0), 0), "COP", { sinCodigo: true })}</b></span>
+      </h2>
       <ul className="space-y-2">
-        {empleados.map((e) => {
+        {g.filas.map((e) => {
           const j = porEmpleado.get(e.id);
           const actual = j ? (j.estado === "produccion" ? "asistio" : j.estado) : null;
           return (
@@ -70,7 +77,7 @@ export function Asistencia({ fecha, empleados, jornadas, tareas, cerrado }: {
                 <div className="min-w-0 flex-1 basis-40">
                   <Link href={`/nomina/${e.id}`} className="block truncate font-medium hover:text-primary">{e.nombre}</Link>
                   <p className="text-xs text-muted-foreground">
-                    {e.tipo === "fijo" ? "Fijo" : "Por tarea"}
+                    {nombreTipo(e.tipo)}
                     {j && <> · ganado <b className="tabular text-foreground">{formatearMonto(j.ganado, "COP", { sinCodigo: true })}</b></>}
                   </p>
                 </div>
@@ -93,6 +100,8 @@ export function Asistencia({ fecha, empleados, jornadas, tareas, cerrado }: {
           );
         })}
       </ul>
+      </section>
+      ))}
       {detalle && (
         <DialogoJornada empleado={detalle} fecha={fecha} jornada={porEmpleado.get(detalle.id)} tareas={tareas} bloqueada={cerrado} onCerrar={() => setDetalle(null)} />
       )}

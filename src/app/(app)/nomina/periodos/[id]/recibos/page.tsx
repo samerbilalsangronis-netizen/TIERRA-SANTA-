@@ -9,6 +9,7 @@ import { formatearFecha } from "@/lib/fechas";
 import { EncabezadoHoja, Hoja } from "@/components/comunes/hoja";
 import { BotonImprimir } from "@/features/proveedores/controles-estado-cuenta";
 import { cargarPeriodo } from "@/features/nomina/datos-periodo";
+import { separarPorTipo } from "@/features/nomina/tipos";
 
 export const metadata: Metadata = { title: "Recibos de nómina" };
 const cop = (v: number) => formatearMonto(v, "COP");
@@ -25,7 +26,7 @@ export default async function PaginaRecibos({ params, searchParams }: PageProps<
   ]);
   if (!datos) notFound();
   const { periodo, filas } = datos;
-  const lista = filas.filter((f) => !solo || f.empleado_id === solo);
+  const lista = separarPorTipo(filas).flatMap((g) => g.filas).filter((f) => !solo || f.empleado_id === solo);
 
   return (
     <>
@@ -39,7 +40,7 @@ export default async function PaginaRecibos({ params, searchParams }: PageProps<
           <div key={f.empleado_id} className="break-after-page">
             <Hoja>
               <EncabezadoHoja empresa={empresa} titulo="RECIBO DE NÓMINA" lineas={[`Periodo: ${formatearFecha(periodo.desde)} – ${formatearFecha(periodo.hasta)}`, "Moneda: COP"]} />
-              <p className="border-b border-neutral-300 py-3"><span className="text-neutral-500">Empleado:</span> <b>{f.nombre}</b> <span className="text-neutral-500">({f.tipo === "fijo" ? "fijo" : "por tarea"})</span></p>
+              <p className="border-b border-neutral-300 py-3"><span className="text-neutral-500">Empleado:</span> <b>{f.nombre}</b> <span className="text-neutral-500">({f.tipo === "fijo" ? "fijo" : "por destajo"})</span></p>
               <table className="mt-3 w-full border-collapse">
                 <tbody>
                   <tr><td className="py-1">Días asistidos</td><td className="tabular py-1 text-right">{f.dias_asistidos}{f.medias ? ` + ${f.medias} medias jornadas` : ""}{f.faltas ? ` · ${f.faltas} faltas` : ""}</td></tr>

@@ -47,7 +47,7 @@ export function DialogoEmpleado({ empleado, onCerrar, alCrear }: { empleado?: Em
       <CampoTexto etiqueta="Nombre" requerido className="sm:col-span-2" error={err.nombre?.message} {...form.register("nombre")} />
       <CampoSelect etiqueta="Tipo de pago" {...form.register("tipo")}
         ayuda={tipo === "fijo" ? "Gana una tarifa por día trabajado (media jornada = mitad)." : "Gana por las tareas que hace (precio por cesta, etc.)."}>
-        <option value="destajo">Por tarea (destajo)</option>
+        <option value="destajo">Por destajo (cobra por tarea)</option>
         <option value="fijo">Fijo (por día)</option>
       </CampoSelect>
       {tipo === "fijo" ? (
@@ -152,7 +152,7 @@ export function DialogoJornada({ empleado, fecha, jornada, tareas, bloqueada, on
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Jornada: <span className="capitalize">{fechaLarga(fecha)}</span></DialogTitle>
-          <DialogDescription>{empleado.nombre} · {empleado.tipo === "fijo" ? `Fijo, ${formatearMonto(tarifa, "COP")} por día` : "Por tarea"}</DialogDescription>
+          <DialogDescription>{empleado.nombre} · {empleado.tipo === "fijo" ? `Fijo, ${formatearMonto(tarifa, "COP")} por día` : "Por destajo"}</DialogDescription>
         </DialogHeader>
         {bloqueada && (
           <p className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground"><Lock className="size-4" /> Este día está en un periodo cerrado: no se puede cambiar.</p>

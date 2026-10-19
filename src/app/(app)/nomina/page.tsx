@@ -39,7 +39,7 @@ export default async function PaginaNomina() {
         <TarjetaKpi titulo="Ganado en el periodo" icono={Wallet} valor={formatearMonto(ganadoPeriodo, "COP")} detalle={`Abonos: ${formatearMonto(abonosPeriodo, "COP")}`} />
         <TarjetaKpi titulo="Total que se debe" icono={Wallet} tono={porPagar > 0 ? "alerta" : "exito"} valor={formatearMonto(porPagar, "COP")} detalle="Ganado − abonos, de todos" />
         <TarjetaKpi titulo="Empleados activos" icono={Users} valor={empleados.filter((e) => e.activo).length}
-          detalle={`${empleados.filter((e) => e.activo && e.tipo === "fijo").length} fijos · ${empleados.filter((e) => e.activo && e.tipo === "destajo").length} por tarea`} />
+          detalle={`${empleados.filter((e) => e.activo && e.tipo === "fijo").length} fijos · ${empleados.filter((e) => e.activo && e.tipo === "destajo").length} por destajo`} />
       </section>
       <div className="lg:max-w-md">
         <ListaEmpleados empleados={empleados} tareas={tareas} />

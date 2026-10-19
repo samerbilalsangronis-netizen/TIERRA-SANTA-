@@ -7,32 +7,42 @@ import { Switch } from "@/components/ui/switch";
 import { formatearMonto } from "@/lib/dinero";
 import { cn } from "@/lib/utils";
 import type { EmpleadoLista, Tarea } from "./datos";
+import { GRUPOS_PERSONAL, type TipoEmpleado } from "./tipos";
 
 const normalizar = (t: string) => t.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-/** Columna izquierda: Personal (empleados con su saldo) y Tareas (precios por unidad). */
+/** Columna izquierda: Personal fijo, Por destajo (con su saldo) y Tareas (precios por unidad). */
 export function ListaEmpleados({ empleados, tareas, seleccionado }: { empleados: EmpleadoLista[]; tareas: Tarea[]; seleccionado?: number }) {
-  const [pestana, setPestana] = useState<"personal" | "tareas">("personal");
+  // Se abre en el grupo del empleado que se está viendo
+  const tipoSel = empleados.find((e) => e.id === seleccionado)?.tipo;
+  const [pestana, setPestana] = useState<TipoEmpleado | "tareas">(tipoSel === "destajo" ? "destajo" : "fijo");
   const [q, setQ] = useState("");
   const [inactivos, setInactivos] = useState(false);
   const filas = useMemo(() => {
     const t = normalizar(q.trim());
-    return empleados.filter((e) => (inactivos || e.activo || e.id === seleccionado) && (!t || normalizar(`${e.nombre} ${e.cedula ?? ""} ${e.cargo ?? ""}`).includes(t)));
-  }, [empleados, q, inactivos, seleccionado]);
+    return empleados.filter((e) => (pestana === "fijo" ? e.tipo === "fijo" : e.tipo !== "fijo")
+      && (inactivos || e.activo || e.id === seleccionado) && (!t || normalizar(`${e.nombre} ${e.cedula ?? ""} ${e.cargo ?? ""}`).includes(t)));
+  }, [empleados, q, inactivos, seleccionado, pestana]);
+  const activos = (tipo: TipoEmpleado) => empleados.filter((e) => e.activo && (tipo === "fijo" ? e.tipo === "fijo" : e.tipo !== "fijo")).length;
+  const debe = filas.reduce((a, e) => a + Math.max(e.saldo_neto, 0), 0);
 
   return (
     <aside className="rounded-2xl border bg-card p-2">
       <div className="mb-2 flex gap-1 rounded-xl bg-muted/50 p-1" role="tablist">
-        {(["personal", "tareas"] as const).map((p) => (
+        {[...GRUPOS_PERSONAL.map((g) => ({ p: g.tipo, texto: `${g.corto} (${activos(g.tipo)})` })), { p: "tareas" as const, texto: `Tareas (${tareas.filter((t) => t.activa).length})` }].map(({ p, texto }) => (
           <button key={p} type="button" role="tab" aria-selected={pestana === p} onClick={() => setPestana(p)}
             className={cn("flex-1 rounded-lg py-1.5 text-sm", pestana === p ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
-            {p === "personal" ? `Personal (${empleados.filter((e) => e.activo).length})` : `Tareas (${tareas.filter((t) => t.activa).length})`}
+            {texto}
           </button>
         ))}
       </div>
 
-      {pestana === "personal" ? (
+      {pestana !== "tareas" ? (
         <>
+          <p className="mb-2 flex items-baseline justify-between px-1 text-xs text-muted-foreground">
+            <span className="font-semibold uppercase tracking-wide">{GRUPOS_PERSONAL.find((g) => g.tipo === pestana)?.titulo}</span>
+            {debe > 0 && <span>Se les debe <b className="tabular text-warning">{formatearMonto(debe, "COP", { sinCodigo: true })}</b></span>}
+          </p>
           <div className="relative mb-2">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar empleado…" className="pl-8" aria-label="Buscar empleado" />
@@ -47,7 +57,7 @@ export function ListaEmpleados({ empleados, tareas, seleccionado }: { empleados:
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{e.nombre}</span>
-                    <span className="block text-xs text-muted-foreground">{e.tipo === "fijo" ? "Fijo" : "Por tarea"}{e.cargo ? ` · ${e.cargo}` : ""}</span>
+                    {e.cargo && <span className="block text-xs text-muted-foreground">{e.cargo}</span>}
                   </span>
                   {e.saldo_neto !== 0 && (
                     <span className={cn("tabular text-xs font-semibold", e.saldo_neto > 0 ? "text-warning" : "text-muted-foreground")}>
@@ -57,7 +67,7 @@ export function ListaEmpleados({ empleados, tareas, seleccionado }: { empleados:
                 </Link>
               </li>
             ))}
-            {filas.length === 0 && <li className="px-2 py-4 text-center text-sm text-muted-foreground">Sin empleados.</li>}
+            {filas.length === 0 && <li className="px-2 py-4 text-center text-sm text-muted-foreground">{pestana === "fijo" ? "Sin personal fijo." : "Sin personal por destajo."}</li>}
           </ul>
           <label className="mt-2 flex items-center justify-end gap-2 px-2 text-xs text-muted-foreground">
             <Switch checked={inactivos} onCheckedChange={(v) => setInactivos(Boolean(v))} /> Ver inactivos
