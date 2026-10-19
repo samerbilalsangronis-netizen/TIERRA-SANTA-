@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { entrarComoAdmin, sufijo } from "./utilidades";
+import { activarControlInventario, entrarComoAdmin, sufijo } from "./utilidades";
 
 /** Lee "Disponible N kg" de la primera línea de la factura que se está escribiendo. */
 async function disponibleEnPantalla(page: Page): Promise<number> {
@@ -10,6 +10,7 @@ async function disponibleEnPantalla(page: Page): Promise<number> {
 
 test("facturación: emitir con teclado → inventario → cuenta por cobrar, editar con historial, PDF, duplicar y anular", async ({ page }) => {
   await entrarComoAdmin(page);
+  await activarControlInventario(page);
   const nombre = `Pulpas Andinas ${sufijo()}`;
 
   // Cliente nuevo creado desde la propia factura, sin salir

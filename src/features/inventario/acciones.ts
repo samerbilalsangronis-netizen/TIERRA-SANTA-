@@ -68,3 +68,16 @@ export async function eliminarProduccion(id: number, motivo: string): Promise<Re
   refrescar();
   return exito(undefined, "Producción eliminada. El stock volvió a como estaba.");
 }
+
+/** Empieza (o deja) de descontar inventario al facturar. Solo administración. */
+export async function cambiarControlInventario(activar: boolean): Promise<Resultado> {
+  await exigirPerfil("inventario_ajustar");
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.rpc("activar_control_inventario", { p_activar: activar });
+  if (error) return fallo(mensajeErrorBD(error));
+  refrescar();
+  revalidatePath("/facturacion/nueva");
+  return exito(undefined, activar
+    ? "Listo: desde ahora cada factura emitida descuenta del inventario."
+    : "Las facturas ya no descuentan del inventario.");
+}

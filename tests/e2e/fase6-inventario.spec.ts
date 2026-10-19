@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { entrarComoAdmin } from "./utilidades";
+import { activarControlInventario, entrarComoAdmin } from "./utilidades";
 
 const numero = (t: string) => Number(t.replace(/[^\d,-]/g, "").replace(",", "."));
 
@@ -108,4 +108,31 @@ test("una sola ubicación: ni la factura ni la producción piden ubicación", as
   await expect(page.getByText("Sale de")).toHaveCount(0);
   await page.goto("/inventario/produccion");
   await expect(page.getByText("Se guarda en")).toHaveCount(0);
+});
+
+test("antes del inventario general la factura no descuenta; al activar el control sí", async ({ page }) => {
+  await entrarComoAdmin(page);
+  await activarControlInventario(page);
+  // Desactivar: la factura no muestra "Disponible" ni avisa de stock
+  await page.goto("/inventario");
+  await page.getByRole("button", { name: "Dejar de descontar" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Dejar de descontar" }).click();
+  await expect(page.getByText("Las facturas todavía no descuentan del inventario")).toBeVisible();
+  await page.goto("/facturacion/nueva");
+  await page.getByLabel("Buscar cliente").fill("1");
+  await page.getByLabel("Buscar cliente").press("Enter");
+  const codigo = page.getByLabel("Código o nombre del producto").first();
+  await codigo.fill("1");
+  await codigo.press("Enter");
+  await page.keyboard.type("99999");
+  await expect(page.getByTestId("linea-factura").first()).not.toContainText(/Disponible|Solo hay/);
+  await expect(page.getByText(/sin stock suficiente|No hay stock suficiente/)).toHaveCount(0);
+  // Volver a activar (lo dejan así las demás pruebas)
+  await activarControlInventario(page);
+  await page.goto("/facturacion/nueva");
+  await page.getByLabel("Buscar cliente").fill("1");
+  await page.getByLabel("Buscar cliente").press("Enter");
+  await codigo.fill("1");
+  await codigo.press("Enter");
+  await expect(page.getByTestId("linea-factura").first()).toContainText(/Disponible|Solo hay/);
 });

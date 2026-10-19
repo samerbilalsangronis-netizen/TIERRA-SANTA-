@@ -130,7 +130,9 @@ export function FormularioFactura({
   lineas.forEach((l, i) => {
     if (l.productoId && valores[i].cantidad) requerido.set(l.productoId, (requerido.get(l.productoId) ?? new Decimal(0)).plus(valores[i].cantidad!));
   });
-  const faltantes = [...requerido.entries()].filter(([id, cant]) => cant.gt(disponible(id)));
+  // Mientras no se active el control de inventario, la factura no descuenta: no se avisa de stock
+  const controlaStock = empresa.inventario_desde !== null;
+  const faltantes = controlaStock ? [...requerido.entries()].filter(([id, cant]) => cant.gt(disponible(id))) : [];
   const bloqueaStock = empresa.stock_insuficiente === "bloquear" && faltantes.length > 0;
 
   const monedaOriginal = inicial?.moneda;
@@ -316,7 +318,7 @@ export function FormularioFactura({
             const v = valores[i];
             const total = l.productoId && v.cantidad && v.precio ? totales.lineas[usadas.findIndex((u) => u.l.clave === l.clave)] : null;
             const disp = p ? disponible(p.id) : 0;
-            const falta = p ? (requerido.get(p.id) ?? new Decimal(0)).gt(disp) : false;
+            const falta = p && controlaStock ? (requerido.get(p.id) ?? new Decimal(0)).gt(disp) : false;
             const sugerido = p ? precios[p.id] : undefined;
             return (
               <li key={l.clave} className="grid grid-cols-6 items-center gap-2 px-3 py-2.5 md:grid-cols-[5.5rem_minmax(0,1fr)_7.5rem_8.5rem_3.5rem_9rem_2.5rem]" data-testid="linea-factura">
@@ -335,14 +337,14 @@ export function FormularioFactura({
                     <>
                       <p className="truncate text-sm font-medium">{p.emoji ? `${p.emoji} ` : ""}{p.nombre}</p>
                       <p className={cn("text-[11px]", falta ? "font-medium text-warning" : "text-muted-foreground")}>
-                        {falta ? <><AlertTriangle className="mr-0.5 inline size-3" />Solo hay {formatearCantidad(disp)} {p.unidad}</> : `Disponible ${formatearCantidad(disp)} ${p.unidad}`}
+                        {!controlaStock ? null : falta ? <><AlertTriangle className="mr-0.5 inline size-3" />Solo hay {formatearCantidad(disp)} {p.unidad}</> : `Disponible ${formatearCantidad(disp)} ${p.unidad}`}
                         {falta && enOtras(p.id).map((o) => (
                           <button key={o.id} type="button" onClick={() => setUbicacionId(o.id)} className="ml-1 font-medium text-primary underline-offset-2 hover:underline"
                             title={`Cambiar "Sale de" a ${o.nombre}`}>
                             · hay {formatearCantidad(o.cantidad)} en {o.nombre}
                           </button>
                         ))}
-                        {sugerido !== undefined && <> · último precio {formatearNumero(sugerido, 2)}</>}
+                        {sugerido !== undefined && <>{controlaStock ? " · último" : "Último"} precio {formatearNumero(sugerido, 2)}</>}
                       </p>
                     </>
                   ) : (

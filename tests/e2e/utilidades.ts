@@ -27,3 +27,14 @@ export async function elegirOpcion(p: Page, nombre: string, texto: string) {
   const valor = await p.locator(`select[name=${nombre}] option`, { hasText: texto }).first().getAttribute("value");
   await p.selectOption(`select[name=${nombre}]`, valor ?? "");
 }
+
+/** Deja activo el descuento de inventario al facturar (si no lo estaba). */
+export async function activarControlInventario(p: Page) {
+  await p.goto("/inventario");
+  const boton = p.getByRole("button", { name: "Empezar a descontar al facturar" });
+  if (await boton.isVisible()) {
+    await boton.click();
+    await p.getByRole("alertdialog").getByRole("button", { name: "Empezar a descontar" }).click();
+    await expect(p.getByText(/Las facturas descuentan del inventario desde/)).toBeVisible();
+  }
+}

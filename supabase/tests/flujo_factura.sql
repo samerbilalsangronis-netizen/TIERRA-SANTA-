@@ -33,6 +33,9 @@ select pg_temp.check((select id from public.productos where codigo = 1) = 10 and
 -- Una sola ubicación activa (la principal)
 select pg_temp.check((select count(*) from public.ubicaciones where activa) = 1 and (select predeterminada from public.ubicaciones where activa), 'una sola ubicación activa');
 
+-- Control de inventario activo desde siempre para el flujo normal (se prueba aparte sin él)
+update public.empresa set inventario_desde = '2000-01-01' where id = 1;
+
 -- Cliente y producción
 insert into public.clientes (nombre, documento) values ('Carlos Roa', 'V-12345678');
 select pg_temp.check((select numero from public.clientes where nombre = 'Carlos Roa') = 1, 'cliente numerado automáticamente');
@@ -220,6 +223,24 @@ select public.registrar_produccion('2026-01-05', public.ubicacion_predeterminada
 select pg_temp.check((select peso_kg from public.productos where id = 10) = 0.8 and (select fruta_id from public.productos where id = 11) = 1, 'bolsas enlazadas con su fruta');
 select pg_temp.check((select string_agg(nombre || '=' || kg::numeric(10,1), ',' order by kg desc) from public.pulpa_por_fruta('2026-01-05', '2026-01-05')) = 'Guanábana=13.0,Parchita=4.0', 'pulpa por fruta producida en el rango');
 select pg_temp.check((select kg from public.pulpa_por_fruta() where fruta_id = 1) = (select sum(e.cantidad * p.peso_kg) from public.existencias e join public.productos p on p.id = e.producto_id where p.fruta_id = 1), 'pulpa por fruta en inventario');
+
+-- Sin control de inventario (antes del conteo general) la factura no descuenta
+update public.empresa set inventario_desde = null where id = 1;
+select public.stock_disponible(10) as stock_antes \gset
+select public.emitir_factura(jsonb_build_object('cliente_id', (select id from public.clientes where numero = 1), 'moneda', 'USD',
+  'lineas', '[{"producto_id":10,"cantidad":3,"precio_unitario":2}]'::jsonb)) as rsin \gset
+select pg_temp.check(public.stock_disponible(10) = :stock_antes, 'sin control: la factura no descuenta inventario');
+-- Al activar el control, las facturas nuevas descuentan; la de antes no, ni al anularla
+update public.empresa set inventario_desde = now() + interval '1 second' where id = 1;
+select pg_sleep(1.1);
+select public.emitir_factura(jsonb_build_object('cliente_id', (select id from public.clientes where numero = 1), 'moneda', 'USD',
+  'lineas', '[{"producto_id":10,"cantidad":2,"precio_unitario":2}]'::jsonb)) as rcon \gset
+select pg_temp.check(public.stock_disponible(10) = :stock_antes - 2, 'con control: la factura nueva descuenta');
+select public.anular_factura((:'rsin'::jsonb->>'id')::bigint, 'prueba');
+select pg_temp.check(public.stock_disponible(10) = :stock_antes - 2, 'anular una factura de antes del control no devuelve stock');
+select public.anular_factura((:'rcon'::jsonb->>'id')::bigint, 'prueba');
+select pg_temp.check(public.stock_disponible(10) = :stock_antes, 'anular una factura con control devuelve stock');
+update public.empresa set inventario_desde = '2000-01-01' where id = 1;
 
 -- Nómina
 insert into public.empleados (nombre, tipo, tarifa_dia) values ('Alejandro', 'fijo', 40000), ('Greismar', 'destajo', 0);

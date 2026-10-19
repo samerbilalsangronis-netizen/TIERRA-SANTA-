@@ -486,6 +486,7 @@ export type Database = {
           factura_numero_inicial: number;
           factura_prefijo: string;
           id: number;
+          inventario_desde: string | null;
           iva_pct: number;
           logo_path: string | null;
           lotes_activos: boolean;
@@ -510,6 +511,7 @@ export type Database = {
           factura_numero_inicial?: number;
           factura_prefijo?: string;
           id?: number;
+          inventario_desde?: string | null;
           iva_pct?: number;
           logo_path?: string | null;
           lotes_activos?: boolean;
@@ -533,6 +535,7 @@ export type Database = {
           factura_numero_inicial?: number;
           factura_prefijo?: string;
           id?: number;
+          inventario_desde?: string | null;
           iva_pct?: number;
           logo_path?: string | null;
           lotes_activos?: boolean;
@@ -2211,6 +2214,7 @@ export type Database = {
       _emitir_factura_base: { Args: { p: Json }; Returns: Json };
       _registrar_factura_externa_base: { Args: { p: Json }; Returns: number };
       _registrar_pago_cliente_base: { Args: { p: Json }; Returns: Json };
+      activar_control_inventario: { Args: { p_activar: boolean }; Returns: string };
       ajustar_inventario: {
         Args: {
           p_conteo: number;

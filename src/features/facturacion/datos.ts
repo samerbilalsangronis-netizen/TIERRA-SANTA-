@@ -18,6 +18,8 @@ export type DatosFormularioFactura = {
   empresa: {
     iva_pct: number; moneda_defecto: string; stock_insuficiente: string; cambio_moneda_con_pagos: string;
     titulo_documento: string; factura_prefijo: string;
+    /** Desde cuándo las facturas descuentan inventario (null = todavía no). */
+    inventario_desde: string | null;
   };
 };
 
@@ -32,7 +34,7 @@ export async function cargarDatosFormulario(): Promise<DatosFormularioFactura> {
       supabase.from("ubicaciones").select("id, nombre, predeterminada").eq("activa", true).order("predeterminada", { ascending: false }).order("nombre"),
       supabase.from("monedas").select("codigo").eq("activa", true).order("orden"),
       supabase.from("metodos_pago").select("id, nombre").eq("activo", true).order("orden"),
-      supabase.from("empresa").select("iva_pct, moneda_defecto, stock_insuficiente, cambio_moneda_con_pagos, titulo_documento, factura_prefijo").eq("id", 1).single(),
+      supabase.from("empresa").select("iva_pct, moneda_defecto, stock_insuficiente, cambio_moneda_con_pagos, titulo_documento, factura_prefijo, inventario_desde").eq("id", 1).single(),
     ]);
   const stock: StockPorUbicacion = {};
   for (const e of existencias ?? []) {
@@ -50,6 +52,7 @@ export async function cargarDatosFormulario(): Promise<DatosFormularioFactura> {
       iva_pct: Number(empresa?.iva_pct ?? 16), moneda_defecto: empresa?.moneda_defecto ?? "USD",
       stock_insuficiente: empresa?.stock_insuficiente ?? "advertir", cambio_moneda_con_pagos: empresa?.cambio_moneda_con_pagos ?? "convertir",
       titulo_documento: empresa?.titulo_documento ?? "Factura", factura_prefijo: empresa?.factura_prefijo ?? "",
+      inventario_desde: empresa?.inventario_desde ?? null,
     },
   };
 }

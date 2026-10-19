@@ -17,6 +17,7 @@ import { cargarStock, TIPOS_MOVIMIENTO, type FilaStock } from "@/features/invent
 import { AccionesInventario, BotonEliminarProduccion, FiltrosUrl } from "@/features/inventario/dialogos";
 import { BadgeIndicador } from "@/features/inventario/badge";
 import { DonaPulpa } from "@/features/inventario/dona-pulpa";
+import { ControlInventario } from "@/features/inventario/control-inventario";
 
 export const metadata: Metadata = { title: "Inventario" };
 const POR_PAGINA = 50;
@@ -28,7 +29,11 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
   const perfil = await exigirPerfil("ver_dashboard");
   const sp = await searchParams;
   const vista = VISTAS.some(([v]) => v === t(sp.vista)) ? t(sp.vista) : "stock";
-  const { filas, ubicaciones } = await cargarStock();
+  const supabase = await crearClienteServidor();
+  const [{ filas, ubicaciones }, { data: empresa }] = await Promise.all([
+    cargarStock(),
+    supabase.from("empresa").select("inventario_desde").eq("id", 1).single(),
+  ]);
   const operar = puede(perfil.rol, "inventario_operar");
   const ajustar = puede(perfil.rol, "inventario_ajustar");
   const bajos = filas.filter((f) => f.indicador === "bajo").length;
@@ -38,6 +43,8 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
     <>
       <EncabezadoPagina icono={Boxes} titulo="Inventario" descripcion="Producto terminado: sube con la producción y baja con facturas, merma y ajustes."
         acciones={<AccionesInventario productos={filas.filter((f) => f.activo)} ubicaciones={ubicaciones} puedeOperar={operar} puedeAjustar={ajustar} puedeCrearProducto={puede(perfil.rol, "configuracion")} />} />
+
+      <ControlInventario desde={empresa?.inventario_desde ?? null} puedeCambiar={ajustar} />
 
       <section className="mb-4 grid grid-cols-3 gap-3">
         <TarjetaKpi titulo="Productos" icono={Boxes} valor={filas.filter((f) => f.total > 0).length} detalle="con existencia" />
