@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, ClipboardList, FileSpreadsheet } from "lucide-react";
 import { exigirPerfil } from "@/lib/auth/sesion";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { formatearCantidad, formatearMonto } from "@/lib/dinero";
@@ -21,7 +21,7 @@ export default async function PaginaEstadoCuenta({ params, searchParams }: PageP
   const sp = await searchParams;
   const datos = await obtenerEstadoCuenta(id, t(sp.moneda) || null, t(sp.desde), t(sp.hasta));
   if (!datos) notFound();
-  const { proveedor, empresa, moneda, desde, hasta, filas, totales } = datos;
+  const { proveedor, empresa, moneda, desde, hasta, filas, detalles, totales } = datos;
   const supabase = await crearClienteServidor();
   const { data: monedas } = await supabase.from("monedas").select("codigo").eq("activa", true).order("orden");
   const logo = empresa?.logo_path ? urlLogo(empresa.logo_path) : LOGO_POR_DEFECTO_NEGRO;
@@ -69,38 +69,74 @@ export default async function PaginaEstadoCuenta({ params, searchParams }: PageP
           {proveedor.ubicacion && <p><span className="text-neutral-500">Ubicación:</span> {proveedor.ubicacion}</p>}
         </section>
 
+        <h2 className="mt-5 flex items-center gap-2 border-b-2 border-amber-500 pb-1.5 text-sm font-extrabold uppercase tracking-wide">
+          <ClipboardList className="size-4 text-amber-600" aria-hidden /> Movimientos del período
+        </h2>
         <div className="overflow-x-auto">
-          <table className="mt-3 w-full border-collapse">
+          <table className="w-full min-w-[46rem] border-collapse text-[12.5px]">
             <thead>
-              <tr className="border-b-2 border-neutral-800 text-left text-[11px] uppercase tracking-wide text-neutral-600">
-                <th className="py-1.5 pr-2">Fecha</th><th className="py-1.5 pr-2">Detalle</th>
-                <th className="py-1.5 pr-2 text-right">Kg</th><th className="py-1.5 pr-2 text-right">Merma</th>
-                <th className="py-1.5 pr-2 text-right">Entregas</th><th className="py-1.5 pr-2 text-right">Abonos</th><th className="py-1.5 text-right">Saldo</th>
+              <tr className="border-b border-neutral-200 text-left text-[11px] font-bold uppercase tracking-wide text-neutral-800">
+                <th className="py-2 pr-2">Fecha</th><th className="py-2 pr-2">Tipo</th><th className="py-2 pr-2">Rubro</th>
+                <th className="py-2 pr-2 text-right">Kg</th><th className="py-2 pr-2 text-right">Cestas</th><th className="py-2 pr-2 text-right">Precio</th>
+                <th className="py-2 pr-2 text-center">Merma</th><th className="py-2 pr-2 text-right">Monto</th><th className="py-2 text-right">Saldo acumulado</th>
               </tr>
             </thead>
             <tbody>
               {filas.length === 0 && (
-                <tr><td colSpan={7} className="py-6 text-center text-neutral-500">Sin movimientos en este periodo.</td></tr>
+                <tr><td colSpan={9} className="py-6 text-center text-neutral-500">Sin movimientos en este periodo.</td></tr>
               )}
-              {filas.map((f, i) => (
-                <tr key={`${f.tipo}-${f.ref_id ?? i}`} className={f.tipo === "saldo_anterior" ? "bg-neutral-100 font-medium" : i % 2 ? "bg-neutral-50" : ""}>
-                  <td className="whitespace-nowrap py-1 pr-2">{formatearFecha(f.fecha)}</td>
-                  <td className="py-1 pr-2">{f.detalle}</td>
-                  <td className="tabular py-1 pr-2 text-right">{f.kg ? formatearCantidad(f.kg) : ""}</td>
-                  <td className="tabular py-1 pr-2 text-right">{f.merma ? formatearCantidad(f.merma) : ""}</td>
-                  <td className="tabular whitespace-nowrap py-1 pr-2 text-right">{Number(f.cargo) ? formatearMonto(f.cargo, moneda, { sinCodigo: true }) : ""}</td>
-                  <td className="tabular whitespace-nowrap py-1 pr-2 text-right">{Number(f.abono) ? formatearMonto(f.abono, moneda, { sinCodigo: true }) : ""}</td>
-                  <td className="tabular whitespace-nowrap py-1 text-right font-medium">{formatearMonto(f.saldo, moneda, { sinCodigo: true })}</td>
-                </tr>
-              ))}
+              {filas.map((f, i) => {
+                const clave = `${f.tipo}-${f.ref_id ?? i}`;
+                const saldo = <td className="tabular whitespace-nowrap py-2 text-right font-bold text-amber-600">{formatearMonto(f.saldo, moneda)}</td>;
+                if (f.tipo === "saldo_anterior") {
+                  return (
+                    <tr key={clave} className="border-b border-neutral-100 bg-neutral-50">
+                      <td className="whitespace-nowrap py-2 pr-2">{formatearFecha(f.fecha)}</td>
+                      <td colSpan={7} className="py-2 pr-2 font-semibold text-neutral-700">Saldo anterior</td>{saldo}
+                    </tr>
+                  );
+                }
+                if (f.tipo === "abono") {
+                  const extra = f.detalle.replace(/^Abono( · )?/, "");
+                  return (
+                    <tr key={clave} className="border-b border-neutral-100">
+                      <td className="whitespace-nowrap py-2 pr-2">{formatearFecha(f.fecha)}</td>
+                      <td className="whitespace-nowrap py-2 pr-2 font-semibold text-green-700"><span aria-hidden>💵</span> Abono</td>
+                      <td colSpan={5} className="py-2 pr-2 italic text-neutral-600">Pago recibido{extra ? ` · ${extra}` : ""}</td>
+                      <td className="tabular whitespace-nowrap py-2 pr-2 text-right font-bold text-green-700">−{formatearMonto(f.abono, moneda)}</td>{saldo}
+                    </tr>
+                  );
+                }
+                const d = f.ref_id ? detalles.get(f.ref_id) : undefined;
+                return (
+                  <tr key={clave} className="border-b border-neutral-100">
+                    <td className="whitespace-nowrap py-2 pr-2">{formatearFecha(f.fecha)}</td>
+                    <td className="whitespace-nowrap py-2 pr-2 font-semibold text-red-600"><span aria-hidden>🚚</span> Entrega</td>
+                    <td className="py-2 pr-2 uppercase">{d?.rubro ?? f.detalle}</td>
+                    <td className="tabular whitespace-nowrap py-2 pr-2 text-right">
+                      {d?.modo === "UNIDAD" ? `${formatearCantidad(d.unidades)} und` : f.kg ? `${formatearCantidad(f.kg, 1)} kg` : "—"}
+                    </td>
+                    <td className="tabular py-2 pr-2 text-right">{Number(f.cestas) ? formatearCantidad(f.cestas, 2) : "—"}</td>
+                    <td className="tabular whitespace-nowrap py-2 pr-2 text-right">
+                      {d ? <>{formatearMonto(d.precio, moneda)}<span className="text-[10px] text-neutral-500">/{d.por}</span></> : "—"}
+                    </td>
+                    <td className="tabular whitespace-nowrap py-2 pr-2 text-center text-amber-600">{Number(f.merma) ? `${formatearCantidad(f.merma)} kg` : "—"}</td>
+                    <td className="tabular whitespace-nowrap py-2 pr-2 text-right font-bold text-red-600">+{formatearMonto(f.cargo, moneda)}</td>{saldo}
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-neutral-800 font-semibold">
-                <td colSpan={2} className="py-1.5">Totales del periodo</td>
-                <td className="tabular py-1.5 pr-2 text-right">{formatearCantidad(totales.kg)}</td>
-                <td className="tabular py-1.5 pr-2 text-right">{formatearCantidad(totales.merma)}</td>
-                <td className="tabular whitespace-nowrap py-1.5 pr-2 text-right">{formatearMonto(totales.cargos, moneda, { sinCodigo: true })}</td>
-                <td className="tabular whitespace-nowrap py-1.5 pr-2 text-right">{formatearMonto(totales.abonos, moneda, { sinCodigo: true })}</td>
+                <td colSpan={3} className="py-2">Totales del periodo</td>
+                <td className="tabular whitespace-nowrap py-2 pr-2 text-right">{formatearCantidad(totales.kg, 1)} kg</td>
+                <td className="tabular py-2 pr-2 text-right">{formatearCantidad(totales.cestas, 2)}</td>
+                <td />
+                <td className="tabular whitespace-nowrap py-2 pr-2 text-center">{totales.merma ? `${formatearCantidad(totales.merma)} kg` : "—"}</td>
+                <td className="tabular whitespace-nowrap py-2 pr-2 text-right">
+                  <span className="block text-red-600">+{formatearMonto(totales.cargos, moneda)}</span>
+                  <span className="block text-green-700">−{formatearMonto(totales.abonos, moneda)}</span>
+                </td>
                 <td />
               </tr>
             </tfoot>

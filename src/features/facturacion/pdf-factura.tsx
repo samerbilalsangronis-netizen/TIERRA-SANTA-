@@ -56,7 +56,7 @@ const s = StyleSheet.create({
   totales: { width: 190 },
   lineaTotal: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 1.5 },
   granTotal: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1.5, borderTopColor: "#262626", marginTop: 3, paddingTop: 4, fontSize: 11, fontFamily: "Helvetica-Bold" },
-  sello: { width: 96, height: 96, objectFit: "contain", marginTop: 18, alignSelf: "flex-end", marginRight: 24, transform: "rotate(-6deg)" },
+  sello: { width: 80, height: 80, objectFit: "contain", marginTop: 18, alignSelf: "flex-end", marginRight: 24 },
   anulada: { position: "absolute", top: 300, left: 90, fontSize: 80, color: "#dc2626", opacity: 0.35, transform: "rotate(-20deg)", fontFamily: "Helvetica-Bold", borderWidth: 6, borderColor: "#dc2626", paddingHorizontal: 16 },
   numeroPagina: { position: "absolute", bottom: 24, left: 40, right: 40, textAlign: "center", fontSize: 7.5, color: "#737373" },
 });

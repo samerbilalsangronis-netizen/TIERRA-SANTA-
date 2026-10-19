@@ -104,7 +104,7 @@ export function HojaFactura({ factura: f, empresa }: { factura: FacturaCompleta;
         {/* Sello de la empresa (en lugar de las firmas) */}
         <div className="mt-6 flex justify-end pr-6">
           {/* eslint-disable-next-line @next/next/no-img-element -- imagen fija; también sale al imprimir */}
-          <img src="/sello-tierra-santa.png" alt="Sello de Procesadora de Alimentos Tierra Santa" className="size-28 -rotate-6 object-contain" />
+          <img src="/sello-tierra-santa.png" alt="Sello de Procesadora de Alimentos Tierra Santa" className="h-24 w-auto object-contain" />
         </div>
         {empresa.pie_factura && <p className="mt-6 text-center text-xs text-neutral-600">{empresa.pie_factura}</p>}
         {empresa.texto_legal && <p className="mt-2 text-center text-[10px] text-neutral-500">{empresa.texto_legal}</p>}

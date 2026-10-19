@@ -186,7 +186,7 @@ Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E
 
 | Fecha | Qué se hizo |
 |---|---|
-| 2026-10-19 | Samer empieza a facturar sin inventario general: las facturas no descuentan hasta que en Inventario pulse "Empezar a descontar al facturar" (tras el conteo con Ajuste). Pendiente: estilo de reportes de proveedores (esperando su PDF) y sello en la factura en vez de firmas. |
+| 2026-10-19 | Samer empieza a facturar sin inventario general: las facturas no descuentan hasta que en Inventario pulse "Empezar a descontar al facturar" (tras el conteo con Ajuste). Sello de la empresa en la factura (public/sello-tierra-santa.png, derecho) en lugar de firmas. Estado de cuenta de proveedores con el estilo de su referencia ("Movimientos del período": tipo con icono, rubro, kg, cestas, precio por cesta/kg/und, merma, monto ± y saldo acumulado en naranja). |
 | 2026-10-16 (cont. 4) | Reporte "Fruta recibida" (kg, merma, kg netos, % y cestas por fruta; filtro por proveedor; migración 20261027). Tarjeta de compras/cobrado del dashboard en filas por moneda. Próximo: ERP Clientes leyendo cada imagen de postimages para replicar las líneas de las facturas (Samer lo pidió; probar primero con ~10). |
 | 2026-10-16 (cont. 3) | Migración de proveedores USD (fusiona con COP por nombre). |
 | 2026-10-16 (cont. 2) | Ficha de proveedor: Precio por kilo + Cestas solo cuando aplica; piña por unidad (utilidad `corregir_pina_por_unidad.sql`); entrega sin nota ni foto; compra por cesta en cestas o kilos (migración 20261026). Samer ya importó los proveedores COP en producción (19–25 aplicadas, confirmar). |

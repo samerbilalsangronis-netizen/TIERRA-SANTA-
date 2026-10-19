@@ -80,8 +80,12 @@ test("proveedor: compras por kilo, por unidad y por cesta, abonos, cestas, saldo
   // Estado de cuenta COP
   await page.getByRole("link", { name: /Estado de cuenta COP/ }).click();
   await expect(page.getByText("ESTADO DE CUENTA", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Guanábana · 400 kg × 3000 · merma 10 kg/)).toBeVisible();
-  await expect(page.getByText(/Piña · 80 und × 2500 · merma 2 und/)).toBeVisible();
+  await expect(page.getByText("Movimientos del período")).toBeVisible();
+  const guanabana = page.getByRole("row", { name: /GUANÁBANA|Guanábana/ }).first();
+  await expect(guanabana).toContainText("400 kg");
+  await expect(guanabana).toContainText("3.000/kg");
+  await expect(guanabana).toContainText("10 kg");
+  await expect(page.getByRole("row", { name: /Piña/i }).first()).toContainText("80 und");
   await expect(page.locator("article")).toContainText("COP $ 1.000.000");
   const excel = await page.request.get(page.url().replace("/estado-cuenta?", "/estado-cuenta/excel?"));
   expect(excel.status()).toBe(200);
