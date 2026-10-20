@@ -55,6 +55,12 @@ export async function eliminarProveedor(id: number): Promise<Resultado> {
 }
 
 // ---------------------------------------------------------------- Entregas
+/** Quita de la nota la parte "N cestas de X kg × precio" que puso la importación. */
+function quitarNotaImportada(nota: string | null) {
+  const limpia = nota?.replace(/^[\d.,]+ cestas de [\d.,]+ kg × [\d.,]+(\s·\s)?/, "").trim();
+  return limpia || null;
+}
+
 export async function guardarEntrega(entrada: DatosEntrega): Promise<Resultado> {
   await exigirPerfil("gestionar_proveedores");
   const v = esquemaEntrega.safeParse(entrada);
@@ -68,9 +74,12 @@ export async function guardarEntrega(entrada: DatosEntrega): Promise<Resultado> 
   if (d.modo_pesaje === "FIJO" && !prod.kg_por_cesta) {
     return fallo("Este producto no tiene kg por cesta configurados. Elige «Por kilo» o configúralo en Catálogos.");
   }
+  // La nota de las entregas importadas ("90 cestas de 30 kg × 2.000") describe cómo se pagó
+  // en la hoja anterior: si la entrega se cambia a otro modo de compra, deja de ser cierta.
+  const nota = d.modo_pesaje === "VARIABLE" ? d.nota : quitarNotaImportada(d.nota);
   // Solo se guarda la cantidad que corresponde al modo
   const fila = {
-    ...d, precio: d.precio as number, kg_por_cesta: prod.kg_por_cesta,
+    ...d, nota, precio: d.precio as number, kg_por_cesta: prod.kg_por_cesta,
     kg_total: d.modo_pesaje === "UNIDAD" ? 0 : d.kg_total,
     unidades: d.modo_pesaje === "UNIDAD" ? d.unidades : 0,
   };
