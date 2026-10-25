@@ -7,7 +7,7 @@ export function formatearCelda(v: Celda, c: Columna, moneda?: string): string {
   if (v === null || v === "") return v === "" ? "" : "—";
   if (typeof v === "string") return c.tipo === "fecha" ? formatearFecha(v) : v;
   switch (c.tipo) {
-    case "monto": return formatearMonto(v, moneda ?? "COP", { sinCodigo: true });
+    case "monto": return formatearMonto(v, c.moneda ?? moneda ?? "COP", { sinCodigo: true });
     case "cantidad": return formatearCantidad(v);
     case "porcentaje": return `${formatearNumero(v, 1)} %`;
     default: return String(v);

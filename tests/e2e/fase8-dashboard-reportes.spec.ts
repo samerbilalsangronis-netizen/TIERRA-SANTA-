@@ -44,6 +44,10 @@ test("reportes: cada reporte en pantalla y en Excel", async ({ page }) => {
   // Ventas por producto tiene filas y total
   await page.goto("/reportes/ventas-producto?p=rango&desde=2026-01-01&hasta=2026-12-31&moneda=USD");
   await expect(page.getByRole("columnheader", { name: "Producto" })).toBeVisible();
+  // Un solo reporte con dólares y pesos: sin selector de moneda y un monto por moneda
+  await expect(page.getByRole("radiogroup", { name: "Moneda de los gráficos" })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "Monto USD" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Monto COP" })).toBeVisible();
 });
 
 test("fruta recibida: se suma de las entregas y se filtra por proveedor", async ({ page }) => {

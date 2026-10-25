@@ -3,13 +3,13 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { numeroFactura } from "@/lib/facturas";
 
 export type TipoColumna = "texto" | "fecha" | "cantidad" | "monto" | "entero" | "porcentaje";
-export type Columna = { titulo: string; tipo: TipoColumna };
+export type Columna = { titulo: string; tipo: TipoColumna; /** Moneda propia de una columna de monto. */ moneda?: string };
 export type Celda = string | number | null;
 export type Reporte = { titulo: string; columnas: Columna[]; filas: Celda[][]; totales?: Celda[]; nota?: string; moneda?: string };
 export type Filtros = { desde: string; hasta: string; moneda: string; proveedorId?: number | null };
 
 export const REPORTES = {
-  "ventas-producto": { titulo: "Ventas por producto", descripcion: "Bolsas vendidas y monto de cada producto.", moneda: true, proveedor: false },
+  "ventas-producto": { titulo: "Ventas por producto", descripcion: "Bolsas vendidas de cada producto, sumando dólares y pesos, con el monto en cada moneda.", moneda: false, proveedor: false },
   "ventas-cliente": { titulo: "Ventas por cliente", descripcion: "Cuánto compró cada cliente y cuánto debe de esas facturas.", moneda: true, proveedor: false },
   "libro-facturas": { titulo: "Libro de facturas", descripcion: "Todas las facturas del periodo, incluidas las anuladas.", moneda: true, proveedor: false },
   "fruta-recibida": { titulo: "Fruta recibida", descripcion: "Kilos y cestas de cada fruta que entregaron los proveedores; también de un solo proveedor.", moneda: false, proveedor: true },
@@ -29,11 +29,27 @@ export async function generarReporte(tipo: TipoReporte, f: Filtros): Promise<Rep
   const titulo = REPORTES[tipo].titulo;
 
   if (tipo === "ventas-producto") {
-    const { data } = await supabase.rpc("ventas_por_producto", { p_desde: f.desde, p_hasta: f.hasta, p_moneda: f.moneda });
-    const filas: Celda[][] = (data ?? []).map((x) => [x.codigo, x.nombre, x.unidad, n(x.cantidad), n(x.facturas), n(x.monto)]);
-    return { titulo, moneda: f.moneda, nota: "Monto sin IVA.",
-      columnas: [{ titulo: "Código", tipo: "entero" }, { titulo: "Producto", tipo: "texto" }, { titulo: "Unidad", tipo: "texto" }, { titulo: "Cantidad", tipo: "cantidad" }, { titulo: "Facturas", tipo: "entero" }, { titulo: "Monto", tipo: "monto" }],
-      filas, totales: ["", "Total", "", suma(filas, 3), null, suma(filas, 5)] };
+    // Un solo reporte con todas las monedas: la cantidad se suma y el monto va en una columna por moneda
+    const { data: monedas } = await supabase.from("monedas").select("codigo").eq("activa", true).order("orden");
+    const lista = (monedas ?? []).map((m) => m.codigo);
+    const porMoneda = await Promise.all(lista.map(async (m) => ({
+      m, data: (await supabase.rpc("ventas_por_producto", { p_desde: f.desde, p_hasta: f.hasta, p_moneda: m })).data ?? [] })));
+    // Columnas de monto: USD y COP siempre; otras monedas solo si tuvieron ventas
+    const usadas = porMoneda.filter((x) => x.m === "USD" || x.m === "COP" || x.data.length > 0).map((x) => x.m);
+    const productos = new Map<number, { codigo: number; nombre: string; unidad: string; cantidad: number; facturas: number; montos: Record<string, number> }>();
+    for (const { m, data } of porMoneda) {
+      for (const x of data) {
+        const p = productos.get(x.producto_id) ?? { codigo: x.codigo, nombre: x.nombre, unidad: x.unidad, cantidad: 0, facturas: 0, montos: {} };
+        p.cantidad += n(x.cantidad); p.facturas += n(x.facturas); p.montos[m] = (p.montos[m] ?? 0) + n(x.monto);
+        productos.set(x.producto_id, p);
+      }
+    }
+    const filas: Celda[][] = [...productos.values()].sort((a, b) => b.cantidad - a.cantidad)
+      .map((p) => [p.codigo, p.nombre, p.unidad, p.cantidad, p.facturas, ...usadas.map((m) => p.montos[m] ?? null)]);
+    return { titulo, nota: "Cantidad: todas las facturas, en dólares y en pesos. Montos sin IVA, cada uno en su moneda.",
+      columnas: [{ titulo: "Código", tipo: "entero" }, { titulo: "Producto", tipo: "texto" }, { titulo: "Unidad", tipo: "texto" }, { titulo: "Cantidad", tipo: "cantidad" }, { titulo: "Facturas", tipo: "entero" },
+        ...usadas.map((m) => ({ titulo: `Monto ${m}`, tipo: "monto" as const, moneda: m }))],
+      filas, totales: ["", "Total", "", suma(filas, 3), suma(filas, 4), ...usadas.map((_, i) => suma(filas, 5 + i))] };
   }
   if (tipo === "ventas-cliente") {
     const { data } = await supabase.rpc("ventas_por_cliente", { p_desde: f.desde, p_hasta: f.hasta, p_moneda: f.moneda });
