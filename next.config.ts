@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },
+    agentUpgrade: "security",
   },
 };
 
