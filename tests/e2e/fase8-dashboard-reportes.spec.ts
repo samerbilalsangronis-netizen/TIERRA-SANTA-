@@ -32,7 +32,7 @@ test("reportes: cada reporte en pantalla y en Excel", async ({ page }) => {
   await page.goto("/reportes");
   for (const [ruta, titulo] of [
     ["ventas-producto", "VENTAS POR PRODUCTO"], ["ventas-cliente", "VENTAS POR CLIENTE"], ["libro-facturas", "LIBRO DE FACTURAS"],
-    ["fruta-recibida", "FRUTA RECIBIDA"], ["compras-proveedor", "COMPRAS POR PROVEEDOR"], ["produccion", "PRODUCCIÓN DIARIA"], ["cajas-cestas", "CAJAS Y CESTAS"],
+    ["fruta-recibida", "FRUTA RECIBIDA"], ["saldos-proveedores", "SALDOS DE PROVEEDORES"], ["compras-proveedor", "COMPRAS POR PROVEEDOR"], ["produccion", "PRODUCCIÓN DIARIA"], ["cajas-cestas", "CAJAS Y CESTAS"],
   ]) {
     await page.goto(`/reportes/${ruta}?p=rango&desde=2026-01-01&hasta=2026-12-31`);
     await expect(page.getByText(titulo)).toBeVisible();
@@ -80,4 +80,30 @@ test("fruta recibida: se suma de las entregas y se filtra por proveedor", async 
   await expect(fila).toContainText("100,0 %");
   const r = await page.request.get(`/reportes/fruta-recibida/excel?desde=2026-01-01&hasta=2026-12-31&proveedor=${id}`);
   expect(r.status()).toBe(200);
+});
+
+test("saldos de proveedores: por fruta y eligiendo proveedores", async ({ page }) => {
+  await entrarComoAdmin(page);
+  await page.goto("/reportes/saldos-proveedores");
+  await expect(page.getByText("SALDOS DE PROVEEDORES")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Este mes" })).toHaveCount(0); // no usa periodo
+  const fruta = page.getByLabel("Fruta que traen");
+  const valor = await fruta.locator("option", { hasText: "Mora" }).first().getAttribute("value");
+  await fruta.selectOption(valor!);
+  await expect(page).toHaveURL(new RegExp(`rubro=${valor}`));
+  await expect(page.getByText(/Proveedores que traen Mora/)).toBeVisible();
+  // Elegir solo dos
+  await page.getByRole("button", { name: "Elegir proveedores" }).click();
+  const dialogo = page.getByRole("dialog");
+  await dialogo.getByRole("button", { name: "Ninguno" }).click();
+  const casillas = dialogo.getByRole("checkbox");
+  await casillas.nth(0).click();
+  await casillas.nth(1).click();
+  await dialogo.getByRole("button", { name: "Ver reporte" }).click();
+  await expect(page).toHaveURL(/sel=\d+(,|%2C)\d+/);
+  await expect(page.getByRole("button", { name: "2 proveedores elegidos" })).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await expect(page.locator("tfoot")).toContainText("Total (2 proveedores)");
+  const excel = await page.request.get(`/reportes/saldos-proveedores/excel?${new URL(page.url()).searchParams}`);
+  expect(excel.status()).toBe(200);
 });

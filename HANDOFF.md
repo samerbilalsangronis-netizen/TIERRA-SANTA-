@@ -186,6 +186,7 @@ Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-26 | Reporte "Saldos de proveedores" (lo que se debe a cada uno en COP y USD, cestas, última entrega; filtro por fruta que traen, elegir proveedores uno por uno y solo con saldo). "Ventas por producto" une USD y COP. Next.js 16.4.0 → 16.4.3 por aviso de seguridad. |
 | 2026-10-19 (cont.) | Nómina separada en Personal fijo y Por destajo (lista con pestañas Fijo/Destajo/Tareas, asistencia y detalle del periodo por grupo con subtotales; Excel y recibos ordenados por grupo). Solo pantalla, sin migración. |
 | 2026-10-19 | Samer empieza a facturar sin inventario general: las facturas no descuentan hasta que en Inventario pulse "Empezar a descontar al facturar" (tras el conteo con Ajuste). Sello de la empresa en la factura (public/sello-tierra-santa.png, derecho) en lugar de firmas. Estado de cuenta de proveedores con el estilo de su referencia ("Movimientos del período": tipo con icono, rubro, kg, cestas, precio por cesta/kg/und, merma, monto ± y saldo acumulado en naranja). |
 | 2026-10-16 (cont. 4) | Reporte "Fruta recibida" (kg, merma, kg netos, % y cestas por fruta; filtro por proveedor; migración 20261027). Tarjeta de compras/cobrado del dashboard en filas por moneda. Próximo: ERP Clientes leyendo cada imagen de postimages para replicar las líneas de las facturas (Samer lo pidió; probar primero con ~10). |

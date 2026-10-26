@@ -6,16 +6,21 @@ export type TipoColumna = "texto" | "fecha" | "cantidad" | "monto" | "entero" | 
 export type Columna = { titulo: string; tipo: TipoColumna; /** Moneda propia de una columna de monto. */ moneda?: string };
 export type Celda = string | number | null;
 export type Reporte = { titulo: string; columnas: Columna[]; filas: Celda[][]; totales?: Celda[]; nota?: string; moneda?: string };
-export type Filtros = { desde: string; hasta: string; moneda: string; proveedorId?: number | null };
+export type Filtros = {
+  desde: string; hasta: string; moneda: string; proveedorId?: number | null;
+  /** Saldos de proveedores: solo los que traen esta fruta, solo estos proveedores, solo con saldo. */
+  rubroId?: number | null; seleccion?: number[] | null; soloConSaldo?: boolean;
+};
 
 export const REPORTES = {
-  "ventas-producto": { titulo: "Ventas por producto", descripcion: "Bolsas vendidas de cada producto, sumando dólares y pesos, con el monto en cada moneda.", moneda: false, proveedor: false },
-  "ventas-cliente": { titulo: "Ventas por cliente", descripcion: "Cuánto compró cada cliente y cuánto debe de esas facturas.", moneda: true, proveedor: false },
-  "libro-facturas": { titulo: "Libro de facturas", descripcion: "Todas las facturas del periodo, incluidas las anuladas.", moneda: true, proveedor: false },
-  "fruta-recibida": { titulo: "Fruta recibida", descripcion: "Kilos y cestas de cada fruta que entregaron los proveedores; también de un solo proveedor.", moneda: false, proveedor: true },
-  "compras-proveedor": { titulo: "Compras por proveedor", descripcion: "Entregas por proveedor y fruta, con kilos y merma.", moneda: false, proveedor: false },
-  "produccion": { titulo: "Producción diaria", descripcion: "Bolsas producidas por día y producto.", moneda: false, proveedor: false },
-  "cajas-cestas": { titulo: "Cajas y cestas", descripcion: "Cajas con clientes y cestas con proveedores: movimiento y pendientes.", moneda: false, proveedor: false },
+  "ventas-producto": { titulo: "Ventas por producto", descripcion: "Bolsas vendidas de cada producto, sumando dólares y pesos, con el monto en cada moneda.", moneda: false, proveedor: false, periodo: true, eleccion: false },
+  "ventas-cliente": { titulo: "Ventas por cliente", descripcion: "Cuánto compró cada cliente y cuánto debe de esas facturas.", moneda: true, proveedor: false, periodo: true, eleccion: false },
+  "libro-facturas": { titulo: "Libro de facturas", descripcion: "Todas las facturas del periodo, incluidas las anuladas.", moneda: true, proveedor: false, periodo: true, eleccion: false },
+  "fruta-recibida": { titulo: "Fruta recibida", descripcion: "Kilos y cestas de cada fruta que entregaron los proveedores; también de un solo proveedor.", moneda: false, proveedor: true, periodo: true, eleccion: false },
+  "saldos-proveedores": { titulo: "Saldos de proveedores", descripcion: "Lo que se le debe a cada proveedor, con totales. Filtra por la fruta que traen o elige los proveedores.", moneda: false, proveedor: false, periodo: false, eleccion: true },
+  "compras-proveedor": { titulo: "Compras por proveedor", descripcion: "Entregas por proveedor y fruta, con kilos y merma.", moneda: false, proveedor: false, periodo: true, eleccion: false },
+  "produccion": { titulo: "Producción diaria", descripcion: "Bolsas producidas por día y producto.", moneda: false, proveedor: false, periodo: true, eleccion: false },
+  "cajas-cestas": { titulo: "Cajas y cestas", descripcion: "Cajas con clientes y cestas con proveedores: movimiento y pendientes.", moneda: false, proveedor: false, periodo: true, eleccion: false },
 } as const;
 export type TipoReporte = keyof typeof REPORTES;
 export const esTipoReporte = (t: string): t is TipoReporte => t in REPORTES;
@@ -91,6 +96,28 @@ export async function generarReporte(tipo: TipoReporte, f: Filtros): Promise<Rep
       columnas: [{ titulo: "Fruta", tipo: "texto" }, { titulo: "Entregas", tipo: "entero" }, { titulo: "Proveedores", tipo: "entero" }, { titulo: "Kg recibidos", tipo: "cantidad" },
         { titulo: "Merma kg", tipo: "cantidad" }, { titulo: "Kg netos", tipo: "cantidad" }, { titulo: "% de los kg", tipo: "porcentaje" }, { titulo: "Cestas", tipo: "cantidad" }, { titulo: "Unidades", tipo: "cantidad" }],
       filas, totales: ["Total", suma(filas, 1), null, suma(filas, 3), suma(filas, 4), suma(filas, 5), null, suma(filas, 7), suma(filas, 8)] };
+  }
+  if (tipo === "saldos-proveedores") {
+    const { data } = await supabase.rpc("buscar_proveedores", {
+      ...(f.rubroId ? { p_producto: f.rubroId } : {}), ...(f.soloConSaldo ? { p_con_saldo: true } : {}),
+    });
+    const lista = (data ?? []).flatMap((x) => (x.id !== null && (!f.seleccion?.length || f.seleccion.includes(x.id)) ? [{ ...x, id: x.id }] : []));
+    // Frutas que trae cada proveedor (de sus entregas)
+    const { data: entregas } = lista.length
+      ? await supabase.from("entregas_proveedor").select("proveedor_id, productos(nombre)").in("proveedor_id", lista.map((x) => x.id)).limit(50000)
+      : { data: [] };
+    const frutas = new Map<number, Set<string>>();
+    for (const e of entregas ?? []) {
+      if (!e.productos?.nombre) continue;
+      (frutas.get(e.proveedor_id) ?? frutas.set(e.proveedor_id, new Set()).get(e.proveedor_id)!).add(e.productos.nombre);
+    }
+    const filas: Celda[][] = lista.map((x) => [x.nombre, [...(frutas.get(x.id) ?? [])].sort().join(", ") || "—",
+      x.ultima_entrega, n(x.saldo_cop) || null, n(x.saldo_usd) || null, n(x.cestas_pendientes) || null]);
+    return { titulo,
+      nota: "Saldo al día de hoy: todo lo entregado menos todo lo abonado. Un saldo negativo es lo que se le pagó de más.",
+      columnas: [{ titulo: "Proveedor", tipo: "texto" }, { titulo: "Fruta que trae", tipo: "texto" }, { titulo: "Última entrega", tipo: "fecha" },
+        { titulo: "Debe COP", tipo: "monto", moneda: "COP" }, { titulo: "Debe USD", tipo: "monto", moneda: "USD" }, { titulo: "Cestas pend.", tipo: "entero" }],
+      filas, totales: [`Total (${filas.length} proveedores)`, "", "", suma(filas, 3), suma(filas, 4), suma(filas, 5)] };
   }
   if (tipo === "produccion") {
     const { data } = await supabase.rpc("produccion_resumen", { p_desde: f.desde, p_hasta: f.hasta });

@@ -15,7 +15,9 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/repor
   const hasta = fecha(sp.get("hasta")) ?? hoyISO();
   const desde = fecha(sp.get("desde")) ?? `${hasta.slice(0, 8)}01`;
   const proveedorId = Number(sp.get("proveedor")) || null;
-  const r = await generarReporte(tipo, { desde, hasta, moneda: sp.get("moneda") || "USD", proveedorId });
+  const rubroId = Number(sp.get("rubro")) || null;
+  const seleccion = (sp.get("sel") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  const r = await generarReporte(tipo, { desde, hasta, moneda: sp.get("moneda") || "USD", proveedorId, rubroId, seleccion, soloConSaldo: sp.get("saldo") === "1" });
   const hoja = XLSX.utils.aoa_to_sheet([
     [`${r.titulo} · ${desde} a ${hasta}${r.moneda ? ` · ${r.moneda}` : ""}`], [],
     r.columnas.map((c) => c.titulo),

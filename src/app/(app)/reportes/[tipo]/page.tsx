@@ -12,6 +12,7 @@ import { BotonImprimir } from "@/features/proveedores/controles-estado-cuenta";
 import { FiltrosDashboard } from "@/features/dashboard/filtros";
 import { esTipoReporte, generarReporte, REPORTES } from "@/features/reportes/definiciones";
 import { TablaReporte } from "@/features/reportes/tabla";
+import { FiltroSaldosProveedores } from "@/features/reportes/filtro-saldos-proveedores";
 
 export const metadata: Metadata = { title: "Reporte" };
 const t = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
@@ -39,8 +40,20 @@ export default async function PaginaReporte({ params, searchParams }: PageProps<
     ? await supabase.from("proveedores").select("id, nombre").order("nombre")
     : { data: null };
   const prov = (proveedores ?? []).find((p) => String(p.id) === t(sp.proveedor));
-  const r = await generarReporte(tipo, { ...actual, moneda, proveedorId: prov?.id ?? null });
-  const qs = new URLSearchParams({ desde: actual.desde, hasta: actual.hasta, ...(def.moneda ? { moneda } : {}), ...(prov ? { proveedor: String(prov.id) } : {}) });
+  // Saldos de proveedores: fruta que traen, proveedores elegidos y solo con saldo
+  const rubroId = def.eleccion ? Number(t(sp.rubro)) || null : null;
+  const seleccion = def.eleccion ? t(sp.sel).split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0) : [];
+  const soloConSaldo = def.eleccion && t(sp.saldo) === "1";
+  const [{ data: rubros }, { data: candidatos }] = def.eleccion
+    ? await Promise.all([
+        supabase.from("productos").select("id, nombre").eq("categoria", "fruta").neq("tipo", "terminado").eq("activo", true).order("nombre"),
+        supabase.rpc("buscar_proveedores", { ...(rubroId ? { p_producto: rubroId } : {}) }),
+      ])
+    : [{ data: null }, { data: null }];
+  const rubro = (rubros ?? []).find((x) => x.id === rubroId);
+  const r = await generarReporte(tipo, { ...actual, moneda, proveedorId: prov?.id ?? null, rubroId, seleccion, soloConSaldo });
+  const qs = new URLSearchParams({ desde: actual.desde, hasta: actual.hasta, ...(def.moneda ? { moneda } : {}), ...(prov ? { proveedor: String(prov.id) } : {}),
+    ...(rubroId ? { rubro: String(rubroId) } : {}), ...(seleccion.length ? { sel: seleccion.join(",") } : {}), ...(soloConSaldo ? { saldo: "1" } : {}) });
 
   return (
     <>
@@ -49,11 +62,18 @@ export default async function PaginaReporte({ params, searchParams }: PageProps<
         <a href={`/reportes/${tipo}/excel?${qs}`} className={buttonVariants({ variant: "outline" })}><Download className="size-4" /> Excel</a>
         <BotonImprimir />
       </div>
-      <div className="no-print"><FiltrosDashboard periodo={clave} desde={actual.desde} hasta={actual.hasta} moneda={moneda} monedas={lista} conMoneda={def.moneda}
-        proveedores={proveedores ?? undefined} proveedor={prov ? String(prov.id) : ""} /></div>
+      {def.eleccion && (
+        <FiltroSaldosProveedores rubros={rubros ?? []} rubro={rubroId ? String(rubroId) : ""} seleccion={seleccion} soloConSaldo={soloConSaldo}
+          proveedores={(candidatos ?? []).flatMap((x) => (x.id !== null && x.nombre ? [{ id: x.id, nombre: x.nombre }] : []))} />
+      )}
+      {def.periodo && <div className="no-print"><FiltrosDashboard periodo={clave} desde={actual.desde} hasta={actual.hasta} moneda={moneda} monedas={lista} conMoneda={def.moneda}
+        proveedores={proveedores ?? undefined} proveedor={prov ? String(prov.id) : ""} /></div>}
       <Hoja>
         <EncabezadoHoja empresa={empresa} titulo={r.titulo.toUpperCase()}
-          lineas={[`Del ${formatearFecha(actual.desde)} al ${formatearFecha(actual.hasta)}`, r.moneda ? `Moneda: ${r.moneda}` : "", prov ? `Proveedor: ${prov.nombre}` : ""]} />
+          lineas={def.periodo
+            ? [`Del ${formatearFecha(actual.desde)} al ${formatearFecha(actual.hasta)}`, r.moneda ? `Moneda: ${r.moneda}` : "", prov ? `Proveedor: ${prov.nombre}` : ""]
+            : [`Al ${formatearFecha(hoyISO())}`, rubro ? `Proveedores que traen ${rubro.nombre}` : "", seleccion.length ? `${seleccion.length} proveedores elegidos` : "",
+              soloConSaldo ? "Solo a los que se les debe" : ""]} />
         <div className="mt-4">
           <TablaReporte columnas={r.columnas} filas={r.filas} totales={r.totales} moneda={r.moneda} />
         </div>
