@@ -17,9 +17,10 @@ export async function GET(request: NextRequest, { params }: RouteContext<"/repor
   const proveedorId = Number(sp.get("proveedor")) || null;
   const rubroId = Number(sp.get("rubro")) || null;
   const seleccion = (sp.get("sel") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0);
-  const r = await generarReporte(tipo, { desde, hasta, moneda: sp.get("moneda") || "USD", proveedorId, rubroId, seleccion, soloConSaldo: sp.get("saldo") === "1" });
+  const r = await generarReporte(tipo, { desde, hasta, moneda: sp.get("moneda") || "USD", proveedorId, rubroId, seleccion, soloConSaldo: sp.get("saldo") === "1",
+    clienteId: Number(sp.get("cliente")) || null });
   const hoja = XLSX.utils.aoa_to_sheet([
-    [`${r.titulo} · ${desde} a ${hasta}${r.moneda ? ` · ${r.moneda}` : ""}`], [],
+    [`${r.titulo} · ${desde} a ${hasta}${r.moneda ? ` · ${r.moneda}` : ""}`], ...(r.lineas ?? []).map((l) => [l]), [],
     r.columnas.map((c) => c.titulo),
     ...r.filas,
     ...(r.totales && r.filas.length ? [r.totales.map((v) => v ?? "")] : []),

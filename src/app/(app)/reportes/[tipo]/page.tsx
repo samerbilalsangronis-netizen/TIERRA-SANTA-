@@ -51,9 +51,14 @@ export default async function PaginaReporte({ params, searchParams }: PageProps<
       ])
     : [{ data: null }, { data: null }];
   const rubro = (rubros ?? []).find((x) => x.id === rubroId);
-  const r = await generarReporte(tipo, { ...actual, moneda, proveedorId: prov?.id ?? null, rubroId, seleccion, soloConSaldo });
+  // Ventas a un cliente: el cliente elegido
+  const { data: clientes } = def.cliente
+    ? await supabase.from("clientes").select("id, numero, nombre").eq("activo", true).order("nombre").limit(5000)
+    : { data: null };
+  const cli = (clientes ?? []).find((c) => String(c.id) === t(sp.cliente));
+  const r = await generarReporte(tipo, { ...actual, moneda, proveedorId: prov?.id ?? null, rubroId, seleccion, soloConSaldo, clienteId: cli?.id ?? null });
   const qs = new URLSearchParams({ desde: actual.desde, hasta: actual.hasta, ...(def.moneda ? { moneda } : {}), ...(prov ? { proveedor: String(prov.id) } : {}),
-    ...(rubroId ? { rubro: String(rubroId) } : {}), ...(seleccion.length ? { sel: seleccion.join(",") } : {}), ...(soloConSaldo ? { saldo: "1" } : {}) });
+    ...(rubroId ? { rubro: String(rubroId) } : {}), ...(seleccion.length ? { sel: seleccion.join(",") } : {}), ...(soloConSaldo ? { saldo: "1" } : {}), ...(cli ? { cliente: String(cli.id) } : {}) });
 
   return (
     <>
@@ -67,11 +72,13 @@ export default async function PaginaReporte({ params, searchParams }: PageProps<
           proveedores={(candidatos ?? []).flatMap((x) => (x.id !== null && x.nombre ? [{ id: x.id, nombre: x.nombre }] : []))} />
       )}
       {def.periodo && <div className="no-print"><FiltrosDashboard periodo={clave} desde={actual.desde} hasta={actual.hasta} moneda={moneda} monedas={lista} conMoneda={def.moneda}
-        proveedores={proveedores ?? undefined} proveedor={prov ? String(prov.id) : ""} /></div>}
+        proveedores={proveedores ?? undefined} proveedor={prov ? String(prov.id) : ""}
+        clientes={clientes ?? undefined} cliente={cli ? String(cli.id) : ""} /></div>}
       <Hoja>
         <EncabezadoHoja empresa={empresa} titulo={r.titulo.toUpperCase()}
           lineas={def.periodo
-            ? [`Del ${formatearFecha(actual.desde)} al ${formatearFecha(actual.hasta)}`, r.moneda ? `Moneda: ${r.moneda}` : "", prov ? `Proveedor: ${prov.nombre}` : ""]
+            ? [`Del ${formatearFecha(actual.desde)} al ${formatearFecha(actual.hasta)}`, r.moneda ? `Moneda: ${r.moneda}` : "", prov ? `Proveedor: ${prov.nombre}` : "",
+              cli ? `Cliente: ${cli.numero ? `${cli.numero} · ` : ""}${cli.nombre}` : "", ...(r.lineas ?? [])]
             : [`Al ${formatearFecha(hoyISO())}`, rubro ? `Proveedores que traen ${rubro.nombre}` : "", seleccion.length ? `${seleccion.length} proveedores elegidos` : "",
               soloConSaldo ? "Solo a los que se les debe" : ""]} />
         <div className="mt-4">

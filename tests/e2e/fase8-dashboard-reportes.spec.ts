@@ -32,7 +32,7 @@ test("reportes: cada reporte en pantalla y en Excel", async ({ page }) => {
   await page.goto("/reportes");
   for (const [ruta, titulo] of [
     ["ventas-producto", "VENTAS POR PRODUCTO"], ["ventas-cliente", "VENTAS POR CLIENTE"], ["libro-facturas", "LIBRO DE FACTURAS"],
-    ["fruta-recibida", "FRUTA RECIBIDA"], ["saldos-proveedores", "SALDOS DE PROVEEDORES"], ["compras-proveedor", "COMPRAS POR PROVEEDOR"], ["produccion", "PRODUCCIÓN DIARIA"], ["cajas-cestas", "CAJAS Y CESTAS"],
+    ["fruta-recibida", "FRUTA RECIBIDA"], ["saldos-proveedores", "SALDOS DE PROVEEDORES"], ["cliente-producto", "VENTAS A UN CLIENTE"], ["compras-proveedor", "COMPRAS POR PROVEEDOR"], ["produccion", "PRODUCCIÓN DIARIA"], ["cajas-cestas", "CAJAS Y CESTAS"],
   ]) {
     await page.goto(`/reportes/${ruta}?p=rango&desde=2026-01-01&hasta=2026-12-31`);
     await expect(page.getByText(titulo)).toBeVisible();
@@ -105,5 +105,24 @@ test("saldos de proveedores: por fruta y eligiendo proveedores", async ({ page }
   await expect(page.locator("tbody tr")).toHaveCount(2);
   await expect(page.locator("tfoot")).toContainText("Total (2 proveedores)");
   const excel = await page.request.get(`/reportes/saldos-proveedores/excel?${new URL(page.url()).searchParams}`);
+  expect(excel.status()).toBe(200);
+});
+
+test("ventas a un cliente: se elige el cliente y salen sus facturas y la suma por producto", async ({ page }) => {
+  await entrarComoAdmin(page);
+  await page.goto("/reportes/cliente-producto?p=rango&desde=2026-01-01&hasta=2026-12-31");
+  await expect(page.getByText("Elige un cliente arriba para ver lo que se llevó.")).toBeVisible();
+  const cliente = page.getByLabel("Cliente");
+  const valor = await cliente.locator("option").nth(1).getAttribute("value");
+  await cliente.selectOption(valor!);
+  await expect(page).toHaveURL(new RegExp(`cliente=${valor}`));
+  await expect(page.getByText(/^Cliente: /)).toBeVisible();
+  await expect(page.getByText(/facturas? en el periodo|Sin facturas en el periodo/)).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Veces que cargó" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Monto USD" })).toBeVisible();
+  // Cambiar el periodo conserva el cliente
+  await page.getByRole("button", { name: "Este mes" }).click();
+  await expect(page).toHaveURL(new RegExp(`cliente=${valor}`));
+  const excel = await page.request.get(`/reportes/cliente-producto/excel?desde=2026-01-01&hasta=2026-12-31&cliente=${valor}`);
   expect(excel.status()).toBe(200);
 });

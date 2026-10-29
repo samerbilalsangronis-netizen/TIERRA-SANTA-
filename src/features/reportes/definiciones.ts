@@ -1,26 +1,34 @@
 import "server-only";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { numeroFactura } from "@/lib/facturas";
+import { formatearMonto } from "@/lib/dinero";
 
 export type TipoColumna = "texto" | "fecha" | "cantidad" | "monto" | "entero" | "porcentaje";
 export type Columna = { titulo: string; tipo: TipoColumna; /** Moneda propia de una columna de monto. */ moneda?: string };
 export type Celda = string | number | null;
-export type Reporte = { titulo: string; columnas: Columna[]; filas: Celda[][]; totales?: Celda[]; nota?: string; moneda?: string };
+export type Reporte = {
+  titulo: string; columnas: Columna[]; filas: Celda[][]; totales?: Celda[]; nota?: string; moneda?: string;
+  /** Líneas extra para el encabezado de la hoja (p. ej. el resumen de facturas). */
+  lineas?: string[];
+};
 export type Filtros = {
   desde: string; hasta: string; moneda: string; proveedorId?: number | null;
   /** Saldos de proveedores: solo los que traen esta fruta, solo estos proveedores, solo con saldo. */
   rubroId?: number | null; seleccion?: number[] | null; soloConSaldo?: boolean;
+  /** Ventas a un cliente: el cliente elegido. */
+  clienteId?: number | null;
 };
 
 export const REPORTES = {
-  "ventas-producto": { titulo: "Ventas por producto", descripcion: "Bolsas vendidas de cada producto, sumando dólares y pesos, con el monto en cada moneda.", moneda: false, proveedor: false, periodo: true, eleccion: false },
-  "ventas-cliente": { titulo: "Ventas por cliente", descripcion: "Cuánto compró cada cliente y cuánto debe de esas facturas.", moneda: true, proveedor: false, periodo: true, eleccion: false },
-  "libro-facturas": { titulo: "Libro de facturas", descripcion: "Todas las facturas del periodo, incluidas las anuladas.", moneda: true, proveedor: false, periodo: true, eleccion: false },
-  "fruta-recibida": { titulo: "Fruta recibida", descripcion: "Kilos y cestas de cada fruta que entregaron los proveedores; también de un solo proveedor.", moneda: false, proveedor: true, periodo: true, eleccion: false },
-  "saldos-proveedores": { titulo: "Saldos de proveedores", descripcion: "Lo que se le debe a cada proveedor, con totales. Filtra por la fruta que traen o elige los proveedores.", moneda: false, proveedor: false, periodo: false, eleccion: true },
-  "compras-proveedor": { titulo: "Compras por proveedor", descripcion: "Entregas por proveedor y fruta, con kilos y merma.", moneda: false, proveedor: false, periodo: true, eleccion: false },
-  "produccion": { titulo: "Producción diaria", descripcion: "Bolsas producidas por día y producto.", moneda: false, proveedor: false, periodo: true, eleccion: false },
-  "cajas-cestas": { titulo: "Cajas y cestas", descripcion: "Cajas con clientes y cestas con proveedores: movimiento y pendientes.", moneda: false, proveedor: false, periodo: true, eleccion: false },
+  "ventas-producto": { titulo: "Ventas por producto", descripcion: "Bolsas vendidas de cada producto, sumando dólares y pesos, con el monto en cada moneda.", moneda: false, proveedor: false, periodo: true, eleccion: false, cliente: false },
+  "cliente-producto": { titulo: "Ventas a un cliente", descripcion: "Elige un cliente y el periodo: sus facturas y la suma de cada producto que se llevó.", moneda: false, proveedor: false, periodo: true, eleccion: false, cliente: true },
+  "ventas-cliente": { titulo: "Ventas por cliente", descripcion: "Cuánto compró cada cliente y cuánto debe de esas facturas.", moneda: true, proveedor: false, periodo: true, eleccion: false, cliente: false },
+  "libro-facturas": { titulo: "Libro de facturas", descripcion: "Todas las facturas del periodo, incluidas las anuladas.", moneda: true, proveedor: false, periodo: true, eleccion: false, cliente: false },
+  "fruta-recibida": { titulo: "Fruta recibida", descripcion: "Kilos y cestas de cada fruta que entregaron los proveedores; también de un solo proveedor.", moneda: false, proveedor: true, periodo: true, eleccion: false, cliente: false },
+  "saldos-proveedores": { titulo: "Saldos de proveedores", descripcion: "Lo que se le debe a cada proveedor, con totales. Filtra por la fruta que traen o elige los proveedores.", moneda: false, proveedor: false, periodo: false, eleccion: true, cliente: false },
+  "compras-proveedor": { titulo: "Compras por proveedor", descripcion: "Entregas por proveedor y fruta, con kilos y merma.", moneda: false, proveedor: false, periodo: true, eleccion: false, cliente: false },
+  "produccion": { titulo: "Producción diaria", descripcion: "Bolsas producidas por día y producto.", moneda: false, proveedor: false, periodo: true, eleccion: false, cliente: false },
+  "cajas-cestas": { titulo: "Cajas y cestas", descripcion: "Cajas con clientes y cestas con proveedores: movimiento y pendientes.", moneda: false, proveedor: false, periodo: true, eleccion: false, cliente: false },
 } as const;
 export type TipoReporte = keyof typeof REPORTES;
 export const esTipoReporte = (t: string): t is TipoReporte => t in REPORTES;
@@ -55,6 +63,32 @@ export async function generarReporte(tipo: TipoReporte, f: Filtros): Promise<Rep
       columnas: [{ titulo: "Código", tipo: "entero" }, { titulo: "Producto", tipo: "texto" }, { titulo: "Unidad", tipo: "texto" }, { titulo: "Cantidad", tipo: "cantidad" }, { titulo: "Facturas", tipo: "entero" },
         ...usadas.map((m) => ({ titulo: `Monto ${m}`, tipo: "monto" as const, moneda: m }))],
       filas, totales: ["", "Total", "", suma(filas, 3), suma(filas, 4), ...usadas.map((_, i) => suma(filas, 5 + i))] };
+  }
+  if (tipo === "cliente-producto") {
+    const columnasBase: Columna[] = [{ titulo: "Código", tipo: "entero" }, { titulo: "Producto", tipo: "texto" }, { titulo: "Unidad", tipo: "texto" },
+      { titulo: "Cantidad", tipo: "cantidad" }, { titulo: "Veces que cargó", tipo: "entero" }];
+    if (!f.clienteId) return { titulo, columnas: columnasBase, filas: [], nota: "Elige un cliente arriba para ver lo que se llevó." };
+    const [{ data: ventas }, { data: facturas }] = await Promise.all([
+      supabase.rpc("ventas_cliente_por_producto", { p_cliente_id: f.clienteId, p_desde: f.desde, p_hasta: f.hasta }),
+      supabase.rpc("totales_facturas", { p_cliente_id: f.clienteId, p_desde: f.desde, p_hasta: f.hasta }),
+    ]);
+    // Monto en una columna por moneda (USD y COP siempre, otras si hubo ventas)
+    const usadas = [...new Set(["USD", "COP", ...(ventas ?? []).map((x) => x.moneda)])];
+    const productos = new Map<number, { codigo: number; nombre: string; unidad: string; cantidad: number; facturas: number; montos: Record<string, number> }>();
+    for (const x of ventas ?? []) {
+      const p = productos.get(x.producto_id) ?? { codigo: x.codigo, nombre: x.nombre, unidad: x.unidad, cantidad: 0, facturas: 0, montos: {} };
+      p.cantidad += n(x.cantidad); p.facturas += n(x.facturas); p.montos[x.moneda] = (p.montos[x.moneda] ?? 0) + n(x.monto);
+      productos.set(x.producto_id, p);
+    }
+    const filas: Celda[][] = [...productos.values()].sort((a, b) => b.cantidad - a.cantidad)
+      .map((p) => [p.codigo, p.nombre, p.unidad, p.cantidad, p.facturas, ...usadas.map((m) => p.montos[m] ?? null)]);
+    const resumen = (facturas ?? []).filter((x) => n(x.cantidad) - n(x.anuladas) > 0);
+    const nFacturas = resumen.reduce((a, x) => a + n(x.cantidad) - n(x.anuladas), 0);
+    return { titulo,
+      lineas: [nFacturas ? `${nFacturas} factura${nFacturas === 1 ? "" : "s"} en el periodo: ${resumen.map((x) => formatearMonto(x.total, x.moneda)).join(" + ")}` : "Sin facturas en el periodo"],
+      nota: "Cantidad: suma de todas las facturas del periodo (en dólares y en pesos). Montos sin IVA. Las facturas históricas importadas no traen el detalle de productos.",
+      columnas: [...columnasBase, ...usadas.map((m) => ({ titulo: `Monto ${m}`, tipo: "monto" as const, moneda: m }))],
+      filas, totales: ["", "Total", "", suma(filas, 3), null, ...usadas.map((_, i) => suma(filas, 5 + i))] };
   }
   if (tipo === "ventas-cliente") {
     const { data } = await supabase.rpc("ventas_por_cliente", { p_desde: f.desde, p_hasta: f.hasta, p_moneda: f.moneda });

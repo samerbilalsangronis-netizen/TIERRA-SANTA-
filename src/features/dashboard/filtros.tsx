@@ -7,20 +7,22 @@ import { PERIODOS, type ClavePeriodo } from "@/lib/periodos";
 import { cn } from "@/lib/utils";
 
 /** Fila única de filtros: periodo (con rango libre), moneda de los gráficos y, si se pide, proveedor. */
-export function FiltrosDashboard({ periodo, desde, hasta, moneda, monedas, conMoneda = true, proveedores, proveedor = "" }: {
+export function FiltrosDashboard({ periodo, desde, hasta, moneda, monedas, conMoneda = true, proveedores, proveedor = "", clientes, cliente = "" }: {
   periodo: ClavePeriodo; desde: string; hasta: string; moneda: string; monedas: string[]; conMoneda?: boolean;
   proveedores?: { id: number; nombre: string }[]; proveedor?: string;
+  clientes?: { id: number; numero: number | null; nombre: string }[]; cliente?: string;
 }) {
   const router = useRouter();
   const ruta = usePathname();
   const [pendiente, iniciar] = useTransition();
   const ir = (c: Record<string, string>) => {
-    const v = { p: periodo, desde, hasta, moneda, proveedor, ...c };
+    const v = { p: periodo, desde, hasta, moneda, proveedor, cliente, ...c };
     const qs = new URLSearchParams();
     if (v.p !== "mes") qs.set("p", v.p);
     if (v.p === "rango") { qs.set("desde", v.desde); qs.set("hasta", v.hasta); }
     if (conMoneda && v.moneda) qs.set("moneda", v.moneda);
     if (proveedores && v.proveedor) qs.set("proveedor", v.proveedor);
+    if (clientes && v.cliente) qs.set("cliente", v.cliente);
     iniciar(() => router.replace(`${ruta}${qs.size ? `?${qs}` : ""}`, { scroll: false }));
   };
   return (
@@ -36,6 +38,13 @@ export function FiltrosDashboard({ periodo, desde, hasta, moneda, monedas, conMo
           <Input type="date" aria-label="Desde" value={desde} onChange={(e) => e.target.value && ir({ desde: e.target.value })} className="h-8 w-[9.5rem] text-xs" />
           <Input type="date" aria-label="Hasta" value={hasta} onChange={(e) => e.target.value && ir({ hasta: e.target.value })} className="h-8 w-[9.5rem] text-xs" />
         </span>
+      )}
+      {clientes && (
+        <select aria-label="Cliente" value={cliente} onChange={(e) => ir({ cliente: e.target.value })}
+          className={cn("h-8 max-w-[18rem] rounded-lg border bg-background px-2 text-xs", !cliente && "border-primary font-semibold")}>
+          <option value="">Elige el cliente…</option>
+          {clientes.map((c) => <option key={c.id} value={c.id}>{c.numero ? `${c.numero} · ` : ""}{c.nombre}</option>)}
+        </select>
       )}
       {proveedores && (
         <select aria-label="Proveedor" value={proveedor} onChange={(e) => ir({ proveedor: e.target.value })}

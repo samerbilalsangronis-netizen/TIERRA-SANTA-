@@ -2714,6 +2714,19 @@ export type Database = {
           producto_id: number;
         }[];
       };
+      ventas_cliente_por_producto: {
+        Args: { p_cliente_id: number; p_desde: string; p_hasta: string };
+        Returns: {
+          cantidad: number;
+          codigo: number;
+          facturas: number;
+          moneda: string;
+          monto: number;
+          nombre: string;
+          producto_id: number;
+          unidad: string;
+        }[];
+      };
       ventas_por_cliente: {
         Args: { p_desde: string; p_hasta: string; p_moneda: string };
         Returns: {

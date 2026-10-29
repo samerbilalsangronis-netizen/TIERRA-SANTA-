@@ -49,6 +49,7 @@ Todas, en orden:
 20261026000100_cestas_o_kilos.sql          ← compra por cesta: se escribe en cestas O en kilos (cestas numeric(12,4); en FIJO manda el kg): PENDIENTE
 20261027000100_fruta_recibida.sql          ← reporte Fruta recibida: fruta_recibida(desde, hasta, proveedor opcional): PENDIENTE
 20261028000100_inventario_desde.sql        ← empresa.inventario_desde: las facturas solo descuentan stock si se emitieron después (null = no descuentan); activar_control_inventario(): PENDIENTE
+20261029000100_ventas_cliente_producto.sql ← reporte Ventas a un cliente: ventas_cliente_por_producto(cliente, desde, hasta): PENDIENTE
 ```
 **Regla:** nunca editar una migración ya aplicada en producción; crear una nueva con fecha posterior (`2026MMDD000100_descripcion.sql`). Después de agregar una, correr `scripts/generar-instalar.sh` (regenera `supabase/instalar.sql` para instalaciones nuevas) y verificar que aplica limpio **en una sola transacción** (el SQL Editor de Supabase confirma cada sentencia por separado —una tabla temporal `on commit drop` desaparece entre sentencias—, así que lo que deba ser todo-o-nada va en un bloque `do`; además: por eso no se usa `ALTER TYPE … ADD VALUE` seguido de uso del valor; se prefirió `text` + `check`).
 
@@ -186,6 +187,7 @@ Notas: no correr `pkill -f "next start"` (mata la propia shell). Las pruebas E2E
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-10-29 | Reporte "Ventas a un cliente" (pedido en nota de voz): se elige cliente y periodo; resumen de facturas del periodo y suma por producto (cantidad, veces que cargó, monto USD y COP). Migración 20261029. |
 | 2026-10-26 | Reporte "Saldos de proveedores" (lo que se debe a cada uno en COP y USD, cestas, última entrega; filtro por fruta que traen, elegir proveedores uno por uno y solo con saldo). "Ventas por producto" une USD y COP. Next.js 16.4.0 → 16.4.3 por aviso de seguridad. |
 | 2026-10-19 (cont.) | Nómina separada en Personal fijo y Por destajo (lista con pestañas Fijo/Destajo/Tareas, asistencia y detalle del periodo por grupo con subtotales; Excel y recibos ordenados por grupo). Solo pantalla, sin migración. |
 | 2026-10-19 | Samer empieza a facturar sin inventario general: las facturas no descuentan hasta que en Inventario pulse "Empezar a descontar al facturar" (tras el conteo con Ajuste). Sello de la empresa en la factura (public/sello-tierra-santa.png, derecho) en lugar de firmas. Estado de cuenta de proveedores con el estilo de su referencia ("Movimientos del período": tipo con icono, rubro, kg, cestas, precio por cesta/kg/und, merma, monto ± y saldo acumulado en naranja). |
