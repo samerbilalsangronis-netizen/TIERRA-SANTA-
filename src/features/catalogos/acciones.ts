@@ -10,13 +10,13 @@ import {
   type DatosUbicacion, type DatosUnidad,
 } from "./esquemas";
 
-type Tabla = "productos" | "unidades" | "ubicaciones" | "monedas" | "tasas_cambio" | "metodos_pago" | "tareas_nomina";
+type Tabla = "productos" | "unidades" | "ubicaciones" | "monedas" | "tasas_cambio" | "metodos_pago" | "tareas_nomina" | "conceptos_gasto";
 const CLAVE: Record<Tabla, "id" | "codigo"> = {
   productos: "id", unidades: "codigo", ubicaciones: "id", monedas: "codigo",
-  tasas_cambio: "id", metodos_pago: "id", tareas_nomina: "id",
+  tasas_cambio: "id", metodos_pago: "id", tareas_nomina: "id", conceptos_gasto: "id",
 };
 const COLUMNA_ACTIVO: Partial<Record<Tabla, "activo" | "activa">> = {
-  productos: "activo", unidades: "activa", ubicaciones: "activa", monedas: "activa", metodos_pago: "activo", tareas_nomina: "activa",
+  productos: "activo", unidades: "activa", ubicaciones: "activa", monedas: "activa", metodos_pago: "activo", tareas_nomina: "activa", conceptos_gasto: "activo",
 };
 
 function refrescar() {

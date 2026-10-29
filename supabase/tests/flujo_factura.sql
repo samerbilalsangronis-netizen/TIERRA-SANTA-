@@ -289,6 +289,18 @@ select pg_temp.check((select sum(total) from public.compras_por_proveedor('2000-
 select pg_temp.check((select pendientes from public.cajas_cestas('2000-01-01', '2100-01-01') where tipo = 'cajas' and id = 1)
   = (select cajas_pendientes from public.v_resumen_clientes where id = 1), 'cajas pendientes');
 
+-- Gastos: se registran por concepto y el resumen los suma por categoría y moneda
+insert into public.gastos (fecha, concepto_id, cantidad, unidad, monto, moneda)
+values ('2026-10-05', (select id from public.conceptos_gasto where nombre = 'Guantes'), 2, 'und', 30000, 'COP'),
+       ('2026-10-06', (select id from public.conceptos_gasto where nombre = 'Guantes'), 1, 'und', 15000, 'COP'),
+       ('2026-10-06', (select id from public.conceptos_gasto where nombre = 'Gasolina'), 20, 'lt', 25, 'USD');
+select pg_temp.check((select (veces, cantidad, monto) = (2::bigint, 3.000, 45000.00) from public.gastos_resumen('2026-10-01', '2026-10-31') where concepto = 'Guantes'), 'gastos: suma por concepto');
+select pg_temp.check((select categoria from public.gastos_resumen('2026-10-01', '2026-10-31') where concepto = 'Gasolina') = 'Transporte', 'gastos: categoría del concepto');
+do $$ begin
+  insert into public.gastos (concepto_id, monto, moneda) values ((select id from public.conceptos_gasto limit 1), 0, 'COP');
+  raise exception 'PRUEBA FALLIDA: gasto en 0';
+exception when check_violation then raise notice 'ok: gasto en 0 rechazado'; end $$;
+
 -- Permisos: solo lectura no puede emitir ni ver nómina
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false);
 do $$ begin
@@ -306,6 +318,11 @@ do $$ begin
   insert into public.clientes (nombre) values ('x');
   raise exception 'PRUEBA FALLIDA: solo_lectura insertó';
 exception when insufficient_privilege then raise notice 'ok: solo_lectura no inserta'; end $$;
+do $$ begin
+  insert into public.gastos (concepto_id, monto, moneda) values ((select id from public.conceptos_gasto limit 1), 1, 'COP');
+  raise exception 'PRUEBA FALLIDA: solo_lectura registró un gasto';
+exception when insufficient_privilege then raise notice 'ok: solo_lectura no registra gastos'; end $$;
+select pg_temp.check((select count(*) from public.gastos) = 3, 'solo_lectura ve los gastos');
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 select pg_temp.check((select count(*) from public.clientes) = 0, 'usuario INACTIVO no ve datos');
 -- Anónimos (sin sesión) no ejecutan funciones

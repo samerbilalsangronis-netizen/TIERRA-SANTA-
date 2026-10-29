@@ -205,6 +205,28 @@ export type Database = {
           },
         ];
       };
+      categorias_gasto: {
+        Row: {
+          activa: boolean;
+          id: number;
+          nombre: string;
+          orden: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          activa?: boolean;
+          id?: never;
+          nombre: string;
+          orden?: number;
+        };
+        Update: {
+          activa?: boolean;
+          id?: never;
+          nombre?: string;
+          orden?: number;
+        };
+        Relationships: [];
+      };
       cestas_proveedor: {
         Row: {
           created_at: string;
@@ -337,6 +359,49 @@ export type Database = {
             columns: ["limite_moneda"];
             isOneToOne: false;
             referencedRelation: "monedas";
+            referencedColumns: ["codigo"];
+          },
+        ];
+      };
+      conceptos_gasto: {
+        Row: {
+          activo: boolean;
+          categoria_id: number;
+          created_at: string;
+          id: number;
+          nombre: string;
+          unidad: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          activo?: boolean;
+          categoria_id: number;
+          created_at?: string;
+          id?: never;
+          nombre: string;
+          unidad?: string;
+        };
+        Update: {
+          activo?: boolean;
+          categoria_id?: number;
+          created_at?: string;
+          id?: never;
+          nombre?: string;
+          unidad?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conceptos_gasto_categoria_id_fkey";
+            columns: ["categoria_id"];
+            isOneToOne: false;
+            referencedRelation: "categorias_gasto";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conceptos_gasto_unidad_fkey";
+            columns: ["unidad"];
+            isOneToOne: false;
+            referencedRelation: "unidades";
             referencedColumns: ["codigo"];
           },
         ];
@@ -1055,6 +1120,97 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "v_stock";
             referencedColumns: ["ubicacion_id"];
+          },
+        ];
+      };
+      gastos: {
+        Row: {
+          cantidad: number | null;
+          concepto_id: number;
+          created_at: string;
+          created_by: string | null;
+          fecha: string;
+          foto_path: string | null;
+          id: number;
+          lugar: string | null;
+          metodo_id: number | null;
+          moneda: string;
+          monto: number;
+          nota: string | null;
+          pagado_por: string | null;
+          unidad: string | null;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          cantidad?: number | null;
+          concepto_id: number;
+          created_at?: string;
+          created_by?: string | null;
+          fecha?: string;
+          foto_path?: string | null;
+          id?: never;
+          lugar?: string | null;
+          metodo_id?: number | null;
+          moneda: string;
+          monto: number;
+          nota?: string | null;
+          pagado_por?: string | null;
+          unidad?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          cantidad?: number | null;
+          concepto_id?: number;
+          created_at?: string;
+          created_by?: string | null;
+          fecha?: string;
+          foto_path?: string | null;
+          id?: never;
+          lugar?: string | null;
+          metodo_id?: number | null;
+          moneda?: string;
+          monto?: number;
+          nota?: string | null;
+          pagado_por?: string | null;
+          unidad?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gastos_concepto_id_fkey";
+            columns: ["concepto_id"];
+            isOneToOne: false;
+            referencedRelation: "conceptos_gasto";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gastos_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gastos_metodo_id_fkey";
+            columns: ["metodo_id"];
+            isOneToOne: false;
+            referencedRelation: "metodos_pago";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gastos_moneda_fkey";
+            columns: ["moneda"];
+            isOneToOne: false;
+            referencedRelation: "monedas";
+            referencedColumns: ["codigo"];
+          },
+          {
+            foreignKeyName: "gastos_unidad_fkey";
+            columns: ["unidad"];
+            isOneToOne: false;
+            referencedRelation: "unidades";
+            referencedColumns: ["codigo"];
           },
         ];
       };
@@ -2522,6 +2678,20 @@ export type Database = {
           proveedores: number;
           rubro: string;
           unidades: number;
+        }[];
+      };
+      gastos_resumen: {
+        Args: { p_desde: string; p_hasta: string };
+        Returns: {
+          cantidad: number;
+          categoria: string;
+          categoria_id: number;
+          concepto: string;
+          concepto_id: number;
+          moneda: string;
+          monto: number;
+          unidad: string;
+          veces: number;
         }[];
       };
       guardar_borrador_factura: { Args: { p: Json }; Returns: number };

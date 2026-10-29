@@ -9,21 +9,27 @@ import { Button } from "@/components/ui/button";
 
 /** Diálogo de confirmación antes de acciones destructivas o importantes. */
 export function ConfirmarAccion({
-  titulo, descripcion, textoConfirmar = "Confirmar", destructivo, alConfirmar, disparador, children,
+  titulo, descripcion, textoConfirmar = "Confirmar", destructivo, alConfirmar, disparador, children, abierto: abiertoExterno, onAbiertoCambia,
 }: {
   titulo: string;
   descripcion?: React.ReactNode;
   textoConfirmar?: string;
   destructivo?: boolean;
   alConfirmar: () => Promise<void> | void;
-  disparador: React.ReactElement;
+  /** Botón que abre el diálogo (se omite si se controla con `abierto`). */
+  disparador?: React.ReactElement;
   children?: React.ReactNode;
+  /** Control externo (p. ej. abrir desde un menú). */
+  abierto?: boolean;
+  onAbiertoCambia?: (abierto: boolean) => void;
 }) {
-  const [abierto, setAbierto] = useState(false);
+  const [abiertoInterno, setAbiertoInterno] = useState(false);
+  const abierto = abiertoExterno ?? abiertoInterno;
+  const setAbierto = onAbiertoCambia ?? setAbiertoInterno;
   const [pendiente, iniciar] = useTransition();
   return (
     <AlertDialog open={abierto} onOpenChange={setAbierto}>
-      <AlertDialogTrigger render={disparador} />
+      {disparador && <AlertDialogTrigger render={disparador} />}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{titulo}</AlertDialogTitle>

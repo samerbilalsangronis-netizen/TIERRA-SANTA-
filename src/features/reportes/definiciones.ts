@@ -1,7 +1,7 @@
 import "server-only";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { numeroFactura } from "@/lib/facturas";
-import { formatearMonto } from "@/lib/dinero";
+import { formatearCantidad, formatearMonto } from "@/lib/dinero";
 
 export type TipoColumna = "texto" | "fecha" | "cantidad" | "monto" | "entero" | "porcentaje";
 export type Columna = { titulo: string; tipo: TipoColumna; /** Moneda propia de una columna de monto. */ moneda?: string };
@@ -27,6 +27,7 @@ export const REPORTES = {
   "fruta-recibida": { titulo: "Fruta recibida", descripcion: "Kilos y cestas de cada fruta que entregaron los proveedores; también de un solo proveedor.", moneda: false, proveedor: true, periodo: true, eleccion: false, cliente: false },
   "saldos-proveedores": { titulo: "Saldos de proveedores", descripcion: "Lo que se le debe a cada proveedor, con totales. Filtra por la fruta que traen o elige los proveedores.", moneda: false, proveedor: false, periodo: false, eleccion: true, cliente: false },
   "compras-proveedor": { titulo: "Compras por proveedor", descripcion: "Entregas por proveedor y fruta, con kilos y merma.", moneda: false, proveedor: false, periodo: true, eleccion: false, cliente: false },
+  "gastos": { titulo: "Gastos por categoría", descripcion: "Lo gastado en guantes, aditivos, gasolina… por categoría y concepto, en pesos y dólares.", moneda: false, proveedor: false, periodo: true, eleccion: false, cliente: false },
   "produccion": { titulo: "Producción diaria", descripcion: "Bolsas producidas por día y producto.", moneda: false, proveedor: false, periodo: true, eleccion: false, cliente: false },
   "cajas-cestas": { titulo: "Cajas y cestas", descripcion: "Cajas con clientes y cestas con proveedores: movimiento y pendientes.", moneda: false, proveedor: false, periodo: true, eleccion: false, cliente: false },
 } as const;
@@ -152,6 +153,23 @@ export async function generarReporte(tipo: TipoReporte, f: Filtros): Promise<Rep
       columnas: [{ titulo: "Proveedor", tipo: "texto" }, { titulo: "Fruta que trae", tipo: "texto" }, { titulo: "Última entrega", tipo: "fecha" },
         { titulo: "Debe COP", tipo: "monto", moneda: "COP" }, { titulo: "Debe USD", tipo: "monto", moneda: "USD" }, { titulo: "Cestas pend.", tipo: "entero" }],
       filas, totales: [`Total (${filas.length} proveedores)`, "", "", suma(filas, 3), suma(filas, 4), suma(filas, 5)] };
+  }
+  if (tipo === "gastos") {
+    const { data } = await supabase.rpc("gastos_resumen", { p_desde: f.desde, p_hasta: f.hasta });
+    const usadas = [...new Set(["COP", "USD", ...(data ?? []).map((x) => x.moneda)])];
+    // Una fila por concepto (las monedas en columnas), en el orden de las categorías
+    const conceptos = new Map<number, { categoria: string; concepto: string; veces: number; cantidad: number; unidad: string; montos: Record<string, number> }>();
+    for (const x of data ?? []) {
+      const c = conceptos.get(x.concepto_id) ?? { categoria: x.categoria, concepto: x.concepto, veces: 0, cantidad: 0, unidad: x.unidad ?? "", montos: {} };
+      c.veces += n(x.veces); c.cantidad += n(x.cantidad); c.montos[x.moneda] = (c.montos[x.moneda] ?? 0) + n(x.monto);
+      conceptos.set(x.concepto_id, c);
+    }
+    const filas: Celda[][] = [...conceptos.values()].map((c) => [c.categoria, c.concepto, c.veces,
+      c.cantidad ? `${formatearCantidad(c.cantidad)} ${c.unidad}`.trim() : "—", ...usadas.map((m) => c.montos[m] ?? null)]);
+    return { titulo, nota: "Cada monto en su moneda. Lo que traen los proveedores a crédito (insumos) está en Compras por proveedor.",
+      columnas: [{ titulo: "Categoría", tipo: "texto" }, { titulo: "Concepto", tipo: "texto" }, { titulo: "Veces", tipo: "entero" }, { titulo: "Cantidad", tipo: "texto" },
+        ...usadas.map((m) => ({ titulo: `Monto ${m}`, tipo: "monto" as const, moneda: m }))],
+      filas, totales: ["Total", "", suma(filas, 2), "", ...usadas.map((_, i) => suma(filas, 4 + i))] };
   }
   if (tipo === "produccion") {
     const { data } = await supabase.rpc("produccion_resumen", { p_desde: f.desde, p_hasta: f.hasta });

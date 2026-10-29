@@ -7,17 +7,19 @@ import { PERIODOS, type ClavePeriodo } from "@/lib/periodos";
 import { cn } from "@/lib/utils";
 
 /** Fila única de filtros: periodo (con rango libre), moneda de los gráficos y, si se pide, proveedor. */
-export function FiltrosDashboard({ periodo, desde, hasta, moneda, monedas, conMoneda = true, proveedores, proveedor = "", clientes, cliente = "" }: {
+export function FiltrosDashboard({ periodo, desde, hasta, moneda, monedas, conMoneda = true, proveedores, proveedor = "", clientes, cliente = "", extras = {} }: {
   periodo: ClavePeriodo; desde: string; hasta: string; moneda: string; monedas: string[]; conMoneda?: boolean;
   proveedores?: { id: number; nombre: string }[]; proveedor?: string;
   clientes?: { id: number; numero: number | null; nombre: string }[]; cliente?: string;
+  /** Otros filtros de la página que se conservan al cambiar el periodo. */
+  extras?: Record<string, string>;
 }) {
   const router = useRouter();
   const ruta = usePathname();
   const [pendiente, iniciar] = useTransition();
   const ir = (c: Record<string, string>) => {
     const v = { p: periodo, desde, hasta, moneda, proveedor, cliente, ...c };
-    const qs = new URLSearchParams();
+    const qs = new URLSearchParams(Object.entries(extras).filter(([, x]) => x));
     if (v.p !== "mes") qs.set("p", v.p);
     if (v.p === "rango") { qs.set("desde", v.desde); qs.set("hasta", v.hasta); }
     if (conMoneda && v.moneda) qs.set("moneda", v.moneda);

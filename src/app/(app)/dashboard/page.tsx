@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, Banknote, Boxes, Factory, FileText, LayoutDashboard, Package, ShoppingBasket, Truck, Wallet } from "lucide-react";
+import { AlertTriangle, Banknote, Boxes, Factory, FileText, LayoutDashboard, Package, Receipt, ShoppingBasket, Truck, Wallet } from "lucide-react";
 import { exigirPerfil } from "@/lib/auth/sesion";
 import { puede } from "@/lib/auth/roles";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -37,12 +37,21 @@ export default async function PaginaDashboard({ searchParams }: PageProps<"/dash
   const { actual, anterior } = rangoPeriodo(clave, hoy, { desde: fecha(t(sp.desde)), hasta: fecha(t(sp.hasta)) });
   const supabase = await crearClienteServidor();
 
-  const [{ data: rA }, { data: rB }, { data: monedasDb }, { data: empresa }] = await Promise.all([
+  const [{ data: rA }, { data: rB }, { data: monedasDb }, { data: empresa }, { data: gA }, { data: gB }] = await Promise.all([
     supabase.rpc("resumen_periodo", { p_desde: actual.desde, p_hasta: actual.hasta }),
     supabase.rpc("resumen_periodo", { p_desde: anterior.desde, p_hasta: anterior.hasta }),
     supabase.from("monedas").select("codigo").eq("activa", true).order("orden"),
     supabase.from("empresa").select("moneda_defecto").eq("id", 1).single(),
+    supabase.rpc("gastos_resumen", { p_desde: actual.desde, p_hasta: actual.hasta }),
+    supabase.rpc("gastos_resumen", { p_desde: anterior.desde, p_hasta: anterior.hasta }),
   ]);
+  // Gastos del periodo por moneda (y los del periodo anterior para comparar)
+  const sumarGastos = (xs: { moneda: string; monto: number }[] | null) => {
+    const m = new Map<string, number>();
+    for (const x of xs ?? []) m.set(x.moneda, (m.get(x.moneda) ?? 0) + Number(x.monto));
+    return [...m.entries()].map(([moneda, total]) => ({ moneda, total })).sort((x, y) => x.moneda.localeCompare(y.moneda));
+  };
+  const gastosA = sumarGastos(gA), gastosB = sumarGastos(gB);
   const a = rA as unknown as Resumen;
   const b = rB as unknown as Resumen;
   const monedas = (monedasDb ?? []).map((m) => m.codigo);
@@ -100,6 +109,12 @@ export default async function PaginaDashboard({ searchParams }: PageProps<"/dash
           delta={a.compras.length === 1 ? variacion(Number(a.compras[0].total), de(b.compras, a.compras[0].moneda, "total")) : null}
           detalle={(() => { const kg = a.compras.reduce((s, x) => s + Number(x.kg), 0); const m = a.compras.reduce((s, x) => s + Number(x.merma ?? 0), 0);
             return kg ? `${formatearCantidad(kg, 0)} kg · merma ${formatearCantidad((m * 100) / kg, 1)} %` : "sin entregas"; })()} />
+        <Cifra titulo="Gastos" icono={Receipt} subeEsBueno={false}
+          valor={gastosA.length > 1
+            ? <MontosPorMoneda subeEsBueno={false} filas={gastosA.map((x) => ({ ...x, delta: variacion(x.total, gastosB.find((y) => y.moneda === x.moneda)?.total ?? 0) }))} />
+            : formatearMonto(gastosA[0]?.total ?? 0, gastosA[0]?.moneda ?? "COP")}
+          delta={gastosA.length === 1 ? variacion(gastosA[0].total, gastosB.find((y) => y.moneda === gastosA[0].moneda)?.total ?? 0) : null}
+          detalle={<Link href={`/gastos?p=${clave}${clave === "rango" ? `&desde=${actual.desde}&hasta=${actual.hasta}` : ""}`} className="hover:underline">ver gastos</Link>} />
         {a.nomina && puede(perfil.rol, "nomina") && (
           <Cifra titulo="Nómina" icono={Wallet} subeEsBueno={false} valor={formatearMonto(a.nomina.ganado, "COP")}
             delta={variacion(Number(a.nomina.ganado), Number(b.nomina?.ganado ?? 0))} detalle={`abonos ${formatearMonto(a.nomina.abonos, "COP", { sinCodigo: true })}`} />

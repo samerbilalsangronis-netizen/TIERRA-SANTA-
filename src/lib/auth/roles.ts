@@ -22,6 +22,8 @@ export type Permiso =
   | "inventario_operar"
   | "inventario_ajustar"
   | "nomina"
+  | "gastos_registrar"
+  | "gastos_corregir"
   | "reportes_financieros"
   | "configuracion"
   | "usuarios"
@@ -31,12 +33,13 @@ const PERMISOS: Record<Rol, Permiso[]> = {
   admin: [
     "ver_dashboard", "facturar", "gestionar_clientes", "cobrar", "gestionar_proveedores", "pagar_proveedores",
     "inventario_operar", "inventario_ajustar", "nomina", "reportes_financieros", "configuracion", "usuarios", "auditoria",
+    "gastos_registrar", "gastos_corregir",
   ],
   facturacion: [
     "ver_dashboard", "facturar", "gestionar_clientes", "cobrar", "gestionar_proveedores", "pagar_proveedores",
-    "inventario_operar",
+    "inventario_operar", "gastos_registrar", "gastos_corregir",
   ],
-  operador: ["ver_dashboard", "gestionar_proveedores", "inventario_operar"],
+  operador: ["ver_dashboard", "gestionar_proveedores", "inventario_operar", "gastos_registrar"],
   solo_lectura: ["ver_dashboard"],
 };
 

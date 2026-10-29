@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Coins, CreditCard, MapPin, Package, Ruler, Wrench } from "lucide-react";
+import { Coins, CreditCard, MapPin, Package, Receipt, Ruler, Wrench } from "lucide-react";
 import { exigirPerfil } from "@/lib/auth/sesion";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -9,10 +9,10 @@ export const metadata: Metadata = { title: "Catálogos" };
 export default async function PaginaCatalogos() {
   await exigirPerfil("configuracion");
   const supabase = await crearClienteServidor();
-  const contar = async (t: "productos" | "unidades" | "ubicaciones" | "monedas" | "metodos_pago" | "tareas_nomina") =>
+  const contar = async (t: "productos" | "unidades" | "ubicaciones" | "monedas" | "metodos_pago" | "tareas_nomina" | "conceptos_gasto") =>
     (await supabase.from(t).select("*", { count: "exact", head: true })).count ?? 0;
-  const [p, u, ub, m, mp, t] = await Promise.all(
-    (["productos", "unidades", "ubicaciones", "monedas", "metodos_pago", "tareas_nomina"] as const).map(contar),
+  const [p, u, ub, m, mp, t, g] = await Promise.all(
+    (["productos", "unidades", "ubicaciones", "monedas", "metodos_pago", "tareas_nomina", "conceptos_gasto"] as const).map(contar),
   );
   const tarjetas = [
     { href: "productos", titulo: "Productos / rubros", texto: "Código numérico para facturar, unidad, pesaje FIJO/VARIABLE y stock mínimo.", n: p, icono: Package },
@@ -21,6 +21,7 @@ export default async function PaginaCatalogos() {
     { href: "monedas", titulo: "Monedas y tasas", texto: "USD, COP, VES y tasas de cambio informativas.", n: m, icono: Coins },
     { href: "metodos-pago", titulo: "Métodos de pago", texto: "Efectivo, transferencia, Zelle, Bancolombia…", n: mp, icono: CreditCard },
     { href: "tareas", titulo: "Tareas de nómina", texto: "Tareas a destajo con su precio por unidad.", n: t, icono: Wrench },
+    { href: "gastos", titulo: "Conceptos de gastos", texto: "Guantes, aditivos, gasolina… agrupados por categoría.", n: g, icono: Receipt },
   ];
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

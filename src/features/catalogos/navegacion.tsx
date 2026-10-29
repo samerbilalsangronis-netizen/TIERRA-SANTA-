@@ -10,6 +10,7 @@ export const SECCIONES_CATALOGO = [
   { href: "/configuracion/catalogos/monedas", titulo: "Monedas y tasas" },
   { href: "/configuracion/catalogos/metodos-pago", titulo: "Métodos de pago" },
   { href: "/configuracion/catalogos/tareas", titulo: "Tareas de nómina" },
+  { href: "/configuracion/catalogos/gastos", titulo: "Gastos" },
 ] as const;
 
 export function NavegacionCatalogos() {
