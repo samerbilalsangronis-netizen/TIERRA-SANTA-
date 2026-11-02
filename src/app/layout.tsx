@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   title: { default: "Tierra Santa", template: "%s · Tierra Santa" },
   description: "Sistema de gestión de Procesadora de Alimentos Tierra Santa",
   icons: { icon: "/logo-tierra-santa.png", apple: "/logo-tierra-santa.png" },
+  // Sistema interno: no aparecer en buscadores
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {

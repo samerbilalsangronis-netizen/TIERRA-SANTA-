@@ -8,6 +8,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Todo excepto estáticos e imágenes
-    "/((?!_next/static|_next/image|favicon.ico|logo-tierra-santa.png|logo-tierra-santa-negro.png|marca/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|logo-tierra-santa.png|logo-tierra-santa-negro.png|marca/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
