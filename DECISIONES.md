@@ -30,6 +30,8 @@ Cosas que el documento dejaba abiertas y cómo se resolvieron. Todas se pueden c
 | Inventario: producción, traslados, merma | ✔ | ✔ | ✔ | |
 | Inventario: ajustes por conteo | ✔ | | | |
 | Nómina (todo, incluidos montos) | ✔ | | | |
+| Gastos: registrar | ✔ | ✔ | ✔ | |
+| Gastos: corregir y borrar | ✔ | ✔ | | |
 | Consultar | ✔ | ✔ | ✔ | ✔ |
 
 Quién puede **editar facturas emitidas** se configura en Empresa (por defecto admin y facturación).
@@ -176,3 +178,39 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 
 ## Borrar los datos de prueba
 - `supabase/utilidades/borrar_datos_de_prueba.sql` (no es migración): vacía clientes, facturas, pagos, cajas, proveedores, entregas, abonos, cestas, inventario, nómina y la bitácora, y reinicia los contadores. Conserva usuarios, empresa/logo y catálogos.
+
+## Facturar sin descontar inventario (hasta el conteo general)
+- Samer empezó a facturar antes de hacer el inventario general. Para que las facturas no dejen el stock en negativo, `empresa.inventario_desde` controla desde cuándo descuentan: `null` = no descuentan (estado actual).
+- En Inventario, un aviso explica la situación y el botón **"Empezar a descontar al facturar"** (admin) guarda la fecha y hora actual. Antes de pulsarlo hay que registrar el conteo con **Ajuste**.
+- Las facturas emitidas antes de esa fecha **nunca** tocan el inventario, aunque se editen o anulen después. Mientras no está activo, la pantalla de factura no muestra "Disponible" ni avisos de stock.
+
+## Factura: sello en vez de firmas
+- Se quitaron las líneas "Despachado por / Recibido conforme". Va el **sello de la empresa** (`public/sello-tierra-santa.png`, fondo transparente, derecho) abajo a la derecha, en pantalla, al imprimir y en el PDF. Si Samer manda un escaneo más nítido, reemplazar ese archivo.
+
+## Proveedores: ajustes después de la migración
+- Ficha: columna **Precio por kilo** (si hay compras por peso) y **Cestas** solo si alguna entrega fue por cesta.
+- Formulario de entrega **sin nota ni foto** (pedido de Samer).
+- **Por cesta:** se escribe en cestas **o** en kilos y el otro se calcula; el total sale de los kilos (con cestas enteras es cestas × precio). Las cestas guardan 4 decimales.
+- Entregas importadas (modo "precio total") que se cambian a otro modo pierden la nota "N cestas de X kg × precio" (ya no es cierta).
+- **Estado de cuenta** con el estilo que mandó Samer: "Movimientos del período", tipo con icono y color (Entrega rojo / Abono verde), rubro, kg, cestas, precio por cesta/kg/und, merma, monto con signo y saldo acumulado en naranja.
+
+## Nómina: fijo y destajo separados
+- Lista con pestañas **Fijo · Destajo · Tareas**; asistencia del día y detalle del periodo agrupados (con subtotales); Excel y recibos ordenados por grupo. Solo presentación: los datos no cambian. En pantalla se dice "Por destajo" (no "Por tarea").
+
+## Reportes agregados
+- **Ventas por producto:** dólares y pesos en un solo reporte (la cantidad se suma; un monto por moneda).
+- **Ventas a un cliente:** se elige cliente y periodo; arriba el número de facturas y su total por moneda; una fila por producto con la cantidad sumada de todas sus facturas, "veces que cargó" y monto USD/COP. Las facturas históricas cuentan en el total pero no traen productos.
+- **Fruta recibida:** kg recibidos, merma, kg netos, % y cestas por fruta, de las entregas de proveedores; filtro por proveedor.
+- **Saldos de proveedores:** lo que se debe a cada uno (COP y USD), cestas y última entrega; filtros: fruta que traen, elegir proveedores uno por uno y "solo a los que se les debe". Saldo al día de hoy.
+- **Gastos por categoría.**
+- Dashboard: "Compras a proveedores" es lo **comprado en el periodo**, no la deuda (Samer lo confundió una vez).
+
+## Gastos
+- Para lo que se compra y se **paga en el momento** (guantes, tapabocas, café, azúcar, benzoato, dióxido, metabisulfito, cuchillos, poncheras, jarras, cestas, bolsas, cintas, gasolina…). Lo que un proveedor trae **a crédito** sigue en Proveedores (insumos), porque ahí se lleva la deuda.
+- Conceptos agrupados en categorías (Aditivos y conservantes, Empaque, Higiene y protección, Utensilios, Cafetería, Transporte, Otros). Se agregan desde el mismo formulario o en Catálogos → Gastos.
+- Monto en COP por defecto (los gastos del día suelen ser en pesos); foto del recibo opcional (bucket privado `gastos`).
+- Registran admin, facturación y operador; corrigen y borran admin y facturación.
+- **Sin inventario de insumos** (Samer no lo quiere por ahora).
+
+## Visibilidad
+- El sistema es interno: `robots.txt` prohíbe a los buscadores recorrerlo y todas las páginas llevan `noindex`.

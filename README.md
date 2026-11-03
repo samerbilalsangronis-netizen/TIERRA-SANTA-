@@ -1,8 +1,11 @@
 # Tierra Santa · Sistema de gestión
 
-> Para continuar el desarrollo en otra sesión, leer primero **[HANDOFF.md](HANDOFF.md)**.
+> Para continuar el desarrollo (personas o agentes como Codex / Claude Code), leer primero
+> **[HANDOFF.md](HANDOFF.md)**: documento maestro con el funcionamiento completo y el estado actual.
 
 Aplicación web de **Procesadora de Alimentos Tierra Santa** que reemplaza ERP Clientes, ERP Proveedores (COP y USD), Nómina (Google Apps Script + Sheets) y el programa de facturación de Windows. Se usa en **PC y teléfono**.
+
+En producción: https://tierra-santa-lime.vercel.app (rama `claude/tender-curie-r25soh`).
 
 **Stack:** Next.js 16 (App Router) + TypeScript estricto · Tailwind CSS 4 + shadcn/ui (Base UI) · Supabase (Postgres, Auth, Storage, RLS) · Zod · react-hook-form · decimal.js · Vitest · Playwright.
 
@@ -19,8 +22,10 @@ Aplicación web de **Procesadora de Alimentos Tierra Santa** que reemplaza ERP C
 | 6 | Inventario (stock por ubicación con alertas, producción diaria, merma, traslados, ajustes, kardex y Excel) | ✅ |
 | 7 | Nómina (calendario por empleado, jornadas fijo/destajo, asistencia rápida, abonos, periodos con cierre y recibos) | ✅ |
 | 8 | Dashboard (periodos con comparación, productos vendidos, rendimiento semanal, gráficos, alertas) y reportes con Excel | ✅ |
-| 9 | Migración de los registros de los programas anteriores (Google Sheets y programa de facturación de Windows) | ⏳ |
-| 10 | Pulido y despliegue | ⏳ |
+| 9 | Migración de registros anteriores: **proveedores COP y USD** importados y cuadrados. ERP Clientes y Nómina no se migran (decisión del dueño) | ✅ |
+| — | Gastos (insumos, aditivos, café, gasolina…) con categorías, reporte y tarjeta en el Dashboard | ✅ |
+| — | Reportes extra: fruta recibida, saldos de proveedores, ventas a un cliente, gastos por categoría | ✅ |
+| 10 | Pulido continuo según lo que pide el dueño | en curso |
 
 ## Puesta en marcha (Supabase web + Vercel)
 
@@ -88,7 +93,7 @@ src/
     page.tsx             # pantalla de inicio: logo + inicio de sesión
     auth/                # cerrar sesión forzado, cambiar contraseña
     (app)/               # zona privada con barra lateral
-      dashboard/ facturacion/ clientes/ proveedores/ inventario/ nomina/ reportes/
+      dashboard/ facturacion/ clientes/ proveedores/ inventario/ gastos/ nomina/ reportes/
       configuracion/     # general, empresa, usuarios, catálogos, auditoría
   components/
     ui/                  # shadcn/ui
@@ -96,16 +101,18 @@ src/
     comunes/             # campos, KPI, paginación, confirmaciones, estados vacíos
   features/              # lógica por módulo: acciones (Server Actions), esquemas Zod, componentes
     auth/ configuracion/ usuarios/ auditoria/ catalogos/ proveedores/ clientes/
+    facturacion/ inventario/ nomina/ gastos/ dashboard/ reportes/
   lib/
     supabase/            # clientes (servidor, navegador, admin), proxy de sesión, tipos generados
     auth/                # roles/permisos, sesión, reglas de acceso
     calculos/            # fórmulas puras (espejo de la BD) para vistas previas y pruebas
     dinero.ts fechas.ts  # decimal.js, formato es-VE, zona America/Caracas
   proxy.ts               # refresco de sesión y protección de rutas (antes "middleware")
-scripts/                 # generar-instalar, probar-sql (y en la Fase 9: migrar)
+scripts/                 # generar-instalar, probar-sql, levantar-local, migracion/ (importar proveedores desde Excel)
+supabase/utilidades/     # SQL de mantenimiento (revisar migraciones, borrar datos de prueba, correcciones)
 tests/unit  tests/e2e
 ```
 
 ## Migración desde Google Sheets
 
-Se entrega en la Fase 9 (`scripts/migrar`, con modo simulación y reporte de verificación de saldos).
+`scripts/migracion/proveedores_desde_excel.py` convierte el libro de proveedores (COP o USD) en un SQL de un solo bloque que se pega en el SQL Editor y que verifica el saldo de cada proveedor contra la hoja antes de guardar (detalles en HANDOFF §9). Los SQL generados contienen datos reales y no se suben al repositorio.
