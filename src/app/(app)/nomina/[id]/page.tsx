@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { exigirPerfil } from "@/lib/auth/sesion";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { cargarEmpleados, cargarJornadas, cargarTareas, configNomina, periodosCerrados } from "@/features/nomina/datos";
+import { sumarDias } from "@/lib/fechas";
+import { cargarEmpleados, cargarJornadas, cargarTareas, cargarUltimosPagos, configNomina, periodosCerrados } from "@/features/nomina/datos";
 import { ListaEmpleados } from "@/features/nomina/lista-empleados";
 import { FichaEmpleado, type Pestana } from "@/features/nomina/ficha";
 
@@ -17,25 +18,28 @@ export default async function PaginaEmpleado({ params, searchParams }: PageProps
   const id = Number((await params).id);
   if (!Number.isInteger(id) || id <= 0) notFound();
   const sp = await searchParams;
-  const { hoy, actual, inicioSemana } = await configNomina();
+  const { hoy, inicioSemana } = await configNomina();
   const pestana = (PESTANAS.includes(t(sp.pestana) as Pestana) ? t(sp.pestana) : "calendario") as Pestana;
   const mes = /^\d{4}-\d{2}$/.test(t(sp.mes)) ? t(sp.mes) : hoy.slice(0, 7);
-  const repDesde = fecha(t(sp.desde)) || actual.desde;
-  const repHasta = fecha(t(sp.hasta)) || actual.hasta;
+  // "Desde el último pago": el pago cubre hasta su fecha, así que se cuenta desde el día siguiente
+  const ultimoPago = (await cargarUltimosPagos(id)).get(id) ?? null;
+  const desdePago = ultimoPago ? sumarDias(ultimoPago.fecha, 1) : null;
+  // Reporte: por defecto desde el último pago (o desde el inicio del mes si nunca se le pagó) hasta hoy
+  const repDesde = fecha(t(sp.desde)) || desdePago || `${hoy.slice(0, 7)}-01`;
+  const repHasta = fecha(t(sp.hasta)) || hoy;
   const supabase = await crearClienteServidor();
 
-  const [{ data: empleado }, empleados, tareas, jornadasMes, cerrados, { data: abonos }, { data: resumen }, jornadasRep] = await Promise.all([
+  const [{ data: empleado }, empleados, tareas, jornadasMes, cerrados, { data: abonos }, jornadasRep, jornadasDesdePago] = await Promise.all([
     supabase.from("empleados").select("id, nombre, cedula, telefono, cargo, tipo, tarifa_dia, fecha_ingreso, activo, notas").eq("id", id).maybeSingle(),
     cargarEmpleados(),
     cargarTareas(),
     cargarJornadas(id, `${mes}-01`, finMes(mes)),
     periodosCerrados(`${mes}-01` < repDesde ? `${mes}-01` : repDesde, finMes(mes) > repHasta ? finMes(mes) : repHasta),
-    supabase.from("abonos_empleados").select("id, fecha, monto, tipo, entregado_por, nota").eq("empleado_id", id).order("fecha", { ascending: false }).order("id", { ascending: false }).limit(500),
-    supabase.rpc("nomina_resumen", { p_desde: actual.desde, p_hasta: actual.hasta }),
+    supabase.from("abonos_empleados").select("id, fecha, monto, tipo, entregado_por, nota, periodo_id").eq("empleado_id", id).order("fecha", { ascending: false }).order("id", { ascending: false }).limit(500),
     pestana === "reporte" ? cargarJornadas(id, repDesde, repHasta) : Promise.resolve([]),
+    pestana === "panel" ? cargarJornadas(id, desdePago ?? "2000-01-01", "2100-12-31") : Promise.resolve([]),
   ]);
   if (!empleado) notFound();
-  const r = (resumen ?? []).find((x) => x.empleado_id === id);
   const listaAbonos = (abonos ?? []).map((a) => ({ ...a, monto: Number(a.monto) }));
 
   return (
@@ -46,11 +50,7 @@ export default async function PaginaEmpleado({ params, searchParams }: PageProps
         saldo={empleados.find((e) => e.id === id)?.saldo_neto ?? 0}
         pestana={pestana} mes={mes} hoy={hoy} inicioSemana={inicioSemana}
         jornadasMes={jornadasMes} cerrados={cerrados} tareas={tareas} abonos={listaAbonos}
-        periodo={actual}
-        resumen={{
-          ganado: Number(r?.ganado ?? 0), abonos: Number(r?.abonos ?? 0), neto: Number(r?.neto ?? 0), saldo_anterior: Number(r?.saldo_anterior ?? 0),
-          dias_asistidos: Number(r?.dias_asistidos ?? 0), medias: Number(r?.medias ?? 0), faltas: Number(r?.faltas ?? 0), total_tareas: Number(r?.total_tareas ?? 0),
-        }}
+        ultimoPago={ultimoPago} desdePago={desdePago} jornadasDesdePago={jornadasDesdePago}
         reporte={{ desde: repDesde, hasta: repHasta, jornadas: jornadasRep, abonos: listaAbonos.filter((a) => a.fecha >= repDesde && a.fecha <= repHasta) }}
         usuario={perfil.nombre}
       />

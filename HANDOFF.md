@@ -75,6 +75,11 @@ nómina y gastos todos los días.
   1. registra lo contado con **Ajuste**;
   2. pulsa **"Empezar a descontar al facturar"** en Inventario.
 
+### Último cambio (2026-11-04)
+- **Nómina sin periodos**, con "Pagar", "Adelanto", "Pagar a los fijos", panel y reporte
+  **desde el último pago** (§7.7). Solo cambió la interfaz: **no hubo migración ni se tocaron
+  registros**. Samer lo pidió expresamente: "no borres los registros que llevo".
+
 ### Por confirmar con Samer
 - Si ya pegó la migración **`20261030000100_gastos.sql`**. Sin ella, la pantalla Gastos y la
   tarjeta Gastos del Dashboard dan error. Para verificar, pídele que corra
@@ -455,20 +460,67 @@ Rutas bajo `src/app/(app)/`. Código en `src/features/<módulo>/`.
 - Lo que un proveedor de insumos trae **a crédito** va aquí. Lo que se paga en el momento
   va en Gastos.
 
-### 7.7 Nómina (`/nomina`, solo admin, todo en COP)
-- **Lista** con pestañas **Fijo · Destajo · Tareas**.
-- **Ficha del empleado:** Calendario · Panel · Abonos · Reporte.
-- **Jornadas** (`jornadas` + `jornada_tareas` con el precio copiado del día):
-  - **Fijo:** Asistió (tarifa del día), Media (mitad) o No; más pago adicional. **Sin
-    tareas.**
+### 7.7 Nómina (`/nomina`, solo admin, todo en COP) — **sin periodos, por pagos**
+Así funciona desde el **2026-11-04**, por pedido de Samer:
+- los **fijos** se pagan cada semana, pero algunos dejan acumular;
+- a los de **destajo** se les paga cuando toca (a veces cada 15 o 22 días).
+
+Por eso **los periodos se quitaron de la interfaz** y todo gira en torno a **lo que se le debe**
+y la **última fecha de pago**.
+
+- **Lo que se le debe** = todo lo ganado − todos los pagos y adelantos (`v_resumen_empleados.saldo_neto`).
+  No depende de periodos ni de semanas.
+- **Pago vs. adelanto.** Los dos se guardan en `abonos_empleados`, y lo que los distingue es la
+  columna `tipo`. **No hubo migración**: esos valores ya existían.
+  - **Pago** (`tipo = 'liquidacion'`): botón **"Pagar"** en la ficha. Propone todo lo que se le
+    debe; si se paga menos, el resto **queda acumulado**. **Define la "última fecha de pago"**.
+  - **Adelanto** (`tipo = 'adelanto'`): botón **"Adelanto"**. Dinero entre pagos; se descuenta de
+    lo que se le debe y **no** cambia la última fecha de pago.
+  - Los pagos que hizo el cierre de algún periodo viejo (`periodo_id` no nulo) se muestran como
+    "Pago de cierre de periodo" y **no** se editan ni borran.
+- **Última fecha de pago:** `cargarUltimosPagos()` en `src/features/nomina/datos.ts` toma el
+  `tipo = 'liquidacion'` más reciente; si hay dos el mismo día, se suman.
+  - **El pago cubre hasta su fecha:** "desde el último pago" significa **desde el día siguiente**
+    (`desdePago = fecha + 1`).
+- **Pantalla principal:**
+  - **Tarjetas:** "Total que se debe" (fijos y destajo por separado), "Pagado esta semana" (pagos
+    y adelantos desde el lunes) y "Empleados activos".
+  - **Lista** con pestañas **Fijo · Destajo · Tareas**. Cada empleado muestra "Último pago dd/mm/aaaa"
+    o "Sin pagos".
+  - **"Pagar a los fijos"** (`src/features/nomina/pagar-fijos.tsx`): todos los fijos a los que se
+    les debe, marcados, con el monto de lo que se les debe. Se puede desmarcar a alguno o bajar el
+    monto (el resto se acumula). Registra un pago por empleado (`pagarVarios`).
+- **Ficha del empleado** (`/nomina/[id]`, pestañas Calendario · Panel · Pagos · Reporte):
+  - **Encabezado:** "Se le debe", "Último pago" y los botones **Pagar**, **Adelanto**, Editar y
+    Eliminar.
+  - **Panel:**
+    - arriba: se le debe (saldo total), último pago (fecha y monto), **ganado desde el último pago**
+      (con los días trabajados) y **adelantos desde el último pago**;
+    - abajo, **por mes** (con flechas): **días trabajados** y ganado en el mes. Los **fijos** además
+      ven medias jornadas y faltas. Los de **destajo** ven en cambio **cuánto hicieron de cada tarea**
+      (por ejemplo "Cortada de Durazno 12 cestas · $120.000"), porque para ellos ir el día completo
+      o no da igual: cuenta lo que hicieron.
+    - Ya **no** existen "Ganado en el periodo", "Abonos del periodo", "Saldo anterior" ni
+      "A pagar al cierre" (Samer los pidió quitar).
+  - **Reporte:**
+    - **por defecto, desde el día siguiente al último pago hasta hoy** (si nunca se le pagó, desde
+      el 1 del mes);
+    - botones "Desde el último pago" y "Este mes", o fechas libres;
+    - **al pie:** total ganado, adelantos y pagos del rango, "Quedó pendiente de antes" (si un pago
+      fue parcial) y **"A pagar hoy"**;
+    - se imprime.
+  - **Pagos:** la lista de pagos y adelantos, con Editar y Eliminar.
+- **Jornadas** (`jornadas` + `jornada_tareas`, con el precio del día copiado), sin cambios:
+  - **Fijo:** Asistió (tarifa del día), Media (mitad) o No; más pago adicional. **Sin tareas.**
   - **Destajo:** Asistió o No, con cantidades por tarea y pago adicional.
-- **Asistencia del día** (`/nomina/asistencia`): separada en Personal fijo y Por destajo; un
-  toque guarda.
-- **Periodos** (`/nomina/periodos`):
-  - Cerrar congela lo ganado y, si se marca, registra el pago.
-  - Reabrir exige un motivo.
-  - Recibos por empleado y Excel, ordenados por grupo.
-- **Lo que se debe** = ganado − abonos (`v_resumen_empleados`, `nomina_resumen`).
+- **Asistencia del día** (`/nomina/asistencia`): separada en Personal fijo y Por destajo; un toque guarda.
+- **Periodos (sistema anterior):** las tablas `periodos_nomina` y `periodo_nomina_items`, las
+  funciones `cerrar_periodo_nomina` / `reabrir_periodo_nomina` y las pantallas
+  `/nomina/periodos/*` **siguen existiendo pero ya no tienen enlaces** en la interfaz.
+  - Si había un periodo cerrado, sus días siguen bloqueados (candado en el calendario).
+  - **No borrar** esas tablas: tienen historial.
+  - **No volver a enlazar** los periodos sin que Samer lo pida.
+- El Dashboard sigue mostrando "Nómina" (ganado y abonos del periodo del dashboard, con `resumen_periodo`).
 
 ### 7.8 Gastos (`/gastos`) — el módulo más nuevo
 - **Para qué:** lo que se compra y se **paga en el momento**: guantes, tapabocas, café,
@@ -707,6 +759,7 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test   # 34 pr
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-11-04 | Nómina por pagos en vez de periodos (§7.7): botones Pagar y Adelanto, "Pagar a los fijos" (pago parcial = acumula), panel con saldo total, último pago, ganado y adelantos desde el último pago, días trabajados del mes y tareas del mes (destajo); reporte por defecto desde el último pago. Sin migración. |
 | 2026-11-03 | Este HANDOFF reescrito como documento maestro (para Codex y otros agentes). `AGENTS.md` lo señala. Se agregaron `scripts/levantar-local.sh` y `supabase/utilidades/revisar_migraciones.sql`. |
 | 2026-11-02 | `robots.txt` + `noindex` (aparecían robots de Linux en las estadísticas de Vercel). Samer decide no migrar ERP Clientes. Sin fotos, el plan gratis de Supabase sobra; se recomendó respaldo semanal en Excel. |
 | 2026-10-29 (cont.) | Módulo **Gastos** (migración 20261030), reporte "Gastos por categoría", tarjeta en el Dashboard, Catálogos → Gastos. |

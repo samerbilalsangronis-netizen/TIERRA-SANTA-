@@ -160,7 +160,7 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
   - Falta justificada solo se marca cuando no asistió (no paga).
 - **Asistencia del día:** todos los empleados con botones grandes; un toque guarda. El botón de tareas abre la jornada completa. Al cambiar la asistencia se conservan las tareas y su precio de ese día.
 - **Abonos/adelantos** con monto, fecha, entregado por y nota. Lo que se le debe = ganado − abonos.
-- **Periodos** (semanal por defecto, según Configuración → Empresa; se propone el siguiente). Antes de cerrar se ve el resumen calculado. Al **cerrar** se congela lo ganado y, si se marca, se registra el **pago** de lo que se debe (los saldos quedan en 0). En un periodo cerrado no se pueden crear, cambiar ni borrar jornadas ni abonos. **Reabrir** exige motivo y quita el pago automático.
+- ~~Periodos~~ (reemplazado el 2026-11-04 por la nómina por pagos; ver más abajo). Periodos (semanal por defecto, según Configuración → Empresa; se propone el siguiente). Antes de cerrar se ve el resumen calculado. Al **cerrar** se congela lo ganado y, si se marca, se registra el **pago** de lo que se debe (los saldos quedan en 0). En un periodo cerrado no se pueden crear, cambiar ni borrar jornadas ni abonos. **Reabrir** exige motivo y quita el pago automático.
 - **Recibo por empleado** imprimible (uno por página) y **Excel** del periodo.
 
 ## Dashboard y reportes (Fase 8)
@@ -214,3 +214,12 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 
 ## Visibilidad
 - El sistema es interno: `robots.txt` prohíbe a los buscadores recorrerlo y todas las páginas llevan `noindex`.
+
+## Nómina por pagos, sin periodos (2026-11-04, pedido de Samer)
+- Los fijos se pagan cada semana (algunos dejan acumular) y a los de destajo se les paga cuando toca (cada 15 o 22 días): los periodos sobraban y se quitaron de la interfaz. Los datos y los periodos ya cerrados se conservan.
+- Lo que se le debe a cada uno = todo lo ganado − todos los pagos y adelantos.
+- **Pagar** registra un pago (propone todo lo que se le debe; si se paga menos, el resto se acumula) y marca la **última fecha de pago**. **Adelanto** es dinero entre pagos y no cambia esa fecha. Se guardan en `abonos_empleados` con `tipo` = `liquidacion` (pago) o `adelanto`.
+- **Pagar a los fijos:** una ventana con todos los fijos a los que se les debe, marcados y con su monto; se desmarca o se baja el monto para dejar acumular.
+- El pago cubre hasta su fecha: "desde el último pago" empieza el día siguiente.
+- **Panel:** lo que se le debe, último pago, ganado y adelantos desde el último pago; por mes, días trabajados y ganado; los fijos ven medias jornadas y faltas; los de destajo, cuánto hicieron de cada tarea (no importa si fueron el día completo).
+- **Reporte:** por defecto desde el último pago hasta hoy, con "A pagar hoy" al pie.

@@ -6,6 +6,8 @@ import { hoyISO } from "@/lib/fechas";
 export type EmpleadoLista = {
   id: number; nombre: string; cedula: string | null; tipo: "fijo" | "destajo"; tarifa_dia: number; cargo: string | null;
   activo: boolean; saldo_neto: number; ultima_jornada: string | null;
+  /** Último pago (abono de tipo "liquidacion"): fecha y monto. */
+  ultimo_pago: { fecha: string; monto: number } | null;
 };
 export type Tarea = { id: number; emoji: string | null; nombre: string; valor: number; unidad: string; activa: boolean };
 export type JornadaDia = {
@@ -25,12 +27,35 @@ export async function configNomina() {
 
 export async function cargarEmpleados(): Promise<EmpleadoLista[]> {
   const supabase = await crearClienteServidor();
-  const { data } = await supabase.from("v_resumen_empleados")
-    .select("id, nombre, cedula, tipo, tarifa_dia, cargo, activo, saldo_neto, ultima_jornada").order("nombre");
+  const [{ data }, pagos] = await Promise.all([
+    supabase.from("v_resumen_empleados")
+      .select("id, nombre, cedula, tipo, tarifa_dia, cargo, activo, saldo_neto, ultima_jornada").order("nombre"),
+    cargarUltimosPagos(),
+  ]);
   return (data ?? []).map((e) => ({
     id: e.id!, nombre: e.nombre!, cedula: e.cedula, tipo: e.tipo as "fijo" | "destajo", tarifa_dia: Number(e.tarifa_dia ?? 0),
     cargo: e.cargo, activo: Boolean(e.activo), saldo_neto: Number(e.saldo_neto ?? 0), ultima_jornada: e.ultima_jornada,
+    ultimo_pago: pagos.get(e.id!) ?? null,
   }));
+}
+
+/**
+ * Último pago de cada empleado. Un "pago" es un abono de tipo "liquidacion" (botón Pagar);
+ * los adelantos no cuentan. Si hay dos el mismo día, se suman.
+ */
+export async function cargarUltimosPagos(empleadoId?: number) {
+  const supabase = await crearClienteServidor();
+  let q = supabase.from("abonos_empleados").select("empleado_id, fecha, monto").eq("tipo", "liquidacion")
+    .order("fecha", { ascending: false }).limit(5000);
+  if (empleadoId) q = q.eq("empleado_id", empleadoId);
+  const { data } = await q;
+  const pagos = new Map<number, { fecha: string; monto: number }>();
+  for (const a of data ?? []) {
+    const p = pagos.get(a.empleado_id);
+    if (!p) pagos.set(a.empleado_id, { fecha: a.fecha, monto: Number(a.monto) });
+    else if (p.fecha === a.fecha) p.monto += Number(a.monto);
+  }
+  return pagos;
 }
 
 export async function cargarTareas(): Promise<Tarea[]> {

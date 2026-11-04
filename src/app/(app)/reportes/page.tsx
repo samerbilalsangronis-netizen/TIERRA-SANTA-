@@ -14,7 +14,7 @@ export default async function PaginaReportes() {
     ["Antigüedad de saldos", "Lo que deben los clientes por días de atraso.", "/clientes/antiguedad", true],
     ["Estados de cuenta", "Por cliente o proveedor, desde su ficha.", "/clientes", true],
     ["Kardex e inventario", "Movimientos y stock de cada producto.", "/inventario", true],
-    ["Nómina por periodo", "Resumen, recibos y Excel de cada periodo.", "/nomina/periodos", puede(perfil.rol, "nomina")],
+    ["Nómina", "Lo que se le debe a cada empleado y su reporte desde el último pago (en su ficha, pestaña Reporte).", "/nomina", puede(perfil.rol, "nomina")],
   ];
   const fila = (titulo: string, descripcion: string, href: string) => (
     <li key={href}>

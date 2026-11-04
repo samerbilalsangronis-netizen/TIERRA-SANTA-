@@ -94,7 +94,8 @@ test("nómina en el teléfono: lista, ficha con calendario y asistencia con boto
   const primero = page.locator("a[href^='/nomina/']").filter({ hasNotText: /Asistencia|Periodos/ }).first();
   test.skip((await primero.count()) === 0, "no hay empleados en la base de prueba");
   await primero.click();
-  await expect(page.getByRole("button", { name: "Abonar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pagar", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Adelanto" })).toBeVisible();
   await expect(page.locator("button[aria-label^='Jornada del']").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   await page.screenshot({ path: "test-results/nomina-ficha-telefono.png", fullPage: true });

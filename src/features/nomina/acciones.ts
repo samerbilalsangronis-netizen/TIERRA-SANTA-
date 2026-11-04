@@ -5,7 +5,10 @@ import { exigirPerfil } from "@/lib/auth/sesion";
 import { erroresZod, exito, fallo, mensajeErrorBD, type Resultado } from "@/lib/acciones";
 import { formatearMonto } from "@/lib/dinero";
 import { formatearFecha } from "@/lib/fechas";
-import { esquemaAbono, esquemaEmpleado, esquemaJornada, esquemaPeriodo, type DatosAbono, type DatosEmpleado, type DatosJornada } from "./esquemas";
+import {
+  esquemaAbono, esquemaEmpleado, esquemaJornada, esquemaPagoVarios, esquemaPeriodo,
+  type DatosAbono, type DatosEmpleado, type DatosJornada, type DatosPagoVarios,
+} from "./esquemas";
 
 const refrescar = () => revalidatePath("/nomina", "layout");
 
@@ -61,21 +64,38 @@ export async function guardarAbono(entrada: DatosAbono): Promise<Resultado> {
   const { id, ...d } = v.data;
   const supabase = await crearClienteServidor();
   const fila = { ...d, monto: d.monto! };
+  // Los pagos que hizo el cierre de un periodo (sistema anterior) no se tocan desde aquí
   const { error } = id
-    ? await supabase.from("abonos_empleados").update(fila).eq("id", id).eq("tipo", "adelanto")
+    ? await supabase.from("abonos_empleados").update(fila).eq("id", id).is("periodo_id", null)
     : await supabase.from("abonos_empleados").insert(fila);
   if (error) return fallo(mensajeErrorBD(error));
   refrescar();
-  return exito(undefined, id ? "Abono actualizado." : `Abono de ${formatearMonto(fila.monto, "COP")} registrado.`);
+  const que = fila.tipo === "liquidacion" ? "Pago" : "Adelanto";
+  return exito(undefined, id ? `${que} actualizado.` : `${que} de ${formatearMonto(fila.monto, "COP")} registrado.`);
+}
+
+/** Registra el pago de varios empleados el mismo día (cada uno queda como su "último pago"). */
+export async function pagarVarios(entrada: DatosPagoVarios): Promise<Resultado> {
+  await exigirPerfil("nomina");
+  const v = esquemaPagoVarios.safeParse(entrada);
+  if (!v.success) return fallo(v.error.issues[0]?.message ?? "Revisa los montos.");
+  const { fecha, entregado_por, pagos } = v.data;
+  const supabase = await crearClienteServidor();
+  const filas = pagos.map((p) => ({ empleado_id: p.empleado_id, monto: p.monto!, fecha, entregado_por, tipo: "liquidacion" as const }));
+  const { error } = await supabase.from("abonos_empleados").insert(filas);
+  if (error) return fallo(mensajeErrorBD(error));
+  refrescar();
+  const total = filas.reduce((a, f) => a + f.monto, 0);
+  return exito(undefined, `${filas.length} pago${filas.length === 1 ? "" : "s"} registrado${filas.length === 1 ? "" : "s"} · ${formatearMonto(total, "COP")}.`);
 }
 
 export async function eliminarAbono(id: number): Promise<Resultado> {
   await exigirPerfil("nomina");
   const supabase = await crearClienteServidor();
-  const { error } = await supabase.from("abonos_empleados").delete().eq("id", id).eq("tipo", "adelanto");
+  const { error } = await supabase.from("abonos_empleados").delete().eq("id", id).is("periodo_id", null);
   if (error) return fallo(mensajeErrorBD(error));
   refrescar();
-  return exito(undefined, "Abono eliminado.");
+  return exito(undefined, "Eliminado.");
 }
 
 export async function crearPeriodo(desde: string, hasta: string): Promise<Resultado<{ id: number }>> {

@@ -33,10 +33,23 @@ export const esquemaAbono = z.object({
   empleado_id: z.coerce.number<number | string>().int().positive(),
   fecha: fechaISO,
   monto: numeroLibre().refine((n) => n !== null && n > 0, "Escribe el monto"),
+  /** "liquidacion" = pago (marca la "última fecha de pago"); "adelanto" = adelanto entre pagos. */
+  tipo: z.enum(["adelanto", "liquidacion"]).default("adelanto"),
   entregado_por: textoOpcional(80),
   nota: textoOpcional(300),
 });
 export type DatosAbono = z.input<typeof esquemaAbono>;
+
+/** Pagar a varios empleados a la vez (p. ej. la semana de los fijos). */
+export const esquemaPagoVarios = z.object({
+  fecha: fechaISO,
+  entregado_por: textoOpcional(80),
+  pagos: z.array(z.object({
+    empleado_id: z.number().int().positive(),
+    monto: numeroLibre().refine((n) => n !== null && n > 0, "Escribe el monto"),
+  })).min(1, "Marca al menos un empleado"),
+});
+export type DatosPagoVarios = z.input<typeof esquemaPagoVarios>;
 
 export const esquemaPeriodo = z.object({ desde: fechaISO, hasta: fechaISO })
   .refine((d) => d.hasta >= d.desde, { path: ["hasta"], message: "La fecha final debe ser después de la inicial" });

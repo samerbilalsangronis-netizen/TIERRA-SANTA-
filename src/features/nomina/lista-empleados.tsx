@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { formatearMonto } from "@/lib/dinero";
+import { formatearFecha } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import type { EmpleadoLista, Tarea } from "./datos";
 import { GRUPOS_PERSONAL, type TipoEmpleado } from "./tipos";
@@ -57,7 +58,9 @@ export function ListaEmpleados({ empleados, tareas, seleccionado }: { empleados:
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{e.nombre}</span>
-                    {e.cargo && <span className="block text-xs text-muted-foreground">{e.cargo}</span>}
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {e.ultimo_pago ? `Último pago ${formatearFecha(e.ultimo_pago.fecha)}` : "Sin pagos"}{e.cargo ? ` · ${e.cargo}` : ""}
+                    </span>
                   </span>
                   {e.saldo_neto !== 0 && (
                     <span className={cn("tabular text-xs font-semibold", e.saldo_neto > 0 ? "text-warning" : "text-muted-foreground")}>

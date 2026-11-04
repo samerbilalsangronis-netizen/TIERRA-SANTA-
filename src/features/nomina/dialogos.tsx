@@ -72,20 +72,32 @@ export function DialogoEmpleado({ empleado, onCerrar, alCrear }: { empleado?: Em
 // ------------------------------------------------------------------ Abono
 export type AbonoEditable = { id: number; fecha: string; monto: number; entregado_por: string | null; nota: string | null };
 
-export function DialogoAbono({ empleadoId, nombre, hoy, abono, entregadoPor, onCerrar }: {
-  empleadoId: number; nombre: string; hoy: string; abono?: AbonoEditable; entregadoPor: string; onCerrar: () => void;
+/**
+ * Pago o adelanto a un empleado (COP).
+ * - Pago ("liquidacion"): lo que se le paga; propone todo lo que se le debe. Marca la "última fecha de pago".
+ * - Adelanto: dinero entre pagos; se descuenta de lo que se le debe y no cambia la última fecha de pago.
+ */
+export function DialogoAbono({ empleadoId, nombre, hoy, abono, entregadoPor, tipo = "adelanto", saldo = 0, onCerrar }: {
+  empleadoId: number; nombre: string; hoy: string; abono?: AbonoEditable & { tipo?: string }; entregadoPor: string;
+  tipo?: "adelanto" | "liquidacion"; saldo?: number; onCerrar: () => void;
 }) {
+  const clase = (abono?.tipo as "adelanto" | "liquidacion" | undefined) ?? tipo;
+  const esPago = clase === "liquidacion";
   const { form, enviar, pendiente, err } = useFormulario(
     esquemaAbono,
     abono
-      ? { ...abono, empleado_id: empleadoId, monto: formatearCantidad(abono.monto, 2), entregado_por: abono.entregado_por ?? "", nota: abono.nota ?? "" }
-      : { empleado_id: empleadoId, fecha: hoy, monto: "", entregado_por: entregadoPor, nota: "" },
+      ? { ...abono, tipo: clase, empleado_id: empleadoId, monto: formatearCantidad(abono.monto, 2), entregado_por: abono.entregado_por ?? "", nota: abono.nota ?? "" }
+      : { empleado_id: empleadoId, tipo: clase, fecha: hoy, monto: esPago && saldo > 0 ? formatearCantidad(saldo, 0) : "", entregado_por: entregadoPor, nota: "" },
     guardarAbono,
     onCerrar,
   );
   return (
-    <DialogoFormulario abierto onCerrar={onCerrar} pendiente={pendiente} onEnviar={enviar} titulo={abono ? "Editar abono" : `Abonar a ${nombre}`}
-      descripcion="Adelanto en pesos (COP). Se descuenta de lo que se le debe." textoGuardar={abono ? "Guardar" : "Registrar abono"}>
+    <DialogoFormulario abierto onCerrar={onCerrar} pendiente={pendiente} onEnviar={enviar}
+      titulo={abono ? (esPago ? "Editar pago" : "Editar adelanto") : esPago ? `Pagar a ${nombre}` : `Adelanto a ${nombre}`}
+      descripcion={esPago
+        ? `Se le debe ${formatearMonto(saldo, "COP")}. Si le pagas menos, el resto queda pendiente para el próximo pago.`
+        : "Dinero que se le adelanta entre pagos (COP). Se descuenta de lo que se le debe."}
+      textoGuardar={abono ? "Guardar" : esPago ? "Registrar pago" : "Registrar adelanto"}>
       <CampoTexto etiqueta="Monto (COP)" requerido inputMode="decimal" autoFocus error={err.monto?.message} {...form.register("monto")} />
       <CampoTexto etiqueta="Fecha" type="date" error={err.fecha?.message} {...form.register("fecha")} />
       <CampoTexto etiqueta="Entregado por" {...form.register("entregado_por")} />
