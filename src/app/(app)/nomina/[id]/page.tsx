@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { exigirPerfil } from "@/lib/auth/sesion";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { sumarDias } from "@/lib/fechas";
+import { formatearFecha, sumarDias } from "@/lib/fechas";
+import { formatearMonto } from "@/lib/dinero";
+import { EncabezadoHoja } from "@/components/comunes/hoja";
 import { cargarEmpleados, cargarJornadas, cargarTareas, cargarUltimosPagos, configNomina, periodosCerrados } from "@/features/nomina/datos";
 import { ListaEmpleados } from "@/features/nomina/lista-empleados";
 import { FichaEmpleado, type Pestana } from "@/features/nomina/ficha";
@@ -29,7 +31,7 @@ export default async function PaginaEmpleado({ params, searchParams }: PageProps
   const repHasta = fecha(t(sp.hasta)) || hoy;
   const supabase = await crearClienteServidor();
 
-  const [{ data: empleado }, empleados, tareas, jornadasMes, cerrados, { data: abonos }, jornadasRep, jornadasDesdePago] = await Promise.all([
+  const [{ data: empleado }, empleados, tareas, jornadasMes, cerrados, { data: abonos }, jornadasRep, jornadasDesdePago, { data: empresa }] = await Promise.all([
     supabase.from("empleados").select("id, nombre, cedula, telefono, cargo, tipo, tarifa_dia, fecha_ingreso, activo, notas").eq("id", id).maybeSingle(),
     cargarEmpleados(),
     cargarTareas(),
@@ -38,18 +40,26 @@ export default async function PaginaEmpleado({ params, searchParams }: PageProps
     supabase.from("abonos_empleados").select("id, fecha, monto, tipo, entregado_por, nota, periodo_id").eq("empleado_id", id).order("fecha", { ascending: false }).order("id", { ascending: false }).limit(500),
     pestana === "reporte" ? cargarJornadas(id, repDesde, repHasta) : Promise.resolve([]),
     pestana === "panel" ? cargarJornadas(id, desdePago ?? "2000-01-01", "2100-12-31") : Promise.resolve([]),
+    supabase.from("empresa").select("razon_social, rif, direccion, telefonos, logo_path").eq("id", 1).single(),
   ]);
   if (!empleado) notFound();
   const listaAbonos = (abonos ?? []).map((a) => ({ ...a, monto: Number(a.monto) }));
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
-      <div className="hidden lg:block"><ListaEmpleados empleados={empleados} tareas={tareas} seleccionado={id} /></div>
+    <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] print:block">
+      <div className="no-print hidden lg:block"><ListaEmpleados empleados={empleados} tareas={tareas} seleccionado={id} /></div>
       <FichaEmpleado
         empleado={{ ...empleado, tipo: empleado.tipo as "fijo" | "destajo", tarifa_dia: Number(empleado.tarifa_dia) }}
         saldo={empleados.find((e) => e.id === id)?.saldo_neto ?? 0}
         pestana={pestana} mes={mes} hoy={hoy} inicioSemana={inicioSemana}
         jornadasMes={jornadasMes} cerrados={cerrados} tareas={tareas} abonos={listaAbonos}
+        encabezadoReporte={
+          <EncabezadoHoja empresa={empresa} titulo="REPORTE DE NÓMINA" lineas={[
+            `${empleado.nombre} · ${empleado.tipo === "fijo" ? `Fijo (${formatearMonto(empleado.tarifa_dia, "COP")}/día)` : "Por destajo"}`,
+            `Del ${formatearFecha(repDesde)} al ${formatearFecha(repHasta)}`,
+            ultimoPago && repDesde === desdePago ? `Desde el último pago (${formatearFecha(ultimoPago.fecha)})` : "",
+          ]} />
+        }
         ultimoPago={ultimoPago} desdePago={desdePago} jornadasDesdePago={jornadasDesdePago}
         reporte={{ desde: repDesde, hasta: repHasta, jornadas: jornadasRep, abonos: listaAbonos.filter((a) => a.fecha >= repDesde && a.fecha <= repHasta) }}
         usuario={perfil.nombre}

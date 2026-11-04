@@ -43,9 +43,11 @@ export function FichaEmpleado(props: {
   /** Último pago (fecha y monto) y el día desde el que se cuenta lo pendiente (el siguiente). */
   ultimoPago: { fecha: string; monto: number } | null; desdePago: string | null; jornadasDesdePago: JornadaDia[];
   reporte: { desde: string; hasta: string; jornadas: JornadaDia[]; abonos: Abono[] };
+  /** Encabezado del reporte impreso (logo y datos de la empresa), armado en el servidor. */
+  encabezadoReporte: React.ReactNode;
   usuario: string;
 }) {
-  const { empleado, saldo, pestana, mes, hoy, inicioSemana, jornadasMes, cerrados, tareas, abonos, ultimoPago, desdePago, jornadasDesdePago, reporte, usuario } = props;
+  const { encabezadoReporte, empleado, saldo, pestana, mes, hoy, inicioSemana, jornadasMes, cerrados, tareas, abonos, ultimoPago, desdePago, jornadasDesdePago, reporte, usuario } = props;
   const router = useRouter();
   const ruta = usePathname();
   const [dialogo, setDialogo] = useState<{ tipo: "jornada"; fecha: string } | { tipo: "abono"; clase: "adelanto" | "liquidacion"; abono?: Abono } | { tipo: "editar" } | { tipo: "eliminar" } | { tipo: "eliminarAbono"; abono: Abono } | null>(null);
@@ -70,12 +72,12 @@ export function FichaEmpleado(props: {
 
   return (
     <div className="min-w-0">
-      <Link href="/nomina" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground lg:hidden">
+      <Link href="/nomina" className="no-print mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground lg:hidden">
         <ArrowLeft className="size-4" /> Personal
       </Link>
 
       {/* Encabezado */}
-      <section className="mb-4 rounded-2xl border bg-card p-4">
+      <section className="no-print mb-4 rounded-2xl border bg-card p-4">
         <div className="flex items-start gap-3">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-xl font-bold text-primary">{empleado.nombre.trim().charAt(0).toUpperCase()}</div>
           <div className="min-w-0 flex-1">
@@ -101,7 +103,7 @@ export function FichaEmpleado(props: {
       </section>
 
       {/* Pestañas */}
-      <nav className="mb-3 flex gap-1 overflow-x-auto rounded-xl border bg-card p-1" aria-label="Secciones del empleado">
+      <nav className="no-print mb-3 flex gap-1 overflow-x-auto rounded-xl border bg-card p-1" aria-label="Secciones del empleado">
         {(["calendario", "panel", "abonos", "reporte"] as const).map((p) => (
           <button key={p} type="button" onClick={() => ir({ pestana: p })} aria-current={pestana === p ? "page" : undefined}
             className={cn("flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm", pestana === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
@@ -251,49 +253,56 @@ export function FichaEmpleado(props: {
             <Input type="date" aria-label="Hasta" value={reporte.hasta} onChange={(e) => e.target.value && ir({ desde: reporte.desde, hasta: e.target.value })} className="h-9 w-[9.5rem] text-xs" />
             <Button variant="outline" size="sm" className="ml-auto" onClick={() => window.print()}><Printer className="size-4" /> Imprimir</Button>
           </div>
-          <p className="mb-2 text-sm">
-            <b>{empleado.nombre}</b> · del {formatearFecha(reporte.desde)} al {formatearFecha(reporte.hasta)}
-            {ultimoPago && reporte.desde === desdePago && <span className="text-muted-foreground"> (desde el último pago, {formatearFecha(ultimoPago.fecha)})</span>}
-          </p>
-          <div className="overflow-x-auto rounded-2xl border bg-card">
-            <table className="w-full min-w-[30rem] text-sm">
-              <thead className="border-b text-left text-xs text-muted-foreground">
-                <tr><th className="p-2.5">Fecha</th><th className="p-2.5">Asistencia</th><th className="p-2.5">Tareas</th><th className="p-2.5 text-right">Ganado</th></tr>
-              </thead>
-              <tbody className="divide-y">
-                {reporte.jornadas.map((j) => (
-                  <tr key={j.id}>
-                    <td className="whitespace-nowrap p-2.5">{formatearFecha(j.fecha)}</td>
-                    <td className="p-2.5">{{ asistio: "Asistió", media: "Media jornada", produccion: "Asistió", no: j.justificada ? "Falta justificada" : "No asistió" }[j.estado]}</td>
-                    <td className="p-2.5 text-xs text-muted-foreground">
-                      {j.jornada_tareas.map((t) => `${tareas.find((x) => x.id === t.tarea_id)?.nombre ?? "Tarea"} × ${formatearCantidad(t.cantidad)}`).join(" · ")}
-                      {j.pago_adicional > 0 && `${j.jornada_tareas.length ? " · " : ""}Adicional ${cop(j.pago_adicional)}`}
-                    </td>
-                    <td className="tabular p-2.5 text-right font-medium">{cop(j.ganado)}</td>
+          {/* Hoja blanca: es lo único que sale al imprimir */}
+          <article className="mx-auto max-w-4xl rounded-xl bg-white p-5 text-[13px] text-neutral-900 shadow-xl print:max-w-none print:rounded-none print:p-0 print:shadow-none sm:p-8">
+            {encabezadoReporte}
+            <div className="overflow-x-auto">
+              <table className="mt-3 w-full min-w-[30rem] border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-neutral-800 text-left text-[11px] uppercase tracking-wide text-neutral-600">
+                    <th className="py-1.5 pr-2">Fecha</th><th className="py-1.5 pr-2">Asistencia</th><th className="py-1.5 pr-2">Tareas</th><th className="py-1.5 text-right">Ganado</th>
                   </tr>
-                ))}
-                {reporte.jornadas.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-muted-foreground">Sin jornadas en estas fechas.</td></tr>}
-              </tbody>
-              {(() => {
-                const ganado = sumaGanado(reporte.jornadas);
-                const adelantos = reporte.abonos.filter((a) => a.tipo === "adelanto").reduce((x, a) => x + a.monto, 0);
-                const pagos = reporte.abonos.filter((a) => a.tipo === "liquidacion").reduce((x, a) => x + a.monto, 0);
-                // Si el reporte llega hasta hoy, "lo que se le debe" incluye lo que quedó pendiente de antes
-                const pendienteAntes = reporte.hasta >= hoy ? saldo - (ganado - adelantos - pagos) : 0;
-                return (
-                  <tfoot className="border-t text-sm">
-                    <tr><td colSpan={3} className="p-2.5 font-medium">Total ganado</td><td className="tabular p-2.5 text-right font-bold">{cop(ganado)}</td></tr>
-                    {adelantos > 0 && <tr><td colSpan={3} className="p-2.5 text-muted-foreground">Adelantos en estas fechas</td><td className="tabular p-2.5 text-right">− {cop(adelantos)}</td></tr>}
-                    {pagos > 0 && <tr><td colSpan={3} className="p-2.5 text-muted-foreground">Pagos en estas fechas</td><td className="tabular p-2.5 text-right">− {cop(pagos)}</td></tr>}
-                    {Math.abs(pendienteAntes) >= 1 && <tr><td colSpan={3} className="p-2.5 text-muted-foreground">{pendienteAntes > 0 ? "Quedó pendiente de antes" : "Recibió de más antes"}</td><td className="tabular p-2.5 text-right">{pendienteAntes > 0 ? "+ " : "− "}{cop(Math.abs(pendienteAntes))}</td></tr>}
-                    {reporte.hasta >= hoy && (
-                      <tr className="border-t"><td colSpan={3} className="p-2.5 font-semibold">A pagar hoy</td><td className={cn("tabular p-2.5 text-right text-base font-bold", saldo > 0 && "text-warning")} data-testid="a-pagar-reporte">{cop(Math.max(saldo, 0))}</td></tr>
-                    )}
-                  </tfoot>
-                );
-              })()}
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {reporte.jornadas.map((j, i) => (
+                    <tr key={j.id} className={i % 2 ? "bg-neutral-100" : ""}>
+                      <td className="whitespace-nowrap py-1.5 pr-2">{formatearFecha(j.fecha)}</td>
+                      <td className="py-1.5 pr-2">{{ asistio: "Asistió", media: "Media jornada", produccion: "Asistió", no: j.justificada ? "Falta justificada" : "No asistió" }[j.estado]}</td>
+                      <td className="py-1.5 pr-2 text-xs text-neutral-600">
+                        {j.jornada_tareas.map((t) => `${tareas.find((x) => x.id === t.tarea_id)?.nombre ?? "Tarea"} × ${formatearCantidad(t.cantidad)}`).join(" · ")}
+                        {j.pago_adicional > 0 && `${j.jornada_tareas.length ? " · " : ""}Adicional ${cop(j.pago_adicional)}`}
+                      </td>
+                      <td className="tabular whitespace-nowrap py-1.5 text-right font-medium">{cop(j.ganado)}</td>
+                    </tr>
+                  ))}
+                  {reporte.jornadas.length === 0 && <tr><td colSpan={4} className="py-6 text-center text-neutral-500">Sin jornadas en estas fechas.</td></tr>}
+                </tbody>
+                {(() => {
+                  const ganado = sumaGanado(reporte.jornadas);
+                  const adelantos = reporte.abonos.filter((a) => a.tipo === "adelanto").reduce((x, a) => x + a.monto, 0);
+                  const pagos = reporte.abonos.filter((a) => a.tipo === "liquidacion").reduce((x, a) => x + a.monto, 0);
+                  // Si el reporte llega hasta hoy, "lo que se le debe" incluye lo que quedó pendiente de antes
+                  const pendienteAntes = reporte.hasta >= hoy ? saldo - (ganado - adelantos - pagos) : 0;
+                  return (
+                    <tfoot className="border-t-2 border-neutral-800">
+                      <tr><td colSpan={3} className="py-1.5 font-semibold">Total ganado</td><td className="tabular whitespace-nowrap py-1.5 text-right font-bold">{cop(ganado)}</td></tr>
+                      {adelantos > 0 && <tr><td colSpan={3} className="py-1 text-neutral-600">Adelantos en estas fechas</td><td className="tabular whitespace-nowrap py-1 text-right">− {cop(adelantos)}</td></tr>}
+                      {pagos > 0 && <tr><td colSpan={3} className="py-1 text-neutral-600">Pagos en estas fechas</td><td className="tabular whitespace-nowrap py-1 text-right">− {cop(pagos)}</td></tr>}
+                      {Math.abs(pendienteAntes) >= 1 && <tr><td colSpan={3} className="py-1 text-neutral-600">{pendienteAntes > 0 ? "Quedó pendiente de antes" : "Recibió de más antes"}</td><td className="tabular whitespace-nowrap py-1 text-right">{pendienteAntes > 0 ? "+ " : "− "}{cop(Math.abs(pendienteAntes))}</td></tr>}
+                      {reporte.hasta >= hoy && (
+                        <tr className="border-t border-neutral-400"><td colSpan={3} className="py-2 text-base font-bold">A pagar hoy</td>
+                          <td className="tabular whitespace-nowrap py-2 text-right text-base font-bold" data-testid="a-pagar-reporte">{cop(Math.max(saldo, 0))}</td></tr>
+                      )}
+                    </tfoot>
+                  );
+                })()}
+              </table>
+            </div>
+            <div className="mt-12 grid grid-cols-2 gap-8 text-center text-xs text-neutral-600">
+              <div className="border-t border-neutral-500 pt-1">Entregado por</div>
+              <div className="border-t border-neutral-500 pt-1">Recibido conforme ({empleado.nombre})</div>
+            </div>
+          </article>
         </section>
       )}
 

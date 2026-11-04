@@ -508,7 +508,10 @@ y la **última fecha de pago**.
     - botones "Desde el último pago" y "Este mes", o fechas libres;
     - **al pie:** total ganado, adelantos y pagos del rango, "Quedó pendiente de antes" (si un pago
       fue parcial) y **"A pagar hoy"**;
-    - se imprime.
+    - va en una **hoja blanca** con logo, datos de la empresa, título "REPORTE DE NÓMINA" y líneas de firma
+      ("Entregado por" / "Recibido conforme"). **Al imprimir solo sale esa hoja**: el encabezado de la ficha,
+      las pestañas y la lista llevan `no-print`. El encabezado con logo se arma en el servidor
+      (`EncabezadoHoja` usa `lib/empresa`, que es server-only) y se pasa a la ficha como prop.
   - **Pagos:** la lista de pagos y adelantos, con Editar y Eliminar.
 - **Jornadas** (`jornadas` + `jornada_tareas`, con el precio del día copiado), sin cambios:
   - **Fijo:** Asistió (tarifa del día), Media (mitad) o No; más pago adicional. **Sin tareas.**
