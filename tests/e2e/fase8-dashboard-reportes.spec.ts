@@ -7,7 +7,7 @@ test("dashboard: periodos con comparación, productos vendidos, rendimiento sema
   const cifras = page.getByRole("region", { name: "Cifras del periodo" });
   await expect(cifras.getByText("Ventas USD")).toBeVisible();
   await expect(cifras.getByText("Productos vendidos")).toBeVisible();
-  await expect(cifras.getByText("Nómina")).toBeVisible(); // admin
+  await expect(cifras.getByText("Nómina")).toHaveCount(0); // se quitó del dashboard (pedido de Samer)
 
   // Rendimiento semanal: 12 semanas, cambia entre bolsas y monto
   const rendimiento = page.getByRole("region", { name: "Rendimiento semanal" });

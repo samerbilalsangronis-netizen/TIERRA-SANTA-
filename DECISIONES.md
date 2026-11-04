@@ -223,3 +223,4 @@ Quién puede **editar facturas emitidas** se configura en Empresa (por defecto a
 - El pago cubre hasta su fecha: "desde el último pago" empieza el día siguiente.
 - **Panel:** lo que se le debe, último pago, ganado y adelantos desde el último pago; por mes, días trabajados y ganado; los fijos ven medias jornadas y faltas; los de destajo, cuánto hicieron de cada tarea (no importa si fueron el día completo).
 - **Reporte:** por defecto desde el último pago hasta hoy, con "A pagar hoy" al pie.
+- El **Dashboard no muestra Nómina** (pedido de Samer, 2026-11-04): la nómina se consulta en su propio menú.

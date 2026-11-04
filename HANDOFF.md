@@ -523,7 +523,7 @@ y la **última fecha de pago**.
   - Si había un periodo cerrado, sus días siguen bloqueados (candado en el calendario).
   - **No borrar** esas tablas: tienen historial.
   - **No volver a enlazar** los periodos sin que Samer lo pida.
-- El Dashboard sigue mostrando "Nómina" (ganado y abonos del periodo del dashboard, con `resumen_periodo`).
+- **El Dashboard ya no muestra Nómina** (Samer lo pidió quitar el 2026-11-04). `resumen_periodo` todavía devuelve la clave `nomina`, pero la pantalla no la usa; no volver a ponerla.
 
 ### 7.8 Gastos (`/gastos`) — el módulo más nuevo
 - **Para qué:** lo que se compra y se **paga en el momento**: guantes, tapabocas, café,
@@ -548,7 +548,7 @@ y la **última fecha de pago**.
 - **Periodo:** Hoy · Esta semana · Semana pasada · **Este mes** (por defecto) · Mes pasado ·
   Rango. Se compara con el periodo anterior de igual largo.
 - **Cifras** (`resumen_periodo`): ventas USD y COP, productos vendidos (bolsas y kg de pulpa),
-  producción, facturas, cobrado, **compras a proveedores**, **gastos** y nómina (solo admin).
+  producción, facturas, cobrado, **compras a proveedores** y **gastos**. **Sin nómina**: se quitó a pedido de Samer.
   - Cuando hay más de una moneda, cada una va en su propia fila
     (`MontosPorMoneda` en `src/features/dashboard/componentes.tsx`).
 - **Rendimiento semanal** (últimas 12 semanas, ▲ verde / ▼ rojo), ventas por día, top de
@@ -753,8 +753,7 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test   # 34 pr
 - Dominio propio (§3).
 - Lotes FIFO: la base los soporta (`lotes`, `empresa.lotes_activos`), pero la interfaz no.
 - Que `factura_numero_inicial` siga la numeración del programa de Windows, si Samer lo pide.
-- Tarjetas del Dashboard: con Gastos y Nómina son 9 en una cuadrícula de 4 columnas, y la
-  última fila queda con una sola. Cosmético.
+- Tarjetas del Dashboard: son 8 en 4 columnas (dos filas completas) desde que se quitó Nómina.
 
 ---
 
@@ -762,6 +761,7 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test   # 34 pr
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-11-04 (cont.) | Reporte de nómina imprime solo la hoja (con logo y firmas). Se quitó la tarjeta Nómina del Dashboard. |
 | 2026-11-04 | Nómina por pagos en vez de periodos (§7.7): botones Pagar y Adelanto, "Pagar a los fijos" (pago parcial = acumula), panel con saldo total, último pago, ganado y adelantos desde el último pago, días trabajados del mes y tareas del mes (destajo); reporte por defecto desde el último pago. Sin migración. |
 | 2026-11-03 | Este HANDOFF reescrito como documento maestro (para Codex y otros agentes). `AGENTS.md` lo señala. Se agregaron `scripts/levantar-local.sh` y `supabase/utilidades/revisar_migraciones.sql`. |
 | 2026-11-02 | `robots.txt` + `noindex` (aparecían robots de Linux en las estadísticas de Vercel). Samer decide no migrar ERP Clientes. Sin fotos, el plan gratis de Supabase sobra; se recomendó respaldo semanal en Excel. |

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, Banknote, Boxes, Factory, FileText, LayoutDashboard, Package, Receipt, ShoppingBasket, Truck, Wallet } from "lucide-react";
+import { AlertTriangle, Banknote, Boxes, Factory, FileText, LayoutDashboard, Package, Receipt, ShoppingBasket, Truck } from "lucide-react";
 import { exigirPerfil } from "@/lib/auth/sesion";
-import { puede } from "@/lib/auth/roles";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { formatearCantidad, formatearMonto } from "@/lib/dinero";
 import { formatearFecha, hoyISO } from "@/lib/fechas";
@@ -115,10 +114,6 @@ export default async function PaginaDashboard({ searchParams }: PageProps<"/dash
             : formatearMonto(gastosA[0]?.total ?? 0, gastosA[0]?.moneda ?? "COP")}
           delta={gastosA.length === 1 ? variacion(gastosA[0].total, gastosB.find((y) => y.moneda === gastosA[0].moneda)?.total ?? 0) : null}
           detalle={<Link href={`/gastos?p=${clave}${clave === "rango" ? `&desde=${actual.desde}&hasta=${actual.hasta}` : ""}`} className="hover:underline">ver gastos</Link>} />
-        {a.nomina && puede(perfil.rol, "nomina") && (
-          <Cifra titulo="Nómina" icono={Wallet} subeEsBueno={false} valor={formatearMonto(a.nomina.ganado, "COP")}
-            delta={variacion(Number(a.nomina.ganado), Number(b.nomina?.ganado ?? 0))} detalle={`abonos ${formatearMonto(a.nomina.abonos, "COP", { sinCodigo: true })}`} />
-        )}
       </section>
 
       {/* Rendimiento semana contra semana */}
