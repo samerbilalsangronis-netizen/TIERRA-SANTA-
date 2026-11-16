@@ -53,6 +53,14 @@
 **El sistema está completo y en uso real en producción.** Samer factura, registra proveedores,
 nómina y gastos todos los días.
 
+### Revisión preventiva de historiales (2026-11-16; NO está en producción)
+- Rama `mejora/historiales-completos-preview`, basada en `8bf99d0`.
+- Samer autorizó preparar y revisar en Vercel Preview; **no fusionar ni publicar en producción sin que lo apruebe**.
+- Páginas de 50 en entregas, abonos y cestas del proveedor, pagos del empleado y gastos. Totales independientes de la página; estados de cuenta completos por lotes.
+- Sin migraciones y sin cambios de datos o fórmulas financieras. Los resúmenes del filtro se leen por lotes en servidor con la sesión/RLS existente y se suman sin truncar. No son nuevas funciones agregadas a Postgres; a mayor volumen, considerar agregados SQL para reducir lecturas.
+- Preview activa automáticamente solo consulta (`VERCEL_ENV=preview`): los clientes Supabase bloquean escrituras, RPC de operación y cambios de contraseña; se permite consultar y autenticar. No registra `registrar_acceso` desde esta versión. Esto protege las operaciones de la app, no reemplaza RLS ni crea una base separada.
+- No hace falta pegar SQL. Detalles y comprobaciones en `REVISION_HISTORIALES.md`.
+
 ### Hecho y funcionando
 - Todos los módulos: facturación, clientes, proveedores, inventario, nómina, gastos,
   dashboard, reportes, catálogos, usuarios y auditoría (§7).
@@ -262,6 +270,8 @@ tests/unit (Vitest) · tests/e2e (Playwright)
 ---
 
 ## 6. Base de datos: cómo se cambia (¡importante!)
+
+Revisión 2026-11-16: no añade ni modifica migraciones; no aplicar SQL para esta rama de revisión.
 
 **Samer aplica cada migración a mano:**
 1. Le pasas el enlace del archivo en GitHub, en la rama de producción. Por ejemplo:
@@ -761,6 +771,7 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test   # 34 pr
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-11-16 | Preparación preventiva en rama separada: paginación de historiales, resúmenes completos y Preview de solo consulta. Sin SQL ni cambios a producción; pendiente revisión de Samer. |
 | 2026-11-04 (cont.) | Reporte de nómina imprime solo la hoja (con logo y firmas). Se quitó la tarjeta Nómina del Dashboard. |
 | 2026-11-04 | Nómina por pagos en vez de periodos (§7.7): botones Pagar y Adelanto, "Pagar a los fijos" (pago parcial = acumula), panel con saldo total, último pago, ganado y adelantos desde el último pago, días trabajados del mes y tareas del mes (destajo); reporte por defecto desde el último pago. Sin migración. |
 | 2026-11-03 | Este HANDOFF reescrito como documento maestro (para Codex y otros agentes). `AGENTS.md` lo señala. Se agregaron `scripts/levantar-local.sh` y `supabase/utilidades/revisar_migraciones.sql`. |

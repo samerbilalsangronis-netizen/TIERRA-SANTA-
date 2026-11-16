@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { numeroPagina } from "@/lib/paginacion";
+import { Paginacion } from "@/components/comunes/paginacion";
+import { sumar } from "@/lib/dinero";
 import { Receipt, Tags } from "lucide-react";
 import { exigirPerfil } from "@/lib/auth/sesion";
 import { puede } from "@/lib/auth/roles";
@@ -10,7 +13,7 @@ import { TarjetaKpi } from "@/components/comunes/tarjeta-kpi";
 import { FiltrosDashboard } from "@/features/dashboard/filtros";
 import { Barras, Tarjeta } from "@/features/dashboard/componentes";
 import { FiltrosUrl } from "@/features/inventario/dialogos";
-import { cargarCatalogoGastos, cargarGastos } from "@/features/gastos/datos";
+import { cargarCatalogoGastos, cargarGastos, cargarResumenGastos } from "@/features/gastos/datos";
 import { BotonNuevoGasto, ListaGastos } from "@/features/gastos/lista-gastos";
 
 export const metadata: Metadata = { title: "Gastos" };
@@ -27,16 +30,20 @@ export default async function PaginaGastos({ searchParams }: PageProps<"/gastos"
   const catalogo = await cargarCatalogoGastos();
   const categoriaId = Number(t(sp.categoria)) || null;
   const conceptoId = Number(t(sp.concepto)) || null;
-  const filas = await cargarGastos({ ...actual, categoriaId, conceptoId });
+  const [resultado, resumen] = await Promise.all([
+    cargarGastos({ ...actual, categoriaId, conceptoId }, numeroPagina(sp.pagina)),
+    cargarResumenGastos({ ...actual, categoriaId, conceptoId }),
+  ]);
+  const { filas } = resultado;
 
-  // Totales por moneda y por categoría (de lo que se ve)
+  // Totales de TODO el filtro, independientes de la página visible.
   const porMoneda = new Map<string, number>();
   const porCategoria = new Map<string, { nombre: string; montos: Map<string, number> }>();
-  for (const g of filas) {
-    porMoneda.set(g.moneda, (porMoneda.get(g.moneda) ?? 0) + g.monto);
-    const c = porCategoria.get(String(g.categoria_id)) ?? { nombre: g.categoria, montos: new Map() };
-    c.montos.set(g.moneda, (c.montos.get(g.moneda) ?? 0) + g.monto);
-    porCategoria.set(String(g.categoria_id), c);
+  for (const g of resumen) {
+    porMoneda.set(g.moneda, sumar([porMoneda.get(g.moneda) ?? 0, g.monto]).toNumber());
+    const c = porCategoria.get(String(g.conceptos_gasto.categoria_id)) ?? { nombre: g.conceptos_gasto.categorias_gasto?.nombre ?? "", montos: new Map() };
+    c.montos.set(g.moneda, sumar([c.montos.get(g.moneda) ?? 0, g.monto]).toNumber());
+    porCategoria.set(String(g.conceptos_gasto.categoria_id), c);
   }
   const principal = porMoneda.has("COP") || porMoneda.size === 0 ? "COP" : [...porMoneda.keys()][0];
   const barras = [...porCategoria.entries()]
@@ -62,12 +69,15 @@ export default async function PaginaGastos({ searchParams }: PageProps<"/gastos"
         {(["COP", "USD"] as const).map((m) => (
           <TarjetaKpi key={m} titulo={`Gastado ${m}`} icono={Receipt} valor={formatearMonto(porMoneda.get(m) ?? 0, m)} />
         ))}
-        <TarjetaKpi titulo="Gastos registrados" icono={Tags} valor={filas.length} detalle="en el periodo" />
+        <TarjetaKpi titulo="Gastos registrados" icono={Tags} valor={resumen.length} detalle="en el periodo" />
         <TarjetaKpi titulo="Mayor categoría" icono={Tags} valor={barras[0]?.nombre ?? "—"} detalle={barras[0]?.texto} />
       </section>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <ListaGastos filas={filas} catalogo={catalogo} hoy={hoy} puedeCorregir={puede(perfil.rol, "gastos_corregir")} />
+        <div className="min-w-0 space-y-3">
+          <ListaGastos filas={filas} catalogo={catalogo} hoy={hoy} puedeCorregir={puede(perfil.rol, "gastos_corregir")} />
+          <Paginacion pagina={resultado.pagina} total={resultado.total} porPagina={resultado.porPagina} />
+        </div>
         <Tarjeta titulo="Por categoría">
           <Barras filas={barras} vacio="Sin gastos en el periodo." />
         </Tarjeta>
