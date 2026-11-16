@@ -2,7 +2,7 @@
 
 Rama: `mejora/historiales-completos-preview`. Base de producción: `8bf99d0`.
 
-**No fusionar ni promover a producción hasta que Samer revise y apruebe.** No hay migraciones SQL ni modificaciones a los registros comerciales.
+**Samer autorizó pasar a producción el 2026-11-16.** No hay migraciones SQL ni modificaciones a los registros comerciales.
 
 ## Cambios
 
@@ -19,11 +19,11 @@ En el build de Vercel con `VERCEL_ENV=preview`, `NEXT_PUBLIC_VISTA_PREVIA_LECTUR
 
 El login no llama a `registrar_acceso` en esta revisión. El proveedor de autenticación puede registrar su actividad normal de sesión. La protección no cambia permisos ni RLS de la base y no sustituye una base separada para pruebas destructivas. La conexión de Preview debe tener sus variables Supabase configuradas; no se añade ni mueve ninguna credencial en el código.
 
-En producción la protección de revisión está desactivada por configuración de build, pero esta rama **no debe publicarse allí sin aprobación**.
+En producción la protección de revisión está desactivada por configuración de build, y la publicación fue autorizada por Samer.
 
 ## Comprobaciones
 
-- Vitest: 64 pruebas, incluidas regresiones con 1.205 entregas, 605 pagos y 2.205 gastos, y respuestas limitadas a 17 filas.
+- Vitest: 66 pruebas, incluidas regresiones con 1.205 entregas, 605 pagos y 2.205 gastos, y respuestas limitadas a 17 filas.
 - TypeScript y ESLint.
 - Build de producción de Next.
 - `node tests/revision/verificar-render.mjs`: levanta una API local con datos ficticios y verifica el HTML de las páginas reales, incluidas las páginas antiguas.
@@ -44,3 +44,9 @@ En producción la protección de revisión está desactivada por configuración 
 Esta revisión atiende los límites de las fichas de proveedores, nómina y gastos y sus estados de cuenta. No pretende eliminar todos los límites de todos los módulos: siguen pendientes, por ejemplo, la ficha general de clientes, el libro de facturas de 500 filas y otros listados/reportes. No se modifican facturación, fórmulas de deuda ni control de inventario.
 
 Los resúmenes recuperan columnas mínimas por lotes y suman en servidor para no exigir SQL sobre la base activa. El tiempo de consulta crece con el historial del filtro; si aumenta mucho, el siguiente paso es una función SQL de agregación en una migración nueva, probada y autorizada aparte.
+
+## Retorno a la versión anterior
+
+Versión anterior comprobada: `8bf99d0c892b338890ff23d3de28e51368502272` (árbol `ad4db972a4b7d52dcfb86df1a992a5e2bd3b0f60`). Se conserva la rama `respaldo/antes-historiales-20261116`.
+
+Si hace falta, crear un commit de reversión con el árbol anterior y como padre el HEAD vigente de producción; mover la rama con comprobación de SHA, sin sobrescribir cambios concurrentes. Esperar y verificar el despliegue de Vercel. No restaurar la base: esta publicación no cambia esquema ni migra registros, y las operaciones nuevas deben conservarse. Si hubiera un problema en registros, diagnosticarlo por separado; volver al código anterior no deshace operaciones guardadas.
