@@ -236,6 +236,7 @@ export function FichaProveedor(props: {
 
         {/* Entregas */}
         <TabsContent value="entregas" className="mt-3 space-y-3">
+          <Paginacion {...paginacion.entregas} parametro="entregasPagina" />
           {entregas.length === 0 ? <EstadoVacio icono={Truck} titulo="Sin entregas" descripcion="No hay entregas con estos filtros." /> : (
             <>
               <div className="hidden overflow-x-auto rounded-2xl border bg-card md:block">
@@ -325,11 +326,12 @@ export function FichaProveedor(props: {
               </div>
             </>
           )}
-        <Paginacion {...paginacion.entregas} parametro="entregasPagina" />
+        {paginacion.entregas.total > paginacion.entregas.porPagina && <Paginacion {...paginacion.entregas} parametro="entregasPagina" />}
         </TabsContent>
 
         {/* Abonos */}
         <TabsContent value="abonos" className="mt-3 space-y-2">
+          <Paginacion {...paginacion.abonos} parametro="abonosPagina" />
           {abonos.length === 0 ? <EstadoVacio icono={Banknote} titulo="Sin abonos" descripcion="No hay abonos con estos filtros." /> : (
             <>
               <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
@@ -355,11 +357,12 @@ export function FichaProveedor(props: {
               ))}
             </>
           )}
-        <Paginacion {...paginacion.abonos} parametro="abonosPagina" />
+        {paginacion.abonos.total > paginacion.abonos.porPagina && <Paginacion {...paginacion.abonos} parametro="abonosPagina" />}
         </TabsContent>
 
         {/* Cestas */}
         <TabsContent value="cestas" className="mt-3">
+          <Paginacion {...paginacion.cestas} parametro="cestasPagina" />
           {cestas.length === 0 ? <EstadoVacio icono={Package} titulo="Sin movimientos de cestas" /> : (
             <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
               {cestas.map((c) => (
@@ -375,7 +378,7 @@ export function FichaProveedor(props: {
               ))}
             </ul>
           )}
-        <Paginacion {...paginacion.cestas} parametro="cestasPagina" />
+        {paginacion.cestas.total > paginacion.cestas.porPagina && <Paginacion {...paginacion.cestas} parametro="cestasPagina" />}
         </TabsContent>
       </Tabs>
 

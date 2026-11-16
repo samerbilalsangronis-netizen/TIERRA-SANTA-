@@ -25,6 +25,23 @@ try {
   const id = "00000000-0000-4000-8000-000000000001", exp = Math.floor(Date.now() / 1000) + 3600;
   const access_token = `${enc({ alg: "HS256", typ: "JWT" })}.${enc({ sub: id, aud: "authenticated", role: "authenticated", exp })}.firma-ficticia`;
   const cookie = "sb-127-auth-token=base64-" + enc({ access_token, refresh_token: "local", token_type: "bearer", expires_at: exp, expires_in: 3600, user: { id, email: "revision@tierrasanta.test" } });
+  // Revisar el control superior, antes de cualquier fila, para cada proveedor.
+  for (const [proveedor, total, siguiente] of [[1, 1205, true], [2, 6, false], [3, 50, false], [4, 121, true]]) {
+    const r = await fetch(`http://127.0.0.1:3010/proveedores/${proveedor}`, { headers: { cookie } });
+    const html = await r.text();
+    assert.equal(r.status, 200);
+    const panel = html.indexOf('role="tabpanel"');
+    const tabla = html.indexOf('<table', panel);
+    const superior = html.slice(panel, tabla);
+    if (siguiente) {
+      assert.ok(superior.includes('entregasPagina=2'), `${total}: falta siguiente encima de las entregas`);
+      assert.ok(!superior.includes('Página única'));
+    } else {
+      assert.ok(superior.includes('Página única'), `${total}: falta indicador de página única`);
+      assert.ok(!superior.includes('entregasPagina=2'), `${total}: flecha incorrecta`);
+    }
+    process.stdout.write(`OK control superior: proveedor ${proveedor}, ${total} entregas\n`);
+  }
   for (const [ruta, esperado] of [
     ["/proveedores/1?entregasPagina=25", "Entrega 1"],
     ["/proveedores/1?seccion=abonos&abonosPagina=3", "Abono 1"],

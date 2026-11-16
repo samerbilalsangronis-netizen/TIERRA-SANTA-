@@ -1,3 +1,13 @@
+# Estado de esta revisión (2026-11-16)
+
+Producción está restablecida al código anterior mediante `64edf498287f81694fba87c92a0dc7bc9cc36e92`. La rama `mejora/paginacion-visible-proveedores` es SOLO revisión. No volver a publicarla sin que Samer la revise.
+
+Samer aclaró que las fichas sí cargaban, pero las flechas parecían aparecer en proveedores pequeños y faltar en grandes. El control estaba al pie y siempre dibujaba flechas, incluso deshabilitadas con una sola página. Ahora se muestra también arriba de cada sección; hasta 50 registros dice «Página única», sin flechas. No se modifica el conteo de la base. No está confirmada todavía la causa en el proveedor real señalado.
+
+Se añaden comprobaciones de controles con 6, 50, 121 y 1.205 entregas ficticias y se conservan las pruebas previas. No hay SQL nuevo ni modificación de registros.
+
+---
+
 # Revisión preventiva de historiales
 
 Rama: `mejora/historiales-completos-preview`. Base de producción: `8bf99d0`.
