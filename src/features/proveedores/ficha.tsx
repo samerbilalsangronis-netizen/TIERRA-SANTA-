@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, Banknote, Camera, FileText, MoreHorizontal, Package, Pencil, Plus, Power, Trash2, Truck,
 } from "lucide-react";
@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Paginacion } from "@/components/comunes/paginacion";
+import type { InfoPagina } from "@/lib/paginacion";
 import { EstadoVacio } from "@/components/comunes/estado-vacio";
-import { formatearCantidad, formatearMonto, sumar } from "@/lib/dinero";
+import { formatearCantidad, formatearMonto } from "@/lib/dinero";
 import { formatearFecha } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import {
@@ -29,6 +31,7 @@ import { DialogoEntrega, type EntregaEditable, type Rubro } from "./dialogo-entr
 import { DialogoAbono, DialogoCestas, type AbonoEditable, type CestasEditable } from "./dialogos-pagos";
 import { DialogoProveedor, type ProveedorEditable } from "./dialogo-proveedor";
 import { SaldoMoneda } from "./lista";
+import type { TotalEntregas } from "./resumen";
 import { NOMBRE_MODO, type ModoCompra } from "@/lib/calculos/entregas";
 
 const PRECIO_POR: Record<ModoCompra, string> = { KG: "por kilo", UNIDAD: "por unidad", FIJO: "por cesta", VARIABLE: "total" };
@@ -62,6 +65,9 @@ export function FichaProveedor(props: {
   saldos: SaldoMonedaFila[];
   entregas: Entrega[]; abonos: Abono[]; cestas: Cestas[];
   rubros: Rubro[]; monedas: string[]; metodos: { id: number; nombre: string }[];
+  paginacion: { entregas: InfoPagina; abonos: InfoPagina; cestas: InfoPagina };
+  totalesEntregas: [string, TotalEntregas][];
+  totalesAbonos: [string, number][];
   filtros: { moneda: string; desde: string; hasta: string };
   hoy: string;
   permisos: { editar: boolean; pagar: boolean; eliminarProveedor: boolean };
@@ -69,6 +75,8 @@ export function FichaProveedor(props: {
   const { proveedor, resumen, saldos, entregas, abonos, cestas, rubros, monedas, metodos, filtros, hoy, permisos } = props;
   const router = useRouter();
   const ruta = usePathname();
+  const params = useSearchParams();
+  const { paginacion, totalesEntregas, totalesAbonos } = props;
   const [dialogo, setDialogo] = useState<Dialogo>(null);
   const [pendiente, iniciar] = useTransition();
   const cerrar = () => setDialogo(null);
@@ -84,7 +92,11 @@ export function FichaProveedor(props: {
 
   function filtrar(cambio: Partial<typeof filtros>) {
     const f = { ...filtros, ...cambio };
-    const qs = new URLSearchParams(Object.entries(f).filter(([, v]) => v));
+    const qs = new URLSearchParams(params.toString());
+    Object.entries(f).forEach(([k, v]) => v ? qs.set(k, v) : qs.delete(k));
+    ["entregasPagina", "abonosPagina", "cestasPagina"].forEach((k) => qs.delete(k));
+    if (params.get("seccion")) qs.set("seccion", params.get("seccion")!);
+    if (params.get("seccion")) qs.set("seccion", params.get("seccion")!);
     router.replace(`${ruta}${qs.size ? `?${qs}` : ""}`, { scroll: false });
   }
 
@@ -95,23 +107,6 @@ export function FichaProveedor(props: {
       cerrar();
     });
   }
-
-  const totalesEntregas = useMemo(() => {
-    const m = new Map<string, { total: number; kg: number; merma: number; neto: number; cestas: number; n: number }>();
-    for (const e of entregas) {
-      const t = m.get(e.moneda) ?? { total: 0, kg: 0, merma: 0, neto: 0, cestas: 0, n: 0 };
-      m.set(e.moneda, {
-        total: sumar([t.total, e.total]).toNumber(), kg: sumar([t.kg, e.kg_total]).toNumber(), merma: sumar([t.merma, e.merma]).toNumber(),
-        neto: sumar([t.neto, e.peso_neto]).toNumber(), cestas: sumar([t.cestas, e.cestas]).toNumber(), n: t.n + 1,
-      });
-    }
-    return [...m.entries()];
-  }, [entregas]);
-  const totalesAbonos = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const a of abonos) m.set(a.moneda, sumar([m.get(a.moneda) ?? 0, a.monto]).toNumber());
-    return [...m.entries()];
-  }, [abonos]);
 
   const menuFila = (items: { texto: string; icono: typeof Pencil; accion: () => void; peligro?: boolean }[], etiqueta: string) =>
     items.length === 0 ? null : (
@@ -229,15 +224,19 @@ export function FichaProveedor(props: {
         </div>
       </div>
 
-      <Tabs defaultValue="entregas">
+      <Tabs value={["entregas", "abonos", "cestas"].includes(params.get("seccion") || "") ? params.get("seccion")! : "entregas"} onValueChange={(seccion) => {
+        const qs = new URLSearchParams(params.toString()); qs.set("seccion", seccion);
+        router.replace(`${ruta}?${qs}`, { scroll: false });
+      }}>
         <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="entregas">Entregas ({entregas.length})</TabsTrigger>
-          <TabsTrigger value="abonos">Abonos ({abonos.length})</TabsTrigger>
-          {usaCestas && <TabsTrigger value="cestas">Cestas ({cestas.length})</TabsTrigger>}
+          <TabsTrigger value="entregas">Entregas ({paginacion.entregas.total})</TabsTrigger>
+          <TabsTrigger value="abonos">Abonos ({paginacion.abonos.total})</TabsTrigger>
+          {usaCestas && <TabsTrigger value="cestas">Cestas ({paginacion.cestas.total})</TabsTrigger>}
         </TabsList>
 
         {/* Entregas */}
         <TabsContent value="entregas" className="mt-3 space-y-3">
+          <Paginacion {...paginacion.entregas} parametro="entregasPagina" />
           {entregas.length === 0 ? <EstadoVacio icono={Truck} titulo="Sin entregas" descripcion="No hay entregas con estos filtros." /> : (
             <>
               <div className="hidden overflow-x-auto rounded-2xl border bg-card md:block">
@@ -279,7 +278,7 @@ export function FichaProveedor(props: {
                   <TableFooter>
                     {totalesEntregas.map(([m, t]) => (
                       <TableRow key={m}>
-                        <TableCell colSpan={2} className="font-semibold">Total {m} ({t.n})</TableCell>
+                        <TableCell colSpan={2} className="font-semibold">Total del filtro {m} ({t.n})</TableCell>
                         {hayCestas && <TableCell className="tabular text-right">{t.cestas ? formatearCantidad(t.cestas) : ""}</TableCell>}
                         <TableCell className="tabular text-right">{t.kg ? `${formatearCantidad(t.kg)} kg` : ""}</TableCell>
                         <TableCell />
@@ -327,10 +326,12 @@ export function FichaProveedor(props: {
               </div>
             </>
           )}
+        {paginacion.entregas.total > paginacion.entregas.porPagina && <Paginacion {...paginacion.entregas} parametro="entregasPagina" />}
         </TabsContent>
 
         {/* Abonos */}
         <TabsContent value="abonos" className="mt-3 space-y-2">
+          <Paginacion {...paginacion.abonos} parametro="abonosPagina" />
           {abonos.length === 0 ? <EstadoVacio icono={Banknote} titulo="Sin abonos" descripcion="No hay abonos con estos filtros." /> : (
             <>
               <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
@@ -356,10 +357,12 @@ export function FichaProveedor(props: {
               ))}
             </>
           )}
+        {paginacion.abonos.total > paginacion.abonos.porPagina && <Paginacion {...paginacion.abonos} parametro="abonosPagina" />}
         </TabsContent>
 
         {/* Cestas */}
         <TabsContent value="cestas" className="mt-3">
+          <Paginacion {...paginacion.cestas} parametro="cestasPagina" />
           {cestas.length === 0 ? <EstadoVacio icono={Package} titulo="Sin movimientos de cestas" /> : (
             <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
               {cestas.map((c) => (
@@ -375,6 +378,7 @@ export function FichaProveedor(props: {
               ))}
             </ul>
           )}
+        {paginacion.cestas.total > paginacion.cestas.porPagina && <Paginacion {...paginacion.cestas} parametro="cestasPagina" />}
         </TabsContent>
       </Tabs>
 

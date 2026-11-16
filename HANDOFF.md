@@ -53,6 +53,14 @@
 **El sistema está completo y en uso real en producción.** Samer factura, registra proveedores,
 nómina y gastos todos los días.
 
+### Historiales: revisión de controles visibles (2026-11-16; SOLO Preview)
+- Producción fue restablecida con `64edf498287f81694fba87c92a0dc7bc9cc36e92` al código de `8bf99d0`, sin tocar datos. Samer aclaró después que las fichas sí abrían: su observación era que unas mostraban flechas y otras no.
+- Rama de revisión `mejora/paginacion-visible-proveedores`, sobre la implementación `f825ec2`. No publicar en producción sin nueva revisión de Samer.
+- Confirmado en código: el control anterior mostraba flechas deshabilitadas aunque hubiera una sola página, y se ubicaba únicamente debajo del historial. Esto puede explicar la percepción, pero no se ha comprobado el proveedor real señalado.
+- Ahora el control de Entregas/Abonos/Cestas está arriba; cuando hay varias páginas se repite abajo. Hasta 50 registros muestra «Página única» sin flechas. Con más de 50 muestra conteo y Siguiente; conserva los filtros.
+- No se cambian conteos, consultas de datos, fórmulas ni SQL en esta corrección de interfaz. Se mantienen las lecturas completas y totales de la revisión anterior.
+- Datos ficticios para proveedores de 6, 50, 121 y 1.205 entregas. Preview sigue de solo consulta; no hace falta pegar SQL.
+
 ### Hecho y funcionando
 - Todos los módulos: facturación, clientes, proveedores, inventario, nómina, gastos,
   dashboard, reportes, catálogos, usuarios y auditoría (§7).
@@ -262,6 +270,8 @@ tests/unit (Vitest) · tests/e2e (Playwright)
 ---
 
 ## 6. Base de datos: cómo se cambia (¡importante!)
+
+Revisión 2026-11-16: no añade ni modifica migraciones; no aplicar SQL para esta rama de revisión.
 
 **Samer aplica cada migración a mano:**
 1. Le pasas el enlace del archivo en GitHub, en la rama de producción. Por ejemplo:
@@ -761,6 +771,8 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test   # 34 pr
 
 | Fecha | Qué se hizo |
 |---|---|
+| 2026-11-16 (revisión de flechas) | Producción restablecida previamente. Controles arriba/abajo y página única en nueva rama Preview; sin SQL ni datos reales. Pendiente comprobar el proveedor concreto de Samer. |
+| 2026-11-16 | Preparación preventiva en rama separada: paginación de historiales, resúmenes completos y Preview de solo consulta. Sin SQL. Samer autorizó pasar a producción; punto de retorno conservado en `8bf99d0`. |
 | 2026-11-04 (cont.) | Reporte de nómina imprime solo la hoja (con logo y firmas). Se quitó la tarjeta Nómina del Dashboard. |
 | 2026-11-04 | Nómina por pagos en vez de periodos (§7.7): botones Pagar y Adelanto, "Pagar a los fijos" (pago parcial = acumula), panel con saldo total, último pago, ganado y adelantos desde el último pago, días trabajados del mes y tareas del mes (destajo); reporte por defecto desde el último pago. Sin migración. |
 | 2026-11-03 | Este HANDOFF reescrito como documento maestro (para Codex y otros agentes). `AGENTS.md` lo señala. Se agregaron `scripts/levantar-local.sh` y `supabase/utilidades/revisar_migraciones.sql`. |

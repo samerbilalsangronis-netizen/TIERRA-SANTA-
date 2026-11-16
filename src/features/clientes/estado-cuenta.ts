@@ -1,4 +1,5 @@
 import "server-only";
+import { leerTodos } from "@/lib/paginacion";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export type FilaEstadoCliente = {
@@ -17,11 +18,13 @@ export async function obtenerEstadoCuentaCliente(clienteId: number, moneda: stri
   ]);
   if (!cliente) return null;
   const mon = moneda || saldos?.[0]?.moneda || empresa?.moneda_defecto || "USD";
-  const { data, error } = await supabase.rpc("estado_cuenta_cliente", {
+  const data = await leerTodos((d, h) => supabase.rpc("estado_cuenta_cliente", {
     p_cliente_id: clienteId, p_moneda: mon, p_desde: valida(desde) ?? undefined, p_hasta: valida(hasta) ?? undefined,
-  });
-  if (error) throw new Error(error.message);
-  const filas = (data ?? []) as FilaEstadoCliente[];
+  }, { count: "exact" }).order("fecha").order("tipo").order("ref_id").range(d, h));
+  // Orden original de la cuenta: saldo anterior, facturas, pagos/conversiones del día por ID.
+  const orden = (tipo: string) => tipo === "saldo_anterior" ? 0 : tipo === "factura" ? 1 : 2;
+  const filas = (data as FilaEstadoCliente[]).sort((a, b) =>
+    (a.fecha ?? "").localeCompare(b.fecha ?? "") || orden(a.tipo) - orden(b.tipo) || (a.ref_id ?? 0) - (b.ref_id ?? 0));
   const movs = filas.filter((f) => f.tipo !== "saldo_anterior");
   return {
     cliente, empresa, moneda: mon, desde: valida(desde), hasta: valida(hasta), filas,
