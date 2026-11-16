@@ -1,5 +1,4 @@
 import "server-only";
-import { leerTodos } from "@/lib/paginacion";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { periodoDeFecha, type Periodicidad } from "@/lib/calculos/nomina";
 import { hoyISO } from "@/lib/fechas";
@@ -46,12 +45,10 @@ export async function cargarEmpleados(): Promise<EmpleadoLista[]> {
  */
 export async function cargarUltimosPagos(empleadoId?: number) {
   const supabase = await crearClienteServidor();
-  const data = await leerTodos((d, h) => {
-    let q = supabase.from("abonos_empleados").select("id, empleado_id, fecha, monto", { count: "exact" }).eq("tipo", "liquidacion")
-      .order("fecha", { ascending: false }).order("id", { ascending: false });
-    if (empleadoId) q = q.eq("empleado_id", empleadoId);
-    return q.range(d, h);
-  });
+  let q = supabase.from("abonos_empleados").select("empleado_id, fecha, monto").eq("tipo", "liquidacion")
+    .order("fecha", { ascending: false }).limit(5000);
+  if (empleadoId) q = q.eq("empleado_id", empleadoId);
+  const { data } = await q;
   const pagos = new Map<number, { fecha: string; monto: number }>();
   for (const a of data ?? []) {
     const p = pagos.get(a.empleado_id);
@@ -71,8 +68,8 @@ const COLUMNAS_JORNADA = "id, fecha, estado, justificada, pago_dia, pago_adicion
 
 export async function cargarJornadas(empleadoId: number, desde: string, hasta: string): Promise<JornadaDia[]> {
   const supabase = await crearClienteServidor();
-  const data = await leerTodos((d, h) => supabase.from("jornadas").select(COLUMNAS_JORNADA, { count: "exact" })
-    .eq("empleado_id", empleadoId).gte("fecha", desde).lte("fecha", hasta).order("fecha").order("id").range(d, h));
+  const { data } = await supabase.from("jornadas").select(COLUMNAS_JORNADA)
+    .eq("empleado_id", empleadoId).gte("fecha", desde).lte("fecha", hasta).order("fecha");
   return (data ?? []).map((j) => ({
     ...j, pago_dia: Number(j.pago_dia), pago_adicional: Number(j.pago_adicional), total_tareas: Number(j.total_tareas),
     ganado: Number(j.ganado ?? 0), tarifa_aplicada: Number(j.tarifa_aplicada),
@@ -85,15 +82,4 @@ export async function periodosCerrados(desde: string, hasta: string) {
   const supabase = await crearClienteServidor();
   const { data } = await supabase.from("periodos_nomina").select("desde, hasta").eq("estado", "cerrado").lte("desde", hasta).gte("hasta", desde);
   return data ?? [];
-}
-
-export async function cargarAbonosEmpleado(empleadoId: number, desde?: string, hasta?: string) {
-  const supabase = await crearClienteServidor();
-  return leerTodos((d, h) => {
-    let q = supabase.from("abonos_empleados").select("id, fecha, monto, tipo, entregado_por, nota, periodo_id", { count: "exact" })
-      .eq("empleado_id", empleadoId).order("fecha", { ascending: false }).order("id", { ascending: false });
-    if (desde) q = q.gte("fecha", desde);
-    if (hasta) q = q.lte("fecha", hasta);
-    return q.range(d, h);
-  });
 }

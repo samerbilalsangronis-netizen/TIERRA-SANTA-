@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Banknote, ChevronLeft, ChevronRight, HandCoins, Lock, MoreHorizontal, Pencil, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -20,8 +20,6 @@ import { formatearFecha } from "@/lib/fechas";
 import { cn } from "@/lib/utils";
 import { eliminarAbono, eliminarEmpleado } from "./acciones";
 import { DialogoAbono, DialogoEmpleado, DialogoJornada, type AbonoEditable, type EmpleadoEditable } from "./dialogos";
-import { Paginacion } from "@/components/comunes/paginacion";
-import type { InfoPagina } from "@/lib/paginacion";
 import type { JornadaDia, Tarea } from "./datos";
 
 type Abono = AbonoEditable & { tipo: string; periodo_id?: number | null };
@@ -42,7 +40,6 @@ const mesSiguiente = (mes: string, n: number) => {
 export function FichaEmpleado(props: {
   empleado: EmpleadoEditable; saldo: number; pestana: Pestana; mes: string; hoy: string; inicioSemana: number;
   jornadasMes: JornadaDia[]; cerrados: { desde: string; hasta: string }[]; tareas: Tarea[]; abonos: Abono[];
-  paginacionAbonos: InfoPagina; abonosPanel: Abono[];
   /** Último pago (fecha y monto) y el día desde el que se cuenta lo pendiente (el siguiente). */
   ultimoPago: { fecha: string; monto: number } | null; desdePago: string | null; jornadasDesdePago: JornadaDia[];
   reporte: { desde: string; hasta: string; jornadas: JornadaDia[]; abonos: Abono[] };
@@ -53,13 +50,10 @@ export function FichaEmpleado(props: {
   const { encabezadoReporte, empleado, saldo, pestana, mes, hoy, inicioSemana, jornadasMes, cerrados, tareas, abonos, ultimoPago, desdePago, jornadasDesdePago, reporte, usuario } = props;
   const router = useRouter();
   const ruta = usePathname();
-  const params = useSearchParams();
   const [dialogo, setDialogo] = useState<{ tipo: "jornada"; fecha: string } | { tipo: "abono"; clase: "adelanto" | "liquidacion"; abono?: Abono } | { tipo: "editar" } | { tipo: "eliminar" } | { tipo: "eliminarAbono"; abono: Abono } | null>(null);
   const [pendiente, iniciar] = useTransition();
   const ir = (cambio: Record<string, string>) => {
-    const qs = new URLSearchParams(params.toString());
-    Object.entries({ pestana, mes, ...cambio }).forEach(([k, v]) => qs.set(k, v));
-    qs.delete("pagina");
+    const qs = new URLSearchParams({ pestana, mes, ...cambio });
     if (qs.get("pestana") === "calendario") qs.delete("pestana");
     router.replace(`${ruta}?${qs}`, { scroll: false });
   };
@@ -160,7 +154,7 @@ export function FichaEmpleado(props: {
       {pestana === "panel" && (() => {
         // Desde el último pago: lo ganado y los adelantos (el saldo total también incluye lo que quedó pendiente antes)
         const ganadoDesde = sumaGanado(jornadasDesdePago);
-        const adelantosDesde = props.abonosPanel.filter((a) => a.tipo === "adelanto" && (!desdePago || a.fecha >= desdePago)).reduce((x, a) => x + a.monto, 0);
+        const adelantosDesde = abonos.filter((a) => a.tipo === "adelanto" && (!desdePago || a.fecha >= desdePago)).reduce((x, a) => x + a.monto, 0);
         // En el mes del calendario
         const trabajados = jornadasMes.filter((j) => j.estado !== "no");
         const porTarea = new Map<number, { cantidad: number; subtotal: number }>();
@@ -220,8 +214,8 @@ export function FichaEmpleado(props: {
       })()}
 
       {/* ------------------------------------------------ Abonos */}
-      {pestana === "abonos" && <section className="space-y-3">
-        {abonos.length === 0 ? <EstadoVacio icono={HandCoins} titulo="Sin pagos" descripcion="Los pagos y adelantos que se le den aparecen aquí." /> : (
+      {pestana === "abonos" && (
+        abonos.length === 0 ? <EstadoVacio icono={HandCoins} titulo="Sin pagos" descripcion="Los pagos y adelantos que se le den aparecen aquí." /> : (
           <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
             {abonos.map((a) => (
               <li key={a.id} className="flex items-center gap-3 px-3 py-2.5 text-sm">
@@ -242,9 +236,8 @@ export function FichaEmpleado(props: {
               </li>
             ))}
           </ul>
-        )}
-        <Paginacion {...props.paginacionAbonos} />
-      </section>}
+        )
+      )}
 
       {/* ------------------------------------------------ Reporte */}
       {pestana === "reporte" && (

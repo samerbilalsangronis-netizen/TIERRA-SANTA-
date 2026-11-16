@@ -1,4 +1,3 @@
-import { vistaPreviaSoloLectura } from "@/lib/vista-previa";
 import { exigirPerfil } from "@/lib/auth/sesion";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { urlLogo } from "@/lib/empresa";
@@ -25,12 +24,7 @@ export default async function LayoutApp({ children }: LayoutProps<"/">) {
           razon={razon}
           fechaHoy={formatearFechaLarga()}
         />
-        <main className="mx-auto w-full max-w-[1400px] px-3 py-5 sm:px-6 sm:py-6 print:p-0">
-          {vistaPreviaSoloLectura && <p role="status" className="no-print mb-4 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">
-            Vista previa de revisión · Solo consulta. Los cambios de datos están bloqueados en esta versión.
-          </p>}
-          {children}
-        </main>
+        <main className="mx-auto w-full max-w-[1400px] px-3 py-5 sm:px-6 sm:py-6 print:p-0">{children}</main>
       </div>
     </div>
   );

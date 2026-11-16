@@ -1,4 +1,3 @@
-import { leerTodos } from "@/lib/paginacion";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Banknote, CalendarCheck, Users, Wallet } from "lucide-react";
@@ -27,9 +26,9 @@ export default async function PaginaNomina() {
   const hoy = hoyISO();
   const semana = rangoPeriodo("semana", hoy).actual;
   const supabase = await crearClienteServidor();
-  const [empleados, tareas, pagadoSemana] = await Promise.all([
+  const [empleados, tareas, { data: pagadoSemana }] = await Promise.all([
     cargarEmpleados(), cargarTareas(),
-    leerTodos((d, h) => supabase.from("abonos_empleados").select("id, monto", { count: "exact" }).gte("fecha", semana.desde).lte("fecha", semana.hasta).order("id").range(d, h)),
+    supabase.from("abonos_empleados").select("monto").gte("fecha", semana.desde).lte("fecha", semana.hasta),
   ]);
   const debe = (tipo: "fijo" | "destajo") => empleados.filter((e) => e.tipo === tipo).reduce((a, e) => a + Math.max(e.saldo_neto, 0), 0);
   const pagado = (pagadoSemana ?? []).reduce((a, x) => a + Number(x.monto), 0);

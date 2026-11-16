@@ -1,4 +1,3 @@
-import { fetchVistaPrevia } from "@/lib/vista-previa";
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "@/lib/env";
@@ -15,7 +14,6 @@ export function crearClienteAdmin() {
     throw new Error("Falta SUPABASE_SERVICE_ROLE_KEY en las variables de entorno del servidor.");
   }
   return createClient<Database>(SUPABASE_URL, clave, {
-    global: { fetch: fetchVistaPrevia },
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

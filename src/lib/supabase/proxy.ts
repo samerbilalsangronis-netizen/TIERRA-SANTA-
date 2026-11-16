@@ -1,4 +1,3 @@
-import { fetchVistaPrevia } from "@/lib/vista-previa";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigurado } from "@/lib/env";
@@ -11,7 +10,6 @@ export async function actualizarSesion(request: NextRequest) {
   if (!supabaseConfigurado()) return response;
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { fetch: fetchVistaPrevia },
     cookies: {
       getAll() {
         return request.cookies.getAll();

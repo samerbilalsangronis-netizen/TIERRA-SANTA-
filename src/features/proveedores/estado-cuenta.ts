@@ -1,5 +1,4 @@
 import "server-only";
-import { leerTodos } from "@/lib/paginacion";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { parsearMonto } from "@/lib/dinero";
 
@@ -32,18 +31,16 @@ export async function obtenerEstadoCuenta(proveedorId: number, moneda: string | 
   ]);
   if (!proveedor) return null;
   const mon = moneda || proveedor.moneda_habitual;
-  const filas = await leerTodos((d, h) => supabase.rpc("estado_cuenta_proveedor", {
+  const { data: filas, error } = await supabase.rpc("estado_cuenta_proveedor", {
     p_proveedor_id: proveedorId, p_moneda: mon, p_desde: valida(desde) ?? undefined, p_hasta: valida(hasta) ?? undefined,
-  }, { count: "exact" }).order("fecha").order("tipo", { ascending: false }).order("ref_id").range(d, h));
-  const lista = (filas ?? []) as FilaEstadoCuenta[];
-  const entregas = await leerTodos((d, h) => {
-    let q = supabase.from("entregas_proveedor")
-      .select("id, modo_pesaje, precio, precio_kg, cestas, unidades, kg_por_cesta, nota, productos(nombre, emoji)", { count: "exact" })
-      .eq("proveedor_id", proveedorId).eq("moneda", mon).order("id");
-    if (valida(desde)) q = q.gte("fecha", valida(desde)!);
-    if (valida(hasta)) q = q.lte("fecha", valida(hasta)!);
-    return q.range(d, h);
   });
+  if (error) throw new Error(error.message);
+  const lista = (filas ?? []) as FilaEstadoCuenta[];
+  const ids = lista.filter((f) => f.tipo === "entrega" && f.ref_id).map((f) => f.ref_id!);
+  const { data: entregas } = ids.length
+    ? await supabase.from("entregas_proveedor")
+        .select("id, modo_pesaje, precio, precio_kg, cestas, unidades, kg_por_cesta, nota, productos(nombre, emoji)").in("id", ids)
+    : { data: [] };
   const detalles = new Map<number, DetalleEntrega>();
   for (const e of entregas ?? []) {
     const cestas = Number(e.cestas), precio = Number(e.precio);

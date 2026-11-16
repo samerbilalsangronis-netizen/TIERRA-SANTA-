@@ -1,5 +1,4 @@
 "use server";
-import { vistaPreviaSoloLectura } from "@/lib/vista-previa";
 import { redirect } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { erroresZod, exito, fallo, type Resultado } from "@/lib/acciones";
@@ -33,7 +32,7 @@ export async function iniciarSesion(datos: DatosLogin): Promise<Resultado<{ dest
     return fallo(MENSAJES_ACCESO[acceso.motivo]);
   }
 
-  if (!vistaPreviaSoloLectura) await supabase.rpc("registrar_acceso");
+  await supabase.rpc("registrar_acceso");
   const siguiente = v.data.siguiente?.startsWith("/") && !v.data.siguiente.startsWith("//") ? v.data.siguiente : "/dashboard";
   return exito({ destino: perfil.debe_cambiar_clave ? "/auth/cambiar-clave" : siguiente });
 }

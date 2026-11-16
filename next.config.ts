@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  env: {
-    NEXT_PUBLIC_VISTA_PREVIA_LECTURA: process.env.VERCEL_ENV === "preview" ? "1" : "0",
-  },
   // Toda la app es privada y depende de la sesión: se renderiza por petición.
   // (Ver DECISIONES.md · "Cache Components desactivado")
   turbopack: {

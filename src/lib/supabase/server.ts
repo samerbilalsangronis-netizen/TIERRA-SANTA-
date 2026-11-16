@@ -1,4 +1,3 @@
-import { fetchVistaPrevia } from "@/lib/vista-previa";
 import "server-only";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -9,7 +8,6 @@ import type { Database } from "./database.types";
 export async function crearClienteServidor() {
   const cookieStore = await cookies();
   return createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { fetch: fetchVistaPrevia },
     cookies: {
       getAll() {
         return cookieStore.getAll();
