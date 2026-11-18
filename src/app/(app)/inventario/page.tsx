@@ -36,7 +36,7 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
   ]);
   const operar = puede(perfil.rol, "inventario_operar");
   const ajustar = puede(perfil.rol, "inventario_ajustar");
-  const unidadesTotales = sumar(filas.map((f) => f.total));
+  const unidadesTotales = sumar(filas.filter((f) => f.total > 0).map((f) => f.total));
   const agotados = filas.filter((f) => f.indicador === "agotado").length;
 
   return (
