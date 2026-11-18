@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, Boxes, Download, Factory, History, PackageX } from "lucide-react";
+import { Boxes, Download, Factory, History, Package, PackageX } from "lucide-react";
 import { exigirPerfil } from "@/lib/auth/sesion";
 import { puede } from "@/lib/auth/roles";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { formatearCantidad } from "@/lib/dinero";
+import { formatearCantidad, sumar } from "@/lib/dinero";
 import { formatearFecha, formatearFechaHora, hoyISO, sumarDias } from "@/lib/fechas";
 import { numeroFactura } from "@/lib/facturas";
 import { cn } from "@/lib/utils";
@@ -36,7 +36,7 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
   ]);
   const operar = puede(perfil.rol, "inventario_operar");
   const ajustar = puede(perfil.rol, "inventario_ajustar");
-  const bajos = filas.filter((f) => f.indicador === "bajo").length;
+  const unidadesTotales = sumar(filas.map((f) => f.total));
   const agotados = filas.filter((f) => f.indicador === "agotado").length;
 
   return (
@@ -48,7 +48,7 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
 
       <section className="mb-4 grid grid-cols-3 gap-3">
         <TarjetaKpi titulo="Productos" icono={Boxes} valor={filas.filter((f) => f.total > 0).length} detalle="con existencia" />
-        <TarjetaKpi titulo="Bajo el mínimo" icono={AlertTriangle} tono={bajos ? "alerta" : "exito"} valor={bajos} />
+        <TarjetaKpi titulo="Unidades totales" icono={Package} valor={formatearCantidad(unidadesTotales)} detalle="bolsas en inventario" />
         <TarjetaKpi titulo="Agotados" icono={PackageX} tono={agotados ? "peligro" : "exito"} valor={agotados} />
       </section>
 
